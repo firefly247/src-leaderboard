@@ -108,6 +108,7 @@ tbody tr:hover { background: #f8fbff; }
 .status-message { padding: 13px 16px; margin-bottom: 18px; border-radius: 12px; background: #e8efff; color: var(--primary-dark); font-weight: 700; }
 .status-error { background: #ffebee; color: #9a1e2a; }
 footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px; }
+/* PC: 960px 이상 */
 @media (min-width: 960px) {
   .event-sections { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 18px; }
   .event-section + .event-section { margin-top: 0; padding-top: 0; border-top: 0; }
@@ -123,20 +124,13 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .event-sections .search-input { width: 100%; min-width: 0; margin-top: 12px; }
   .event-sections .ranking-scroll { max-height: 240px; }
 }
-@media (max-width: 850px) {
+/* 모바일: 959px 이하 */
+@media (max-width: 959px) {
   .site-header { padding: 0 4vw; }
-  .brand span:last-child { font-size: 14px; }
-  .site-header nav { gap: 13px; }
   .event-sections { display: block; }
-  .event-section + .event-section { margin-top: 52px; padding-top: 52px; border-top: 2px solid var(--line); }
-  .podium-grid { grid-template-columns: 1fr; }
-  .event-sections .podium-card, .event-sections .podium-1 { min-height: 0; }
   .podium-1 { order: -1; }
   .table-heading { display: block; }
   .search-input { margin-top: 15px; width: 100%; }
-  .top-champions { grid-template-columns: 1fr; }
-}
-@media (max-width: 560px) {
   .page-shell { width: 94vw; margin-top: 18px; }
   .podium-section, .panel { padding: 20px; border-radius: 18px; }
   .brand { gap: 8px; letter-spacing: 0; }
@@ -152,7 +146,7 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .top-champion-card strong { width: 100%; font-size: 15px; text-align: center; }
   .top-champion-card small { font-size: 15px; }
   .event-sections { margin-top: 26px; }
-  .event-section + .event-section { margin-top: 26px; padding-top: 26px; }
+  .event-section + .event-section { margin-top: 26px; padding-top: 26px; border-top: 2px solid var(--line); }
   .podium-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; gap: 6px; }
   .podium-card, .podium-1 { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-width: 0; min-height: 118px; padding: 10px 4px; text-align: center; }
   .podium-card::after { display: none; }
