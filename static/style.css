@@ -67,6 +67,10 @@ tbody tr:hover { background: #f8fbff; }
 .member-name { font-weight: 800; }
 .time-cell { font-variant-numeric: tabular-nums; font-weight: 900; color: var(--primary-dark); }
 .empty-cell { text-align: center; color: var(--muted); padding: 42px; }
+.ranking-actions { display: flex; justify-content: center; padding-top: 18px; }
+.ranking-toggle { width: 44px; height: 44px; border: 1px solid #c8d5e8; border-radius: 50%; background: #edf3ff; color: var(--primary-dark); font: inherit; font-size: 25px; font-weight: 800; line-height: 1; cursor: pointer; box-shadow: 0 6px 16px rgba(31,61,107,.10); }
+.ranking-toggle:hover { background: var(--primary); border-color: var(--primary); color: white; }
+.ranking-toggle:focus-visible { outline: 3px solid rgba(22,93,255,.22); outline-offset: 3px; }
 .status-message { padding: 13px 16px; margin-bottom: 18px; border-radius: 12px; background: #e8efff; color: var(--primary-dark); font-weight: 700; }
 .status-error { background: #ffebee; color: #9a1e2a; }
 footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px; }

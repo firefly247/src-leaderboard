@@ -167,7 +167,7 @@ function podiumMarkup(rows) {
       <article class="podium-card podium-${position}">
         <div class="medal">${position}</div><h3>${escapeHtml(row.memberName)}</h3>
         <div class="record-time">${escapeHtml(row.timeDisplay)}</div>
-        <p>${escapeHtml(row.competition || "대회명 미입력")}</p>
+        <p>${escapeHtml(row.competition)}</p>
         <small>${escapeHtml(row.competitionDate || "-")}</small>
       </article>`;
   });
@@ -176,8 +176,9 @@ function podiumMarkup(rows) {
 
 function rankingRowsMarkup(rows) {
   return rows.length ? rows.map((row) => `
-    <tr><td><span class="rank-badge">${row.rank}</span></td><td class="member-name">${escapeHtml(row.memberName)}</td>
-      <td class="time-cell">${escapeHtml(row.timeDisplay)}</td><td>${escapeHtml(row.competition || "-")}</td>
+    <tr data-top-ten="${row.rank <= 10}" ${row.rank > 10 ? "hidden" : ""}>
+      <td><span class="rank-badge">${row.rank}</span></td><td class="member-name">${escapeHtml(row.memberName)}</td>
+      <td class="time-cell">${escapeHtml(row.timeDisplay)}</td><td>${escapeHtml(row.competition)}</td>
       <td>${escapeHtml(row.competitionDate || "-")}</td></tr>
   `).join("") : '<tr><td colspan="5" class="empty-cell">등록된 기록이 없습니다.</td></tr>';
 }
@@ -185,6 +186,7 @@ function rankingRowsMarkup(rows) {
 function renderEventSections() {
   document.querySelector("#eventSections").innerHTML = EVENTS.map((event) => {
     const rows = state.rankings[event];
+    const hasMore = rows.some((row) => row.rank > 10);
     return `
       <section class="event-section" aria-labelledby="event-title-${event}">
         <section class="podium-section">
@@ -206,6 +208,11 @@ function renderEventSections() {
               <thead><tr><th>순위</th><th>이름</th><th>PB</th><th>대회</th><th>대회일</th></tr></thead>
               <tbody>${rankingRowsMarkup(rows)}</tbody>
             </table>
+          </div>
+          <div class="ranking-actions" ${hasMore ? "" : "hidden"}>
+            <button class="ranking-toggle" type="button" data-ranking-toggle="ranking-${event}"
+              data-has-more="${hasMore}" aria-expanded="false"
+              aria-label="${event} 전체 순위 펼치기">+</button>
           </div>
         </section>
       </section>`;
@@ -232,6 +239,24 @@ function bindSearch(inputSelector, tableSelector) {
   });
 }
 
+function applyRankingVisibility(table, input) {
+  const toggle = document.querySelector(`[data-ranking-toggle="${table.id}"]`);
+  const keyword = input.value.trim().toLocaleLowerCase("ko");
+  const expanded = toggle?.getAttribute("aria-expanded") === "true";
+
+  table.querySelectorAll("tbody tr").forEach((row) => {
+    const matches = !keyword || row.textContent.toLocaleLowerCase("ko").includes(keyword);
+    const isRankingRow = row.hasAttribute("data-top-ten");
+    const allowedByLimit = !isRankingRow || Boolean(keyword) || expanded || row.dataset.topTen === "true";
+    row.hidden = !matches || !allowedByLimit;
+  });
+
+  if (toggle) {
+    toggle.hidden = toggle.dataset.hasMore !== "true" || Boolean(keyword);
+    toggle.parentElement.hidden = toggle.hidden;
+  }
+}
+
 async function loadRecords() {
   const response = await fetch(SHEET_CSV_URL, { cache: "no-store" });
   if (!response.ok) throw new Error(`Spreadsheet 응답 오류 (${response.status})`);
@@ -249,10 +274,18 @@ document.querySelector("#eventSections").addEventListener("input", (event) => {
   const input = event.target.closest("[data-ranking-table]");
   if (!input) return;
   const table = document.querySelector(`#${input.dataset.rankingTable}`);
-  const keyword = input.value.trim().toLocaleLowerCase("ko");
-  table.querySelectorAll("tbody tr").forEach((row) => {
-    row.hidden = Boolean(keyword) && !row.textContent.toLocaleLowerCase("ko").includes(keyword);
-  });
+  applyRankingVisibility(table, input);
+});
+document.querySelector("#eventSections").addEventListener("click", (event) => {
+  const toggle = event.target.closest("[data-ranking-toggle]");
+  if (!toggle) return;
+  const table = document.querySelector(`#${toggle.dataset.rankingToggle}`);
+  const input = document.querySelector(`[data-ranking-table="${table.id}"]`);
+  const expanded = toggle.getAttribute("aria-expanded") !== "true";
+  toggle.setAttribute("aria-expanded", String(expanded));
+  toggle.textContent = expanded ? "−" : "+";
+  toggle.setAttribute("aria-label", `${table.id.replace("ranking-", "")} 전체 순위 ${expanded ? "접기" : "펼치기"}`);
+  applyRankingVisibility(table, input);
 });
 bindSearch("#memberSearch", "#memberTable");
 
