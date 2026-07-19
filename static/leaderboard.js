@@ -258,7 +258,7 @@ function applyRankingVisibility(table, input) {
 }
 
 async function loadRecords() {
-  const response = await fetch(SHEET_CSV_URL, { cache: "no-store" });
+  const response = await fetch(`${SHEET_CSV_URL}&_=${Date.now()}`, { cache: "no-store" });
   if (!response.ok) throw new Error(`Spreadsheet 응답 오류 (${response.status})`);
   const records = normalizeRecords(await response.text());
   buildLeaderboard(records);
@@ -266,10 +266,33 @@ async function loadRecords() {
   document.querySelector("#recordCount").textContent = records.length;
   renderEventSections();
   renderMembers();
+  document.querySelector("#memberSearch").dispatchEvent(new Event("input"));
   document.querySelector("#statusMessage").hidden = true;
 }
 
+async function refreshRecords() {
+  const button = document.querySelector("#refreshButton");
+  const message = document.querySelector("#statusMessage");
+  button.disabled = true;
+  button.setAttribute("aria-busy", "true");
+  message.hidden = false;
+  message.classList.remove("status-error");
+  message.textContent = "Google Spreadsheet에서 최신 기록을 불러오는 중입니다.";
+
+  try {
+    await loadRecords();
+  } catch (error) {
+    message.classList.add("status-error");
+    message.textContent = "기록을 불러오지 못했습니다. 잠시 후 새로고침 버튼을 다시 눌러 주세요.";
+    console.error(error);
+  } finally {
+    button.disabled = false;
+    button.removeAttribute("aria-busy");
+  }
+}
+
 document.querySelector("#currentYear").textContent = new Date().getFullYear();
+document.querySelector("#refreshButton").addEventListener("click", refreshRecords);
 document.querySelector("#eventSections").addEventListener("input", (event) => {
   const input = event.target.closest("[data-ranking-table]");
   if (!input) return;
@@ -288,10 +311,4 @@ document.querySelector("#eventSections").addEventListener("click", (event) => {
   applyRankingVisibility(table, input);
 });
 bindSearch("#memberSearch", "#memberTable");
-
-loadRecords().catch((error) => {
-  const message = document.querySelector("#statusMessage");
-  message.classList.add("status-error");
-  message.textContent = "기록을 불러오지 못했습니다. Google Spreadsheet를 '링크가 있는 모든 사용자 - 뷰어'로 공유했는지 확인해 주세요.";
-  console.error(error);
-});
+refreshRecords();

@@ -11,9 +11,13 @@
   <header class="site-header">
     <a class="brand" href="./" aria-label="리더보드 홈">
       <span class="brand-mark">◫</span>
-      <span>INDOOR ROWING ERG</span>
+      <span>삼성조정클럽 ERG</span>
     </a>
-    <nav><a href="./">리더보드</a></nav>
+    <nav>
+      <button id="refreshButton" class="refresh-button" type="button" aria-label="Google Sheets 기록 새로고침">
+        <span aria-hidden="true">↻</span> 새로고침
+      </button>
+    </nav>
   </header>
 
   <main class="page-shell">
@@ -28,7 +32,10 @@
       <div class="hero-stats">
         <div><strong id="memberCount">-</strong><span>회원</span></div>
         <div><strong id="recordCount">-</strong><span>전체 기록</span></div>
-        <div><strong>Google Sheets</strong><span>데이터 원본</span></div>
+        <a class="source-stat" href="https://docs.google.com/spreadsheets/d/1qF0k-jsI9gqmMvA_IjT03duBjukT56PbjVQv6PsAcm0/edit?gid=90249257"
+          target="_blank" rel="noopener noreferrer" aria-label="Google Sheets 데이터 원본 열기">
+          <strong>Google Sheets</strong><span>데이터 원본 ↗</span>
+        </a>
       </div>
     </section>
 
