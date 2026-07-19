@@ -8,7 +8,6 @@ const EVENTS = ["500M", "1000M", "2000M"];
 const HEADER_ALIASES = {
   memberName: ["member_name", "name", "이름", "회원명"],
   event: ["event", "종목", "거리"],
-  timeMs: ["time_ms"],
   timeDisplay: ["time_display", "time", "record", "기록"],
   competition: ["competition", "competition_name", "대회명", "대회"],
   competitionDate: ["competition_date", "date", "대회일자", "대회일", "일자"],
@@ -96,17 +95,14 @@ function normalizeRecords(csvText) {
   const indexes = Object.fromEntries(
     Object.entries(HEADER_ALIASES).map(([key, aliases]) => [key, columnIndex(headers, aliases)]),
   );
-  if (indexes.memberName < 0 || indexes.event < 0 || (indexes.timeMs < 0 && indexes.timeDisplay < 0)) {
+  if (indexes.memberName < 0 || indexes.event < 0 || indexes.timeDisplay < 0) {
     throw new Error("시트의 헤더를 확인해 주세요. 이름, 종목, 기록 열이 필요합니다.");
   }
 
   return rows.slice(1).map((row) => {
     const memberName = String(row[indexes.memberName] ?? "").trim();
     const event = String(row[indexes.event] ?? "").trim().toUpperCase().replace(/\s/g, "");
-    const rawMs = indexes.timeMs >= 0 ? Number(String(row[indexes.timeMs] ?? "").replace(/,/g, "")) : 0;
-    const timeMs = Number.isFinite(rawMs) && rawMs > 0
-      ? Math.round(rawMs)
-      : parseTimeToMs(row[indexes.timeDisplay]);
+    const timeMs = parseTimeToMs(row[indexes.timeDisplay]);
     return {
       memberName,
       event,

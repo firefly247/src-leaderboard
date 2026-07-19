@@ -23,13 +23,10 @@ https://docs.google.com/spreadsheets/d/1qF0k-jsI9gqmMvA_IjT03duBjukT56PbjVQv6PsA
 첫 행에는 다음 영문 헤더를 권장합니다.
 
 ```text
-id | member_name | event | time_ms | time_display | competition | competition_date | note | created_at
+id | member_name | event | time_display | competition | competition_date | note | created_at
 ```
 
-`이름`, `종목`, `기록`, `대회명`, `대회일자`와 같은 한글 헤더도 지원합니다. 기록은 다음 중 하나로 입력할 수 있습니다.
-
-- `time_ms`: 밀리초 정수, 예: `92000`
-- `time_display` 또는 `기록`: `1:32.0` 형식
+`이름`, `종목`, `기록`, `대회명`, `대회일자`와 같은 한글 헤더도 지원합니다. 기록은 `time_display` 또는 `기록` 열에 `1:32.0` 형식으로 입력합니다. Google Sheets가 기록을 시간 형식으로 자동 변환하지 않도록 해당 열의 서식을 일반 텍스트로 지정하는 것을 권장합니다.
 
 지원 종목은 `500M`, `1000M`, `2000M`입니다. 시트 내용을 수정하면 방문자가 페이지를 새로고침할 때 바로 반영됩니다.
 
