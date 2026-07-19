@@ -191,6 +191,17 @@ function rankingRowsMarkup(rows) {
   `).join("") : '<tr><td colspan="5" class="empty-cell">등록된 기록이 없습니다.</td></tr>';
 }
 
+function renderTopChampions() {
+  document.querySelector("#topChampions").innerHTML = EVENTS.map((event) => {
+    const champion = state.rankings[event][0];
+    return `<article class="top-champion-card">
+      <span>${event} TOP 1</span>
+      <strong>${escapeHtml(champion?.memberName || "-")}</strong>
+      <small>${escapeHtml(champion?.timeDisplay || "-")}</small>
+    </article>`;
+  }).join("");
+}
+
 function renderEventSections() {
   document.querySelector("#eventSections").innerHTML = EVENTS.map((event) => {
     const rows = state.rankings[event];
@@ -293,6 +304,7 @@ async function loadRecords() {
   buildLeaderboard(records);
   document.querySelector("#memberCount").textContent = state.members.length;
   document.querySelector("#recordCount").textContent = records.length;
+  renderTopChampions();
   renderEventSections();
   renderMembers();
   document.querySelector("#memberSearch").dispatchEvent(new Event("input"));

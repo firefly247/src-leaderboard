@@ -28,6 +28,12 @@ a { color: inherit; text-decoration: none; }
 .refresh-button[aria-busy="true"] span { animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .page-shell { width: min(1220px, 92vw); margin: 32px auto 72px; }
+.top-champions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+.top-champion-card { position: relative; overflow: hidden; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px; min-height: 74px; padding: 16px 20px; border: 1px solid #d8e1ef; border-radius: 18px; background: white; box-shadow: 0 10px 28px rgba(31,61,107,.08); }
+.top-champion-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; background: var(--gold); }
+.top-champion-card span { color: var(--primary-dark); font-size: 12px; font-weight: 900; letter-spacing: .06em; }
+.top-champion-card strong { overflow: hidden; font-size: 20px; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.top-champion-card small { color: var(--primary-dark); font-size: 18px; font-weight: 900; font-variant-numeric: tabular-nums; }
 .hero { background: linear-gradient(125deg, #07152f 0%, #123d88 68%, #165dff 100%); border-radius: 28px; color: white; padding: 48px; display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; box-shadow: var(--shadow); }
 .hero.compact { padding: 38px 44px; }
 .hero h1 { margin: 4px 0 10px; font-size: clamp(36px, 6vw, 72px); line-height: 1; letter-spacing: -.04em; }
@@ -108,6 +114,8 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .podium-1 { order: -1; }
   .table-heading { display: block; }
   .search-input { margin-top: 15px; width: 100%; }
+  .top-champions { display: flex; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x mandatory; }
+  .top-champion-card { flex: 0 0 min(280px, 78vw); scroll-snap-align: start; }
 }
 @media (max-width: 560px) {
   .page-shell { width: 94vw; margin-top: 18px; }
