@@ -186,9 +186,8 @@ function rankingRowsMarkup(rows) {
   return rows.length ? rows.map((row) => `
     <tr>
       <td><span class="rank-badge">${row.rank}</span></td><td class="member-name">${escapeHtml(row.memberName)}</td>
-      <td class="time-cell">${escapeHtml(row.timeDisplay)}</td><td>${escapeHtml(row.competition)}</td>
-      <td>${escapeHtml(row.competitionDate || "-")}</td></tr>
-  `).join("") : '<tr><td colspan="5" class="empty-cell">등록된 기록이 없습니다.</td></tr>';
+      <td class="time-cell">${escapeHtml(row.timeDisplay)}</td></tr>
+  `).join("") : '<tr><td colspan="3" class="empty-cell">등록된 기록이 없습니다.</td></tr>';
 }
 
 function renderTopChampions() {
@@ -207,7 +206,7 @@ function renderEventSections() {
     const rows = state.rankings[event];
     return `
       <section class="event-section" aria-label="${event} TOP 3 및 전체 순위">
-        <div class="event-distance-row"><span class="event-distance">${event}</span></div>
+        <h2 class="event-title">${event}</h2>
         <section class="podium-section">
           <div class="section-heading event-heading">
             <div><p class="eyebrow">TOP 3</p></div>
@@ -223,7 +222,7 @@ function renderEventSections() {
           </div>
           <div class="table-wrap ranking-scroll">
             <table id="ranking-${event}" class="ranking-table">
-              <thead><tr><th>순위</th><th>이름</th><th>PB</th><th>대회</th><th>대회일</th></tr></thead>
+              <thead><tr><th>순위</th><th>이름</th><th>PB</th></tr></thead>
               <tbody>${rankingRowsMarkup(rows)}</tbody>
             </table>
           </div>
