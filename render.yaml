@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: swim-leaderboard
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    healthCheckPath: /healthz
+    envVars:
+      - key: DATA_BACKEND
+        value: sheets
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SPREADSHEET_ID
+        sync: false
+      - key: WORKSHEET_NAME
+        value: Records
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
