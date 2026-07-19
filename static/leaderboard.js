@@ -238,7 +238,7 @@ function renderMembers() {
     <tr><td>${index + 1}</td><td class="member-name">${escapeHtml(member.memberName)}</td>
       ${EVENTS.map((event) => `<td>${escapeHtml(member[event])}</td>`).join("")}
       <td>${member.recordCount}</td>
-      <td><button class="record-detail-button" type="button" data-member-index="${index}">개인별 최고기록</button></td></tr>
+      <td><button class="record-detail-button" type="button" data-member-index="${index}">기록 보기</button></td></tr>
   `).join("") : '<tr><td colspan="7" class="empty-cell">등록된 회원이 없습니다.</td></tr>';
 }
 
