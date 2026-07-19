@@ -222,7 +222,7 @@ function renderEventSections() {
               aria-label="${event} 이름 검색" data-ranking-table="ranking-${event}">
           </div>
           <div class="table-wrap ranking-scroll">
-            <table id="ranking-${event}">
+            <table id="ranking-${event}" class="ranking-table">
               <thead><tr><th>순위</th><th>이름</th><th>PB</th><th>대회</th><th>대회일</th></tr></thead>
               <tbody>${rankingRowsMarkup(rows)}</tbody>
             </table>
@@ -286,7 +286,7 @@ function openMemberDialog(memberIndex) {
           .sort((left, right) => (right.competitionDate || "").localeCompare(left.competitionDate || "") || left.timeMs - right.timeMs);
         return `<section class="member-event-history">
           <div class="member-event-heading"><h3>${event}</h3><span>${records.length}개 기록</span></div>
-          <div class="table-wrap"><table>
+          <div class="table-wrap"><table class="member-history-table">
             <thead><tr><th>날짜</th><th>기록</th><th>대회</th><th>비고</th></tr></thead>
             <tbody>${recordHistoryMarkup(records)}</tbody>
           </table></div>
