@@ -12,11 +12,14 @@ const HEADER_ALIASES = {
   timeDisplay: ["time_display", "time", "record", "기록"],
   competition: ["competition", "competition_name", "대회명", "대회"],
   competitionDate: ["competition_date", "date", "대회일자", "대회일", "일자"],
+  note: ["note", "비고", "메모"],
+  createdAt: ["created_at", "등록일", "등록일시"],
 };
 
 const state = {
   rankings: Object.fromEntries(EVENTS.map((event) => [event, []])),
   members: [],
+  records: [],
 };
 
 function parseCsv(text) {
@@ -111,11 +114,14 @@ function normalizeRecords(csvText) {
       timeDisplay: timeMs > 0 ? formatTime(timeMs) : "-",
       competition: indexes.competition >= 0 ? String(row[indexes.competition] ?? "").trim() : "",
       competitionDate: indexes.competitionDate >= 0 ? String(row[indexes.competitionDate] ?? "").trim() : "",
+      note: indexes.note >= 0 ? String(row[indexes.note] ?? "").trim() : "",
+      createdAt: indexes.createdAt >= 0 ? String(row[indexes.createdAt] ?? "").trim() : "",
     };
   }).filter((record) => record.memberName && EVENTS.includes(record.event) && record.timeMs > 0);
 }
 
 function buildLeaderboard(records) {
+  state.records = records;
   const best = new Map();
   const histories = new Map();
 
@@ -142,9 +148,11 @@ function buildLeaderboard(records) {
   });
 
   state.members = [...histories.keys()].sort((a, b) => a.localeCompare(b, "ko")).map((memberName) => {
-    const summary = { memberName, recordCount: histories.get(memberName).length };
+    const summary = { memberName, recordCount: histories.get(memberName).length, pb: {} };
     EVENTS.forEach((event) => {
-      summary[event] = best.get(`${memberName}\u0000${event}`)?.timeDisplay || "-";
+      const pb = best.get(`${memberName}\u0000${event}`) || null;
+      summary.pb[event] = pb;
+      summary[event] = pb?.timeDisplay || "-";
     });
     return summary;
   });
@@ -176,7 +184,7 @@ function podiumMarkup(rows) {
 
 function rankingRowsMarkup(rows) {
   return rows.length ? rows.map((row) => `
-    <tr data-top-ten="${row.rank <= 10}" ${row.rank > 10 ? "hidden" : ""}>
+    <tr>
       <td><span class="rank-badge">${row.rank}</span></td><td class="member-name">${escapeHtml(row.memberName)}</td>
       <td class="time-cell">${escapeHtml(row.timeDisplay)}</td><td>${escapeHtml(row.competition)}</td>
       <td>${escapeHtml(row.competitionDate || "-")}</td></tr>
@@ -186,7 +194,6 @@ function rankingRowsMarkup(rows) {
 function renderEventSections() {
   document.querySelector("#eventSections").innerHTML = EVENTS.map((event) => {
     const rows = state.rankings[event];
-    const hasMore = rows.some((row) => row.rank > 10);
     return `
       <section class="event-section" aria-labelledby="event-title-${event}">
         <section class="podium-section">
@@ -203,16 +210,11 @@ function renderEventSections() {
             <input class="search-input event-search" type="search" placeholder="${event} 이름 검색"
               aria-label="${event} 이름 검색" data-ranking-table="ranking-${event}">
           </div>
-          <div class="table-wrap">
+          <div class="table-wrap ranking-scroll">
             <table id="ranking-${event}">
               <thead><tr><th>순위</th><th>이름</th><th>PB</th><th>대회</th><th>대회일</th></tr></thead>
               <tbody>${rankingRowsMarkup(rows)}</tbody>
             </table>
-          </div>
-          <div class="ranking-actions" ${hasMore ? "" : "hidden"}>
-            <button class="ranking-toggle" type="button" data-ranking-toggle="ranking-${event}"
-              data-has-more="${hasMore}" aria-expanded="false"
-              aria-label="${event} 전체 순위 펼치기">+</button>
           </div>
         </section>
       </section>`;
@@ -224,8 +226,9 @@ function renderMembers() {
   body.innerHTML = state.members.length ? state.members.map((member, index) => `
     <tr><td>${index + 1}</td><td class="member-name">${escapeHtml(member.memberName)}</td>
       ${EVENTS.map((event) => `<td>${escapeHtml(member[event])}</td>`).join("")}
-      <td>${member.recordCount}</td></tr>
-  `).join("") : '<tr><td colspan="6" class="empty-cell">등록된 회원이 없습니다.</td></tr>';
+      <td>${member.recordCount}</td>
+      <td><button class="record-detail-button" type="button" data-member-index="${index}">개인별 최고기록</button></td></tr>
+  `).join("") : '<tr><td colspan="7" class="empty-cell">등록된 회원이 없습니다.</td></tr>';
 }
 
 function bindSearch(inputSelector, tableSelector) {
@@ -239,22 +242,48 @@ function bindSearch(inputSelector, tableSelector) {
   });
 }
 
-function applyRankingVisibility(table, input) {
-  const toggle = document.querySelector(`[data-ranking-toggle="${table.id}"]`);
+function filterRanking(table, input) {
   const keyword = input.value.trim().toLocaleLowerCase("ko");
-  const expanded = toggle?.getAttribute("aria-expanded") === "true";
-
   table.querySelectorAll("tbody tr").forEach((row) => {
-    const matches = !keyword || row.textContent.toLocaleLowerCase("ko").includes(keyword);
-    const isRankingRow = row.hasAttribute("data-top-ten");
-    const allowedByLimit = !isRankingRow || Boolean(keyword) || expanded || row.dataset.topTen === "true";
-    row.hidden = !matches || !allowedByLimit;
+    row.hidden = Boolean(keyword) && !row.textContent.toLocaleLowerCase("ko").includes(keyword);
   });
+}
 
-  if (toggle) {
-    toggle.hidden = toggle.dataset.hasMore !== "true" || Boolean(keyword);
-    toggle.parentElement.hidden = toggle.hidden;
-  }
+function recordHistoryMarkup(records) {
+  return records.length ? records.map((record) => `
+    <tr><td>${escapeHtml(record.competitionDate || "-")}</td><td class="time-cell">${escapeHtml(record.timeDisplay)}</td>
+      <td>${escapeHtml(record.competition)}</td><td>${escapeHtml(record.note)}</td></tr>
+  `).join("") : '<tr><td colspan="4" class="empty-cell">등록된 기록이 없습니다.</td></tr>';
+}
+
+function openMemberDialog(memberIndex) {
+  const member = state.members[memberIndex];
+  if (!member) return;
+  document.querySelector("#dialogMemberName").textContent = `${member.memberName} 선수 기록`;
+  document.querySelector("#dialogContent").innerHTML = `
+    <div class="member-pb-grid">
+      ${EVENTS.map((event) => {
+        const pb = member.pb[event];
+        return `<div class="member-pb-card"><span>${event} PB</span><strong>${escapeHtml(pb?.timeDisplay || "-")}</strong>
+          <small>${escapeHtml(pb?.competitionDate || "")}</small></div>`;
+      }).join("")}
+    </div>
+    <div class="member-history-list">
+      ${EVENTS.map((event) => {
+        const records = state.records
+          .filter((record) => record.memberName === member.memberName && record.event === event)
+          .sort((left, right) => (right.competitionDate || "").localeCompare(left.competitionDate || "") || left.timeMs - right.timeMs);
+        return `<section class="member-event-history">
+          <div class="member-event-heading"><h3>${event}</h3><span>${records.length}개 기록</span></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>날짜</th><th>기록</th><th>대회</th><th>비고</th></tr></thead>
+            <tbody>${recordHistoryMarkup(records)}</tbody>
+          </table></div>
+        </section>`;
+      }).join("")}
+    </div>`;
+
+  document.querySelector("#memberDialog").showModal();
 }
 
 async function loadRecords() {
@@ -297,18 +326,15 @@ document.querySelector("#eventSections").addEventListener("input", (event) => {
   const input = event.target.closest("[data-ranking-table]");
   if (!input) return;
   const table = document.querySelector(`#${input.dataset.rankingTable}`);
-  applyRankingVisibility(table, input);
+  filterRanking(table, input);
 });
-document.querySelector("#eventSections").addEventListener("click", (event) => {
-  const toggle = event.target.closest("[data-ranking-toggle]");
-  if (!toggle) return;
-  const table = document.querySelector(`#${toggle.dataset.rankingToggle}`);
-  const input = document.querySelector(`[data-ranking-table="${table.id}"]`);
-  const expanded = toggle.getAttribute("aria-expanded") !== "true";
-  toggle.setAttribute("aria-expanded", String(expanded));
-  toggle.textContent = expanded ? "−" : "+";
-  toggle.setAttribute("aria-label", `${table.id.replace("ranking-", "")} 전체 순위 ${expanded ? "접기" : "펼치기"}`);
-  applyRankingVisibility(table, input);
+document.querySelector("#memberTable").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-member-index]");
+  if (button) openMemberDialog(Number(button.dataset.memberIndex));
+});
+document.querySelector("#dialogCloseButton").addEventListener("click", () => document.querySelector("#memberDialog").close());
+document.querySelector("#memberDialog").addEventListener("click", (event) => {
+  if (event.target === event.currentTarget) event.currentTarget.close();
 });
 bindSearch("#memberSearch", "#memberTable");
 refreshRecords();

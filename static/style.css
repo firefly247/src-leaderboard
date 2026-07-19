@@ -66,6 +66,8 @@ a { color: inherit; text-decoration: none; }
 .table-heading { align-items: center; }
 .search-input { min-width: 220px; border: 1px solid var(--line); border-radius: 12px; padding: 11px 14px; background: #f8fafc; font: inherit; }
 .table-wrap { width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; }
+.ranking-scroll { max-height: 390px; overflow: auto; }
+.ranking-scroll thead th { position: sticky; top: 0; z-index: 2; }
 table { width: 100%; border-collapse: collapse; min-width: 680px; }
 th, td { padding: 14px 16px; border-bottom: 1px solid var(--line); text-align: left; }
 th { background: #f3f6fa; color: #4c5668; font-size: 12px; letter-spacing: .03em; text-transform: uppercase; }
@@ -75,10 +77,23 @@ tbody tr:hover { background: #f8fbff; }
 .member-name { font-weight: 800; }
 .time-cell { font-variant-numeric: tabular-nums; font-weight: 900; color: var(--primary-dark); }
 .empty-cell { text-align: center; color: var(--muted); padding: 42px; }
-.ranking-actions { display: flex; justify-content: center; padding-top: 18px; }
-.ranking-toggle { width: 44px; height: 44px; border: 1px solid #c8d5e8; border-radius: 50%; background: #edf3ff; color: var(--primary-dark); font: inherit; font-size: 25px; font-weight: 800; line-height: 1; cursor: pointer; box-shadow: 0 6px 16px rgba(31,61,107,.10); }
-.ranking-toggle:hover { background: var(--primary); border-color: var(--primary); color: white; }
-.ranking-toggle:focus-visible { outline: 3px solid rgba(22,93,255,.22); outline-offset: 3px; }
+.record-detail-button { border: 1px solid #c8d5e8; border-radius: 10px; padding: 8px 11px; background: #edf3ff; color: var(--primary-dark); font: inherit; font-size: 12px; font-weight: 800; white-space: nowrap; cursor: pointer; }
+.record-detail-button:hover { background: var(--primary); border-color: var(--primary); color: white; }
+.member-dialog { width: min(1000px, 94vw); max-height: 90vh; border: 0; border-radius: 24px; padding: 28px; color: var(--text); background: var(--surface); box-shadow: 0 30px 90px rgba(7,21,47,.35); }
+.member-dialog::backdrop { background: rgba(7,21,47,.62); backdrop-filter: blur(3px); }
+.dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+.dialog-header h2 { margin: 4px 0 0; font-size: 30px; }
+.dialog-close { display: grid; place-items: center; flex: 0 0 auto; width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 50%; background: #f3f6fa; color: var(--text); font-size: 27px; line-height: 1; cursor: pointer; }
+.member-pb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.member-pb-card { border: 1px solid #d7e2f2; border-radius: 16px; padding: 18px; background: var(--surface-soft); }
+.member-pb-card span, .member-pb-card strong, .member-pb-card small { display: block; }
+.member-pb-card span { color: var(--muted); font-size: 12px; font-weight: 800; }
+.member-pb-card strong { margin: 5px 0 2px; color: var(--primary-dark); font-size: 27px; }
+.member-pb-card small { min-height: 17px; color: var(--muted); }
+.member-history-list { display: grid; gap: 28px; margin-top: 30px; }
+.member-event-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.member-event-heading h3 { margin: 0; font-size: 21px; }
+.member-event-heading span { color: var(--muted); font-size: 12px; font-weight: 700; }
 .status-message { padding: 13px 16px; margin-bottom: 18px; border-radius: 12px; background: #e8efff; color: var(--primary-dark); font-weight: 700; }
 .status-error { background: #ffebee; color: #9a1e2a; }
 footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px; }
@@ -102,4 +117,7 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .brand-mark { width: 25px; height: 25px; }
   .refresh-button { padding: 8px 10px; }
   .refresh-button span { font-size: 17px; }
+  .member-dialog { width: 96vw; padding: 20px 16px; border-radius: 18px; }
+  .member-pb-grid { grid-template-columns: 1fr; }
+  .dialog-header h2 { font-size: 24px; }
 }

@@ -11,7 +11,7 @@
   <header class="site-header">
     <a class="brand" href="./" aria-label="리더보드 홈">
       <span class="brand-mark">◫</span>
-      <span>삼성조정클럽 ERG</span>
+      <span>삼성조정클럽 ERG 기록</span>
     </a>
     <nav>
       <button id="refreshButton" class="refresh-button" type="button" aria-label="Google Sheets 기록 새로고침">
@@ -25,9 +25,8 @@
 
     <section class="hero">
       <div>
-        <p class="eyebrow">INDOOR ROWING RECORDS</p>
         <h1>명예의 전당</h1>
-        <p>실내 조정 에르고 대회 기록에서 거리별 개인 최고기록(PB)을 자동 집계합니다.</p>
+        <p>거리별 개인 최고기록(PB) 자동 집계</p>
       </div>
       <div class="hero-stats">
         <div><strong id="memberCount">-</strong><span>회원</span></div>
@@ -48,12 +47,20 @@
       </div>
       <div class="table-wrap">
         <table id="memberTable">
-          <thead><tr><th>#</th><th>이름</th><th>500M PB</th><th>1000M PB</th><th>2000M PB</th><th>등록 기록</th></tr></thead>
+          <thead><tr><th>#</th><th>이름</th><th>500M PB</th><th>1000M PB</th><th>2000M PB</th><th>등록 기록</th><th>상세</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
     </section>
   </main>
+
+  <dialog id="memberDialog" class="member-dialog" aria-labelledby="dialogMemberName">
+    <div class="dialog-header">
+      <div><p class="eyebrow">MEMBER RECORDS</p><h2 id="dialogMemberName"></h2></div>
+      <button id="dialogCloseButton" class="dialog-close" type="button" aria-label="팝업 닫기">×</button>
+    </div>
+    <div id="dialogContent"></div>
+  </dialog>
 
   <footer>© <span id="currentYear"></span> Indoor Rowing Erg Leaderboard</footer>
   <script src="./static/leaderboard.js" defer></script>
