@@ -34,9 +34,11 @@ a { color: inherit; text-decoration: none; }
 .hero-stats strong, .hero-stats span { display: block; }
 .hero-stats strong { font-size: 22px; overflow-wrap: anywhere; }
 .hero-stats span { margin-top: 4px; color: #bcd0f7; font-size: 12px; }
-.event-tabs { display: flex; gap: 10px; margin: 26px 0; overflow-x: auto; }
-.event-tab { padding: 12px 26px; border-radius: 999px; background: white; border: 1px solid var(--line); font: inherit; font-weight: 800; color: var(--muted); cursor: pointer; white-space: nowrap; }
-.event-tab.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 8px 22px rgba(22,93,255,.24); }
+.event-sections { margin-top: 28px; }
+.event-section { scroll-margin-top: 92px; }
+.event-section + .event-section { margin-top: 52px; padding-top: 52px; border-top: 2px solid var(--line); }
+.event-heading { align-items: center; }
+.event-distance { display: inline-grid; place-items: center; min-width: 92px; padding: 12px 18px; border-radius: 999px; background: var(--primary); color: white; font-size: 18px; font-weight: 900; box-shadow: 0 8px 22px rgba(22,93,255,.24); }
 .podium-section, .panel { background: var(--surface); border: 1px solid #e4eaf2; border-radius: 24px; padding: 30px; box-shadow: var(--shadow); margin-bottom: 24px; }
 .section-heading { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 24px; }
 .section-heading h2 { margin: 4px 0 0; font-size: 26px; }

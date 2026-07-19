@@ -17,7 +17,6 @@ const HEADER_ALIASES = {
 const state = {
   rankings: Object.fromEntries(EVENTS.map((event) => [event, []])),
   members: [],
-  selectedEvent: EVENTS[0],
 };
 
 function parseCsv(text) {
@@ -157,14 +156,7 @@ function escapeHtml(value) {
   })[character]);
 }
 
-function renderEventTabs() {
-  document.querySelector("#eventTabs").innerHTML = EVENTS.map((event) => `
-    <button class="event-tab ${event === state.selectedEvent ? "active" : ""}" type="button"
-      role="tab" aria-selected="${event === state.selectedEvent}" data-event="${event}">${event}</button>
-  `).join("");
-}
-
-function renderPodium(rows) {
+function podiumMarkup(rows) {
   const cards = [2, 1, 3].map((position) => {
     const row = rows[position - 1];
     if (!row) return `
@@ -179,16 +171,45 @@ function renderPodium(rows) {
         <small>${escapeHtml(row.competitionDate || "-")}</small>
       </article>`;
   });
-  document.querySelector("#podiumGrid").innerHTML = cards.join("");
+  return cards.join("");
 }
 
-function renderRanking(rows) {
-  const body = document.querySelector("#rankingTable tbody");
-  body.innerHTML = rows.length ? rows.map((row) => `
+function rankingRowsMarkup(rows) {
+  return rows.length ? rows.map((row) => `
     <tr><td><span class="rank-badge">${row.rank}</span></td><td class="member-name">${escapeHtml(row.memberName)}</td>
       <td class="time-cell">${escapeHtml(row.timeDisplay)}</td><td>${escapeHtml(row.competition || "-")}</td>
       <td>${escapeHtml(row.competitionDate || "-")}</td></tr>
   `).join("") : '<tr><td colspan="5" class="empty-cell">등록된 기록이 없습니다.</td></tr>';
+}
+
+function renderEventSections() {
+  document.querySelector("#eventSections").innerHTML = EVENTS.map((event) => {
+    const rows = state.rankings[event];
+    return `
+      <section class="event-section" aria-labelledby="event-title-${event}">
+        <section class="podium-section">
+          <div class="section-heading event-heading">
+            <div><p class="eyebrow">TOP 3</p><h2 id="event-title-${event}">${event} 명예의 전당</h2></div>
+            <span class="event-distance">${event}</span>
+          </div>
+          <div class="podium-grid">${podiumMarkup(rows)}</div>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading table-heading">
+            <div><p class="eyebrow">RANKING</p><h2>${event} 전체 순위</h2></div>
+            <input class="search-input event-search" type="search" placeholder="${event} 이름 검색"
+              aria-label="${event} 이름 검색" data-ranking-table="ranking-${event}">
+          </div>
+          <div class="table-wrap">
+            <table id="ranking-${event}">
+              <thead><tr><th>순위</th><th>이름</th><th>PB</th><th>대회</th><th>대회일</th></tr></thead>
+              <tbody>${rankingRowsMarkup(rows)}</tbody>
+            </table>
+          </div>
+        </section>
+      </section>`;
+  }).join("");
 }
 
 function renderMembers() {
@@ -198,16 +219,6 @@ function renderMembers() {
       ${EVENTS.map((event) => `<td>${escapeHtml(member[event])}</td>`).join("")}
       <td>${member.recordCount}</td></tr>
   `).join("") : '<tr><td colspan="6" class="empty-cell">등록된 회원이 없습니다.</td></tr>';
-}
-
-function renderSelectedEvent() {
-  const rows = state.rankings[state.selectedEvent];
-  document.querySelector("#podiumTitle").textContent = `${state.selectedEvent} 명예의 전당`;
-  document.querySelector("#rankingTitle").textContent = `${state.selectedEvent} 전체 순위`;
-  renderEventTabs();
-  renderPodium(rows);
-  renderRanking(rows);
-  document.querySelector("#rankingSearch").dispatchEvent(new Event("input"));
 }
 
 function bindSearch(inputSelector, tableSelector) {
@@ -228,19 +239,21 @@ async function loadRecords() {
   buildLeaderboard(records);
   document.querySelector("#memberCount").textContent = state.members.length;
   document.querySelector("#recordCount").textContent = records.length;
-  renderSelectedEvent();
+  renderEventSections();
   renderMembers();
   document.querySelector("#statusMessage").hidden = true;
 }
 
 document.querySelector("#currentYear").textContent = new Date().getFullYear();
-document.querySelector("#eventTabs").addEventListener("click", (event) => {
-  const button = event.target.closest("[data-event]");
-  if (!button) return;
-  state.selectedEvent = button.dataset.event;
-  renderSelectedEvent();
+document.querySelector("#eventSections").addEventListener("input", (event) => {
+  const input = event.target.closest("[data-ranking-table]");
+  if (!input) return;
+  const table = document.querySelector(`#${input.dataset.rankingTable}`);
+  const keyword = input.value.trim().toLocaleLowerCase("ko");
+  table.querySelectorAll("tbody tr").forEach((row) => {
+    row.hidden = Boolean(keyword) && !row.textContent.toLocaleLowerCase("ko").includes(keyword);
+  });
 });
-bindSearch("#rankingSearch", "#rankingTable");
 bindSearch("#memberSearch", "#memberTable");
 
 loadRecords().catch((error) => {
