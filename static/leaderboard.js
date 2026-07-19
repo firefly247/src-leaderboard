@@ -206,10 +206,10 @@ function renderEventSections() {
   document.querySelector("#eventSections").innerHTML = EVENTS.map((event) => {
     const rows = state.rankings[event];
     return `
-      <section class="event-section" aria-labelledby="event-title-${event}">
+      <section class="event-section" aria-label="${event} TOP 3 및 전체 순위">
         <section class="podium-section">
           <div class="section-heading event-heading">
-            <div><p class="eyebrow">TOP 3</p><h2 id="event-title-${event}">${event} 명예의 전당</h2></div>
+            <div><p class="eyebrow">TOP 3</p></div>
             <span class="event-distance">${event}</span>
           </div>
           <div class="podium-grid">${podiumMarkup(rows)}</div>
@@ -302,8 +302,6 @@ async function loadRecords() {
   if (!response.ok) throw new Error(`Spreadsheet 응답 오류 (${response.status})`);
   const records = normalizeRecords(await response.text());
   buildLeaderboard(records);
-  document.querySelector("#memberCount").textContent = state.members.length;
-  document.querySelector("#recordCount").textContent = records.length;
   renderTopChampions();
   renderEventSections();
   renderMembers();

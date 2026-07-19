@@ -11,32 +11,19 @@
   <header class="site-header">
     <a class="brand" href="./" aria-label="리더보드 홈">
       <span class="brand-mark">◫</span>
-      <span>삼성조정클럽 ERG 기록</span>
+      <span>삼성조정클럽 ERG 명예의 전당</span>
     </a>
     <nav>
+      <a class="header-source-link" href="https://docs.google.com/spreadsheets/d/1qF0k-jsI9gqmMvA_IjT03duBjukT56PbjVQv6PsAcm0/edit?gid=90249257"
+        target="_blank" rel="noopener noreferrer" aria-label="Google Sheets 데이터 원본 열기">데이터 원본 ↗</a>
       <button id="refreshButton" class="refresh-button" type="button" aria-label="Google Sheets 기록 새로고침">
-        <span aria-hidden="true">↻</span> 새로고침
+        <span aria-hidden="true">↻</span>
       </button>
     </nav>
   </header>
 
   <main class="page-shell">
     <div id="statusMessage" class="status-message" role="status">Google Spreadsheet에서 기록을 불러오는 중입니다.</div>
-
-    <section class="hero">
-      <div>
-        <h1>명예의 전당</h1>
-        <p>거리별 개인 최고기록(PB) 자동 집계</p>
-      </div>
-      <div class="hero-stats">
-        <div><strong id="memberCount">-</strong><span>회원</span></div>
-        <div><strong id="recordCount">-</strong><span>전체 기록</span></div>
-        <a class="source-stat" href="https://docs.google.com/spreadsheets/d/1qF0k-jsI9gqmMvA_IjT03duBjukT56PbjVQv6PsAcm0/edit?gid=90249257"
-          target="_blank" rel="noopener noreferrer" aria-label="Google Sheets 데이터 원본 열기">
-          <strong>Google Sheets</strong><span>데이터 원본 ↗</span>
-        </a>
-      </div>
-    </section>
 
     <section id="topChampions" class="top-champions" aria-label="종목별 1위">
       <article class="top-champion-card"><span>500M TOP 1</span><strong>-</strong><small>-</small></article>
