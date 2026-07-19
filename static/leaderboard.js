@@ -207,17 +207,17 @@ function renderEventSections() {
     const rows = state.rankings[event];
     return `
       <section class="event-section" aria-label="${event} TOP 3 및 전체 순위">
+        <div class="event-distance-row"><span class="event-distance">${event}</span></div>
         <section class="podium-section">
           <div class="section-heading event-heading">
             <div><p class="eyebrow">TOP 3</p></div>
-            <span class="event-distance">${event}</span>
           </div>
           <div class="podium-grid">${podiumMarkup(rows)}</div>
         </section>
 
         <section class="panel">
           <div class="section-heading table-heading">
-            <div><p class="eyebrow">RANKING</p><h2>${event} 전체 순위</h2></div>
+            <div><p class="eyebrow">RANKING</p></div>
             <input class="search-input event-search" type="search" placeholder="${event} 이름 검색"
               aria-label="${event} 이름 검색" data-ranking-table="ranking-${event}">
           </div>
@@ -238,7 +238,7 @@ function renderMembers() {
     <tr><td>${index + 1}</td><td class="member-name">${escapeHtml(member.memberName)}</td>
       ${EVENTS.map((event) => `<td>${escapeHtml(member[event])}</td>`).join("")}
       <td>${member.recordCount}</td>
-      <td><button class="record-detail-button" type="button" data-member-index="${index}">기록 보기</button></td></tr>
+      <td><button class="record-detail-button" type="button" data-member-index="${index}">기록</button></td></tr>
   `).join("") : '<tr><td colspan="7" class="empty-cell">등록된 회원이 없습니다.</td></tr>';
 }
 
@@ -263,8 +263,8 @@ function filterRanking(table, input) {
 function recordHistoryMarkup(records) {
   return records.length ? records.map((record) => `
     <tr><td>${escapeHtml(record.competitionDate || "-")}</td><td class="time-cell">${escapeHtml(record.timeDisplay)}</td>
-      <td>${escapeHtml(record.competition)}</td><td>${escapeHtml(record.note)}</td></tr>
-  `).join("") : '<tr><td colspan="4" class="empty-cell">등록된 기록이 없습니다.</td></tr>';
+      <td>${escapeHtml(record.competition)}</td></tr>
+  `).join("") : '<tr><td colspan="3" class="empty-cell">등록된 기록이 없습니다.</td></tr>';
 }
 
 function openMemberDialog(memberIndex) {
@@ -287,7 +287,7 @@ function openMemberDialog(memberIndex) {
         return `<section class="member-event-history">
           <div class="member-event-heading"><h3>${event}</h3><span>${records.length}개 기록</span></div>
           <div class="table-wrap"><table class="member-history-table">
-            <thead><tr><th>날짜</th><th>기록</th><th>대회</th><th>비고</th></tr></thead>
+            <thead><tr><th>날짜</th><th>기록</th><th>대회</th></tr></thead>
             <tbody>${recordHistoryMarkup(records)}</tbody>
           </table></div>
         </section>`;
