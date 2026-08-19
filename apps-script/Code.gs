@@ -124,7 +124,7 @@ function savePhotoToGitHub_(requestId, photo) {
 }
 
 function adminList_(view) {
-  if (view === 'events') return { events: events_() };
+  if (view === 'events') return { events: events_().sort(function(a, b) { return a.event_name.localeCompare(b.event_name, 'ko'); }) };
   const type = view === 'add' ? 'add' : view === 'delete' ? 'delete' : '';
   const requests = rowsToRequests_().filter(r => !type || r.request_type === type).sort((a,b) => b.requested_at.localeCompare(a.requested_at));
   return { requests: requests };
