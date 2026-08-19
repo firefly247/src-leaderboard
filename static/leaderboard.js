@@ -1,345 +1,54 @@
 "use strict";
 
-const SPREADSHEET_ID = "1qF0k-jsI9gqmMvA_IjT03duBjukT56PbjVQv6PsAcm0";
-const SHEET_GID = "90249257";
-const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=${SHEET_GID}`;
-const EVENTS = ["500M", "1000M", "2000M"];
+// Public endpoint only. Keep GAS password and GitHub token in Script Properties.
+const API_URL = "";
+const DATA_URL = "./data";
+const state = { events: [], records: [], rankings: {}, members: [], adminToken: sessionStorage.getItem("ergAdminToken") || "" };
+const $ = (s) => document.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 
-const HEADER_ALIASES = {
-  memberName: ["member_name", "name", "이름", "회원명"],
-  event: ["event", "종목", "거리"],
-  timeDisplay: ["time_display", "time", "record", "기록"],
-  competition: ["competition", "competition_name", "대회명", "대회"],
-  competitionDate: ["competition_date", "date", "대회일자", "대회일", "일자"],
-  note: ["note", "비고", "메모"],
-  createdAt: ["created_at", "등록일", "등록일시"],
+function csv(text) { const a=[],h=[],r=[]; let f="",q=false; for(let i=0;i<text.length;i++){const c=text[i];if(q){if(c==='"'&&text[i+1]==='"'){f+='"';i++;}else if(c==='"')q=false;else f+=c;}else if(c==='"')q=true;else if(c===","){r.push(f);f="";}else if(c==="\n"){r.push(f.replace(/\r$/,""));if(r.some(Boolean))a.push(r.splice(0));f="";}else f+=c;}r.push(f.replace(/\r$/,""));if(r.some(Boolean))a.push(r);return a; }
+function csvObjects(text) { const rows=csv(text); return rows.slice(1).map(r=>Object.fromEntries(rows[0].map((h,i)=>[h.trim(),r[i]||""]))); }
+function ms(value) { const t=String(value||"").trim().replace(/\s/g,"").replace(",",".");if(!t)return 0;if(/^\d+(\.\d+)?$/.test(t))return Math.round(Number(t)*1000);const m=t.match(/^(?:(\d+):)?(\d{1,2})(?:\.(\d{1,3}))?$/);return !m||m[1]&&Number(m[2])>=60?0:(Number(m[1]||0)*60+Number(m[2]))*1000+Number((m[3]||"0").padEnd(3,"0").slice(0,3)); }
+function time(value) { const s=Math.floor(value/1000),m=Math.floor(s/60),sec=s%60,t=Math.floor(value%1000/100);return m?`${m}:${String(sec).padStart(2,"0")}.${t}`:`${sec}.${t}`; }
+function record(row) { const timeMs=Number(row.time_ms)||ms(row.time_display);return {...row,memberName:(row.member_name||"").trim(),eventId:row.event_id,eventName:row.event_name,timeMs,timeDisplay:timeMs?time(timeMs):row.time_display}; }
+
+function build() { const histories=new Map(),best=new Map();state.records.forEach(r=>{if(!histories.has(r.memberName))histories.set(r.memberName,[]);histories.get(r.memberName).push(r);const key=r.memberName+"\0"+r.eventId;if(!best.get(key)||r.timeMs<best.get(key).timeMs)best.set(key,r);});state.rankings={};state.events.forEach(e=>{const rows=[...best.values()].filter(r=>r.eventId===e.event_id).sort((a,b)=>a.timeMs-b.timeMs||a.memberName.localeCompare(b.memberName,"ko"));let previous,rank;rows.forEach((r,i)=>{r.rank=r.timeMs===previous?rank:i+1;previous=r.timeMs;rank=r.rank;});state.rankings[e.event_id]=rows;});state.members=[...histories.keys()].sort((a,b)=>a.localeCompare(b,"ko")).map(memberName=>({memberName,recordCount:histories.get(memberName).length,pb:Object.fromEntries(state.events.map(e=>[e.event_id,best.get(memberName+"\0"+e.event_id)||null]))})); }
+function recordTime(r) { return r.proof_photo_url?`<button class="photo-link" type="button" data-photo-url="${esc(r.proof_photo_url)}">${esc(r.timeDisplay)}</button>`:esc(r.timeDisplay); }
+function render() { $("#topChampions").innerHTML=state.events.map(e=>{const r=(state.rankings[e.event_id]||[])[0];return `<article class="top-champion-card"><span>${esc(e.event_name)} TOP 1</span><strong>${esc(r ? r.memberName : "-")}</strong><small>${esc(r ? r.timeDisplay : "-")}</small></article>`;}).join(""); $("#eventSections").innerHTML=state.events.map(eventSection).join(""); $("#memberTable thead").innerHTML=`<tr><th>#</th><th>이름</th>${state.events.map(e=>`<th>${esc(e.event_name)}</th>`).join("")}<th>등록 기록</th><th>상세</th></tr>`;$("#memberTable tbody").innerHTML=state.members.map((m,i)=>`<tr><td>${i+1}</td><td class="member-name">${esc(m.memberName)}</td>${state.events.map(e=>`<td>${esc(m.pb[e.event_id] ? m.pb[e.event_id].timeDisplay : "-")}</td>`).join("")}<td>${m.recordCount}</td><td><button class="record-detail-button" data-member-index="${i}">기록</button></td></tr>`).join("")||`<tr><td colspan="${state.events.length+4}" class="empty-cell">등록된 회원이 없습니다.</td></tr>`; $("#memberSelect").innerHTML='<option value="">새 회원 직접 입력</option>'+state.members.map(m=>`<option value="${esc(m.memberName)}">${esc(m.memberName)}</option>`).join("");$("#requestEvent").innerHTML=state.events.map(e=>`<option value="${esc(e.event_id)}">${esc(e.event_name)}</option>`).join(""); }
+function eventSection(e) { const rows=state.rankings[e.event_id]||[],podium=[2,1,3].map(n=>{const r=rows[n-1];return `<article class="podium-card podium-${n}"><div class="medal">${n}</div><h3>${esc(r ? r.memberName : "기록 없음")}</h3><div class="record-time">${r?recordTime(r):"-"}</div><p>${esc(r ? r.competition : "기록을 기다리고 있습니다.")}</p><small>${esc(r ? r.competition_date : "")}</small></article>`;}).join(""),body=rows.map(r=>`<tr><td><span class="rank-badge">${r.rank}</span></td><td class="member-name">${esc(r.memberName)}</td><td class="time-cell">${recordTime(r)}</td></tr>`).join("")||'<tr><td colspan="3" class="empty-cell">등록된 기록이 없습니다.</td></tr>';return `<section class="event-section"><h2 class="event-title">${esc(e.event_name)}</h2><section class="podium-section"><div class="section-heading event-heading"><p class="eyebrow">TOP 3</p></div><div class="podium-grid">${podium}</div></section><section class="panel"><div class="section-heading table-heading"><p class="eyebrow">RANKING</p><input class="search-input event-search" type="search" placeholder="${esc(e.event_name)} 이름 검색" data-ranking-table="ranking-${e.event_id}"></div><div class="table-wrap ranking-scroll"><table id="ranking-${e.event_id}" class="ranking-table"><thead><tr><th>순위</th><th>이름</th><th>PB</th></tr></thead><tbody>${body}</tbody></table></div></section></section>`; }
+function openMember(i) { const m=state.members[i];if(!m)return;$("#dialogMemberName").textContent=m.memberName+" 선수 기록";$("#dialogContent").innerHTML=`<div class="member-pb-grid">${state.events.map(e=>{const r=m.pb[e.event_id];return `<div class="member-pb-card"><span>${esc(e.event_name)} PB</span><strong>${esc(r ? r.timeDisplay : "-")}</strong><small>${esc(r ? r.competition_date : "")}</small></div>`;}).join("")}</div><div class="member-history-list">${state.events.map(e=>{const rows=state.records.filter(r=>r.memberName===m.memberName&&r.eventId===e.event_id).sort((a,b)=>(b.competition_date||"").localeCompare(a.competition_date||"")||a.timeMs-b.timeMs);return `<section class="member-event-history"><div class="member-event-heading"><h3>${esc(e.event_name)}</h3><span>${rows.length}개 기록</span></div><div class="table-wrap"><table class="member-history-table"><thead><tr><th>날짜</th><th>기록</th><th>대회/장소</th><th>삭제 요청</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.competition_date||"-")}</td><td class="time-cell">${recordTime(r)}</td><td>${esc(r.competition||"-")}</td><td><button class="delete-request-button" data-record-id="${esc(r.record_id)}">삭제 요청</button></td></tr>`).join("")||'<tr><td colspan="4" class="empty-cell">기록이 없습니다.</td></tr>'}</tbody></table></div></section>`;}).join("")}</div>`;$(" #memberDialog".trim()).showModal(); }
+
+async function api(action,payload={},admin=false) {if(!API_URL)throw new Error("Apps Script API URL이 설정되지 않았습니다. README의 배포 설정을 완료해 주세요.");const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action,payload,adminToken:admin?state.adminToken:""})}),data=await res.json();if(!res.ok||!data.ok)throw new Error(data.message||"요청에 실패했습니다.");return data;}
+async function compress(file) {if(!file)return null;const image=await createImageBitmap(file);let scale=Math.min(1,1600/Math.max(image.width,image.height)),quality=.82,blob;do{const c=document.createElement("canvas");c.width=Math.round(image.width*scale);c.height=Math.round(image.height*scale);c.getContext("2d").drawImage(image,0,0,c.width,c.height);blob=await new Promise(r=>c.toBlob(r,"image/jpeg",quality));scale*=.8;quality=Math.max(.45,quality-.08);}while(blob && blob.size>512000&&scale>.1);if(!blob||blob.size>512000)throw new Error("사진을 500KB 이하로 압축하지 못했습니다.");const base64=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(",")[1]);r.onerror=no;r.readAsDataURL(blob);});return {name:file.name.replace(/\.[^.]+$/,"")+".jpg",mimeType:"image/jpeg",base64};}
+async function refresh() {const b=$("#refreshButton"),s=$("#statusMessage");b.disabled=true;s.hidden=false;s.classList.remove("status-error");s.textContent="최신 기록을 불러오는 중입니다.";try{const [events,records]=await Promise.all([fetch(DATA_URL+"/events.csv?_="+Date.now(),{cache:"no-store"}),fetch(DATA_URL+"/records.csv?_="+Date.now(),{cache:"no-store"})]);if(!events.ok||!records.ok)throw new Error("CSV 파일을 불러오지 못했습니다.");state.events=csvObjects(await events.text()).filter(e=>e.event_id&&e.event_name);state.records=csvObjects(await records.text()).map(record).filter(r=>r.memberName&&r.eventId&&r.timeMs>0);build();render();s.hidden=true;}catch(e){s.classList.add("status-error");s.textContent=e.message;console.error(e);}finally{b.disabled=false;}}
+function result(s,msg,bad=false){const e=$(s);e.textContent=msg;e.classList.toggle("is-error",bad);}
+function adminContent(view,data){const c=$("#adminContent");if(view==="events"){c.innerHTML=`<p class="eyebrow">ADMIN</p><h2>종목 관리</h2><form id="eventAddForm" class="inline-form"><input name="eventName" maxlength="50" placeholder="새 종목 이름" required><button class="primary-button">종목 추가</button></form><div class="table-wrap"><table class="admin-table"><thead><tr><th>ID</th><th>종목 이름</th><th>관리</th></tr></thead><tbody>${data.events.map(e=>`<tr><td>${esc(e.event_id)}</td><td><input value="${esc(e.event_name)}" data-event-name="${esc(e.event_id)}"></td><td><button class="secondary-button event-save" data-event-id="${esc(e.event_id)}">이름 저장</button> <button class="delete-request-button event-delete" data-event-id="${esc(e.event_id)}">삭제</button></td></tr>`).join("")}</tbody></table></div>`;return;}const title=view==="add"?"기록 추가 요청":view==="delete"?"기록 삭제 요청":"처리 이력";const rows=(data.requests||[]).map(r=>`<tr><td>${esc(r.requested_at)}</td><td>${esc(r.member_name)}</td><td>${esc(r.event_name)}</td><td>${esc(r.time_display)}</td><td>${esc(r.delete_reason||"-")}</td><td>${esc(r.status)}</td><td>${r.proof_photo_url?`<button class="photo-link" data-photo-url="${esc(r.proof_photo_url)}">사진</button>`:"-"}</td><td>${r.status==="pending"?`<button class="primary-button admin-action" data-id="${esc(r.request_id)}" data-decision="approved">승인</button> <button class="secondary-button admin-action" data-id="${esc(r.request_id)}" data-decision="rejected">거절</button>`:"-"}</td></tr>`).join("")||'<tr><td colspan="8" class="empty-cell">표시할 요청이 없습니다.</td></tr>';c.innerHTML=`<p class="eyebrow">ADMIN</p><h2>${title}</h2><div class="table-wrap"><table class="admin-table"><thead><tr><th>요청 시각</th><th>이름</th><th>종목</th><th>기록</th><th>삭제 사유</th><th>상태</th><th>사진</th><th>처리</th></tr></thead><tbody>${rows}</tbody></table></div>`;}
+async function loadAdmin(view){document.querySelectorAll("[data-admin-view]").forEach(b=>b.classList.toggle("is-active",b.dataset.adminView===view));$("#adminContent").innerHTML="<p>불러오는 중입니다.</p>";try{adminContent(view,await api("adminList",{view},true));}catch(e){$("#adminContent").innerHTML=`<p class="form-result is-error">${esc(e.message)}</p>`;}}
+
+$("#currentYear").textContent=new Date().getFullYear();
+document.querySelectorAll(".tab-button").forEach((button) => {
+  button.onclick = () => {
+    document.querySelectorAll(".tab-button").forEach((item) => item.classList.toggle("is-active", item === button));
+    document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.toggle("is-active", panel.dataset.panel === button.dataset.tab));
+    if (button.dataset.tab === "admin" && state.adminToken) loadAdmin("add");
+  };
+});
+$("#refreshButton").onclick = refresh;
+$("#memberSearch").oninput = (event) => {
+  const keyword = event.target.value.trim().toLocaleLowerCase("ko");
+  document.querySelectorAll("#memberTable tbody tr").forEach((row) => { row.hidden = Boolean(keyword) && !row.textContent.toLocaleLowerCase("ko").includes(keyword); });
 };
-
-const state = {
-  rankings: Object.fromEntries(EVENTS.map((event) => [event, []])),
-  members: [],
-  records: [],
+$("#eventSections").oninput = (event) => {
+  if (!event.target.dataset.rankingTable) return;
+  const keyword = event.target.value.trim().toLocaleLowerCase("ko");
+  document.querySelectorAll("#" + event.target.dataset.rankingTable + " tbody tr").forEach((row) => { row.hidden = Boolean(keyword) && !row.textContent.toLocaleLowerCase("ko").includes(keyword); });
 };
-
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let field = "";
-  let quoted = false;
-
-  for (let index = 0; index < text.length; index += 1) {
-    const character = text[index];
-    if (quoted) {
-      if (character === '"' && text[index + 1] === '"') {
-        field += '"';
-        index += 1;
-      } else if (character === '"') {
-        quoted = false;
-      } else {
-        field += character;
-      }
-    } else if (character === '"') {
-      quoted = true;
-    } else if (character === ",") {
-      row.push(field);
-      field = "";
-    } else if (character === "\n") {
-      row.push(field.replace(/\r$/, ""));
-      if (row.some((value) => value !== "")) rows.push(row);
-      row = [];
-      field = "";
-    } else {
-      field += character;
-    }
-  }
-
-  row.push(field.replace(/\r$/, ""));
-  if (row.some((value) => value !== "")) rows.push(row);
-  return rows;
-}
-
-function columnIndex(headers, aliases) {
-  const normalized = headers.map((header) => header.trim().toLowerCase());
-  return normalized.findIndex((header) => aliases.includes(header));
-}
-
-function parseTimeToMs(value) {
-  const text = String(value ?? "").trim().replace(/\s/g, "").replace(",", ".");
-  if (!text) return 0;
-
-  const numeric = Number(text);
-  if (!text.includes(":") && Number.isFinite(numeric)) return Math.round(numeric * 1000);
-
-  const match = text.match(/^(?:(\d+):)?(\d{1,2})(?:\.(\d{1,3}))?$/);
-  if (!match) return 0;
-  const minutes = Number(match[1] || 0);
-  const seconds = Number(match[2]);
-  if (match[1] && seconds >= 60) return 0;
-  const milliseconds = Number((match[3] || "0").padEnd(3, "0").slice(0, 3));
-  return (minutes * 60 + seconds) * 1000 + milliseconds;
-}
-
-function formatTime(milliseconds) {
-  const totalSeconds = Math.floor(milliseconds / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  const tenths = Math.floor((milliseconds % 1000) / 100);
-  return minutes ? `${minutes}:${String(seconds).padStart(2, "0")}.${tenths}` : `${seconds}.${tenths}`;
-}
-
-function normalizeRecords(csvText) {
-  const rows = parseCsv(csvText);
-  if (rows.length < 2) return [];
-
-  const headers = rows[0];
-  const indexes = Object.fromEntries(
-    Object.entries(HEADER_ALIASES).map(([key, aliases]) => [key, columnIndex(headers, aliases)]),
-  );
-  if (indexes.memberName < 0 || indexes.event < 0 || indexes.timeDisplay < 0) {
-    throw new Error("시트의 헤더를 확인해 주세요. 이름, 종목, 기록 열이 필요합니다.");
-  }
-
-  return rows.slice(1).map((row) => {
-    const memberName = String(row[indexes.memberName] ?? "").trim();
-    const event = String(row[indexes.event] ?? "").trim().toUpperCase().replace(/\s/g, "");
-    const timeMs = parseTimeToMs(row[indexes.timeDisplay]);
-    return {
-      memberName,
-      event,
-      timeMs,
-      timeDisplay: timeMs > 0 ? formatTime(timeMs) : "-",
-      competition: indexes.competition >= 0 ? String(row[indexes.competition] ?? "").trim() : "",
-      competitionDate: indexes.competitionDate >= 0 ? String(row[indexes.competitionDate] ?? "").trim() : "",
-      note: indexes.note >= 0 ? String(row[indexes.note] ?? "").trim() : "",
-      createdAt: indexes.createdAt >= 0 ? String(row[indexes.createdAt] ?? "").trim() : "",
-    };
-  }).filter((record) => record.memberName && EVENTS.includes(record.event) && record.timeMs > 0);
-}
-
-function buildLeaderboard(records) {
-  state.records = records;
-  const best = new Map();
-  const histories = new Map();
-
-  records.forEach((record) => {
-    if (!histories.has(record.memberName)) histories.set(record.memberName, []);
-    histories.get(record.memberName).push(record);
-    const key = `${record.memberName}\u0000${record.event}`;
-    const current = best.get(key);
-    if (!current || record.timeMs < current.timeMs) best.set(key, record);
-  });
-
-  EVENTS.forEach((event) => {
-    const rows = [...best.values()]
-      .filter((record) => record.event === event)
-      .sort((left, right) => left.timeMs - right.timeMs || left.memberName.localeCompare(right.memberName, "ko"));
-    let previousTime = null;
-    let previousRank = 0;
-    rows.forEach((record, index) => {
-      record.rank = record.timeMs === previousTime ? previousRank : index + 1;
-      previousTime = record.timeMs;
-      previousRank = record.rank;
-    });
-    state.rankings[event] = rows;
-  });
-
-  state.members = [...histories.keys()].sort((a, b) => a.localeCompare(b, "ko")).map((memberName) => {
-    const summary = { memberName, recordCount: histories.get(memberName).length, pb: {} };
-    EVENTS.forEach((event) => {
-      const pb = best.get(`${memberName}\u0000${event}`) || null;
-      summary.pb[event] = pb;
-      summary[event] = pb?.timeDisplay || "-";
-    });
-    return summary;
-  });
-}
-
-function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>'"]/g, (character) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;",
-  })[character]);
-}
-
-function podiumMarkup(rows) {
-  const cards = [2, 1, 3].map((position) => {
-    const row = rows[position - 1];
-    if (!row) return `
-      <article class="podium-card podium-${position}">
-        <div class="medal">${position}</div><h3>기록 없음</h3><div class="record-time">-</div><p>기록을 기다리고 있습니다.</p>
-      </article>`;
-    return `
-      <article class="podium-card podium-${position}">
-        <div class="medal">${position}</div><h3>${escapeHtml(row.memberName)}</h3>
-        <div class="record-time">${escapeHtml(row.timeDisplay)}</div>
-        <p>${escapeHtml(row.competition)}</p>
-        <small>${escapeHtml(row.competitionDate || "-")}</small>
-      </article>`;
-  });
-  return cards.join("");
-}
-
-function rankingRowsMarkup(rows) {
-  return rows.length ? rows.map((row) => `
-    <tr>
-      <td><span class="rank-badge">${row.rank}</span></td><td class="member-name">${escapeHtml(row.memberName)}</td>
-      <td class="time-cell">${escapeHtml(row.timeDisplay)}</td></tr>
-  `).join("") : '<tr><td colspan="3" class="empty-cell">등록된 기록이 없습니다.</td></tr>';
-}
-
-function renderTopChampions() {
-  document.querySelector("#topChampions").innerHTML = EVENTS.map((event) => {
-    const champion = state.rankings[event][0];
-    return `<article class="top-champion-card">
-      <span>${event} TOP 1</span>
-      <strong>${escapeHtml(champion?.memberName || "-")}</strong>
-      <small>${escapeHtml(champion?.timeDisplay || "-")}</small>
-    </article>`;
-  }).join("");
-}
-
-function renderEventSections() {
-  document.querySelector("#eventSections").innerHTML = EVENTS.map((event) => {
-    const rows = state.rankings[event];
-    return `
-      <section class="event-section" aria-label="${event} TOP 3 및 전체 순위">
-        <h2 class="event-title">${event}</h2>
-        <section class="podium-section">
-          <div class="section-heading event-heading">
-            <div><p class="eyebrow">TOP 3</p></div>
-          </div>
-          <div class="podium-grid">${podiumMarkup(rows)}</div>
-        </section>
-
-        <section class="panel">
-          <div class="section-heading table-heading">
-            <div><p class="eyebrow">RANKING</p></div>
-            <input class="search-input event-search" type="search" placeholder="${event} 이름 검색"
-              aria-label="${event} 이름 검색" data-ranking-table="ranking-${event}">
-          </div>
-          <div class="table-wrap ranking-scroll">
-            <table id="ranking-${event}" class="ranking-table">
-              <thead><tr><th>순위</th><th>이름</th><th>PB</th></tr></thead>
-              <tbody>${rankingRowsMarkup(rows)}</tbody>
-            </table>
-          </div>
-        </section>
-      </section>`;
-  }).join("");
-}
-
-function renderMembers() {
-  const body = document.querySelector("#memberTable tbody");
-  body.innerHTML = state.members.length ? state.members.map((member, index) => `
-    <tr><td>${index + 1}</td><td class="member-name">${escapeHtml(member.memberName)}</td>
-      ${EVENTS.map((event) => `<td>${escapeHtml(member[event])}</td>`).join("")}
-      <td>${member.recordCount}</td>
-      <td><button class="record-detail-button" type="button" data-member-index="${index}">기록</button></td></tr>
-  `).join("") : '<tr><td colspan="7" class="empty-cell">등록된 회원이 없습니다.</td></tr>';
-}
-
-function bindSearch(inputSelector, tableSelector) {
-  const input = document.querySelector(inputSelector);
-  const table = document.querySelector(tableSelector);
-  input.addEventListener("input", () => {
-    const keyword = input.value.trim().toLocaleLowerCase("ko");
-    table.querySelectorAll("tbody tr").forEach((row) => {
-      row.hidden = Boolean(keyword) && !row.textContent.toLocaleLowerCase("ko").includes(keyword);
-    });
-  });
-}
-
-function filterRanking(table, input) {
-  const keyword = input.value.trim().toLocaleLowerCase("ko");
-  table.querySelectorAll("tbody tr").forEach((row) => {
-    row.hidden = Boolean(keyword) && !row.textContent.toLocaleLowerCase("ko").includes(keyword);
-  });
-}
-
-function recordHistoryMarkup(records) {
-  return records.length ? records.map((record) => `
-    <tr><td>${escapeHtml(record.competitionDate || "-")}</td><td class="time-cell">${escapeHtml(record.timeDisplay)}</td>
-      <td>${escapeHtml(record.competition)}</td></tr>
-  `).join("") : '<tr><td colspan="3" class="empty-cell">등록된 기록이 없습니다.</td></tr>';
-}
-
-function openMemberDialog(memberIndex) {
-  const member = state.members[memberIndex];
-  if (!member) return;
-  document.querySelector("#dialogMemberName").textContent = `${member.memberName} 선수 기록`;
-  document.querySelector("#dialogContent").innerHTML = `
-    <div class="member-pb-grid">
-      ${EVENTS.map((event) => {
-        const pb = member.pb[event];
-        return `<div class="member-pb-card"><span>${event} PB</span><strong>${escapeHtml(pb?.timeDisplay || "-")}</strong>
-          <small>${escapeHtml(pb?.competitionDate || "")}</small></div>`;
-      }).join("")}
-    </div>
-    <div class="member-history-list">
-      ${EVENTS.map((event) => {
-        const records = state.records
-          .filter((record) => record.memberName === member.memberName && record.event === event)
-          .sort((left, right) => (right.competitionDate || "").localeCompare(left.competitionDate || "") || left.timeMs - right.timeMs);
-        return `<section class="member-event-history">
-          <div class="member-event-heading"><h3>${event}</h3><span>${records.length}개 기록</span></div>
-          <div class="table-wrap"><table class="member-history-table">
-            <thead><tr><th>날짜</th><th>기록</th><th>대회</th></tr></thead>
-            <tbody>${recordHistoryMarkup(records)}</tbody>
-          </table></div>
-        </section>`;
-      }).join("")}
-    </div>`;
-
-  document.querySelector("#memberDialog").showModal();
-}
-
-async function loadRecords() {
-  const response = await fetch(`${SHEET_CSV_URL}&_=${Date.now()}`, { cache: "no-store" });
-  if (!response.ok) throw new Error(`Spreadsheet 응답 오류 (${response.status})`);
-  const records = normalizeRecords(await response.text());
-  buildLeaderboard(records);
-  renderTopChampions();
-  renderEventSections();
-  renderMembers();
-  document.querySelector("#memberSearch").dispatchEvent(new Event("input"));
-  document.querySelector("#statusMessage").hidden = true;
-}
-
-async function refreshRecords() {
-  const button = document.querySelector("#refreshButton");
-  const message = document.querySelector("#statusMessage");
-  button.disabled = true;
-  button.setAttribute("aria-busy", "true");
-  message.hidden = false;
-  message.classList.remove("status-error");
-  message.textContent = "Google Spreadsheet에서 최신 기록을 불러오는 중입니다.";
-
-  try {
-    await loadRecords();
-  } catch (error) {
-    message.classList.add("status-error");
-    message.textContent = "기록을 불러오지 못했습니다. 잠시 후 새로고침 버튼을 다시 눌러 주세요.";
-    console.error(error);
-  } finally {
-    button.disabled = false;
-    button.removeAttribute("aria-busy");
-  }
-}
-
-document.querySelector("#currentYear").textContent = new Date().getFullYear();
-document.querySelector("#refreshButton").addEventListener("click", refreshRecords);
-document.querySelector("#eventSections").addEventListener("input", (event) => {
-  const input = event.target.closest("[data-ranking-table]");
-  if (!input) return;
-  const table = document.querySelector(`#${input.dataset.rankingTable}`);
-  filterRanking(table, input);
-});
-document.querySelector("#memberTable").addEventListener("click", (event) => {
-  const button = event.target.closest("[data-member-index]");
-  if (button) openMemberDialog(Number(button.dataset.memberIndex));
-});
-document.querySelector("#dialogCloseButton").addEventListener("click", () => document.querySelector("#memberDialog").close());
-document.querySelector("#memberDialog").addEventListener("click", (event) => {
-  if (event.target === event.currentTarget) event.currentTarget.close();
-});
-bindSearch("#memberSearch", "#memberTable");
-refreshRecords();
+$("#memberTable").onclick = (event) => { const button = event.target.closest("[data-member-index]"); if (button) openMember(Number(button.dataset.memberIndex)); };
+$("#memberSelect").onchange = (event) => { $("#memberNameInput").value = event.target.value; $("#memberNameInput").readOnly = Boolean(event.target.value); };
+$("#dialogCloseButton").onclick = () => $("#memberDialog").close();
+$("#memberDialog").onclick = (event) => { if (event.target === event.currentTarget) event.currentTarget.close(); };
+document.addEventListener("click",async e=>{const p=e.target.closest("[data-photo-url]");if(p){$("#proofPhotoImage").src=p.dataset.photoUrl;$("#photoDialog").showModal();return;}if(e.target.closest("[data-close-photo]"))$("#photoDialog").close();const d=e.target.closest("[data-record-id]");if(d){const r=state.records.find(x=>x.record_id===d.dataset.recordId),reason=prompt("삭제 사유를 입력하세요.");if(reason && reason.trim())try{await api("requestDelete",{recordId:r.record_id,memberName:r.memberName,competitionDate:r.competition_date,eventId:r.eventId,eventName:r.eventName,timeDisplay:r.timeDisplay,reason:reason.trim()});alert("삭제 요청이 접수되었습니다.");}catch(x){alert(x.message);}}const a=e.target.closest(".admin-action");if(a)try{await api("processRequest",{requestId:a.dataset.id,decision:a.dataset.decision},true);await loadAdmin("history");await refresh();}catch(x){alert(x.message);}const save=e.target.closest(".event-save");if(save)try{await api("manageEvent",{operation:"rename",eventId:save.dataset.eventId,eventName:document.querySelector(`[data-event-name="${save.dataset.eventId}"]`).value},true);await refresh();await loadAdmin("events");}catch(x){alert(x.message);}const remove=e.target.closest(".event-delete");if(remove&&confirm("이 종목을 삭제할까요?"))try{await api("manageEvent",{operation:"delete",eventId:remove.dataset.eventId},true);await refresh();await loadAdmin("events");}catch(x){alert(x.message);}});
+$("#recordRequestForm").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget);if(!ms(f.get("timeDisplay")))return result("#recordRequestResult","기록 형식을 확인해 주세요.",true);try{result("#recordRequestResult","사진을 처리하고 요청을 전송하는 중입니다.");await api("requestAdd",{memberName:f.get("memberName").trim(),competitionDate:f.get("competitionDate"),eventId:f.get("eventId"),timeDisplay:f.get("timeDisplay"),competition:f.get("competition").trim(),note:f.get("note").trim(),photo:await compress(f.get("proofPhoto"))});e.currentTarget.reset();result("#recordRequestResult","기록 추가 요청이 접수되었습니다. 관리자 승인 후 반영됩니다.");}catch(x){result("#recordRequestResult",x.message,true);}};
+$("#adminLoginForm").onsubmit=async e=>{e.preventDefault();try{const d=await api("adminLogin",{password:new FormData(e.currentTarget).get("password")});state.adminToken=d.adminToken;sessionStorage.setItem("ergAdminToken",d.adminToken);$("#adminLogin").hidden=true;$("#adminConsole").hidden=false;loadAdmin("add");}catch(x){result("#adminLoginResult",x.message,true);}};$("#adminConsole").onclick=e=>{const b=e.target.closest("[data-admin-view]");if(b)loadAdmin(b.dataset.adminView);};$("#adminLogout").onclick=()=>{state.adminToken="";sessionStorage.removeItem("ergAdminToken");$("#adminLogin").hidden=false;$("#adminConsole").hidden=true;};$("#adminContent").onsubmit=async e=>{if(e.target.id!=="eventAddForm")return;e.preventDefault();try{await api("manageEvent",{operation:"add",eventName:new FormData(e.target).get("eventName")},true);await refresh();loadAdmin("events");}catch(x){alert(x.message);}};
+if(state.adminToken){$("#adminLogin").hidden=true;$("#adminConsole").hidden=false;}refresh();
