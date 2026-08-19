@@ -240,4 +240,4 @@ function nextRecordId_(rows) {
   return recordId;
 }
 function parseTimeMs_(v) { const m=clean_(v).replace(',', '.').match(/^(?:(\d+):)?(\d{1,2})(?:\.(\d{1,3}))?$/); return !m || m[1] && Number(m[2]) >= 60 ? 0 : (Number(m[1] || 0) * 60 + Number(m[2])) * 1000 + Number((m[3] || '0').padEnd(3,'0').slice(0,3)); }
-function formatTime_(value) { const seconds=Math.floor(value/1000), minutes=Math.floor(seconds/60); return minutes ? minutes + ':' + String(seconds%60).padStart(2,'0') + '.' + Math.floor(value%1000/100) : (seconds%60) + '.' + Math.floor(value%1000/100); }
+function formatTime_(value) { const seconds=Math.floor(value/1000), minutes=Math.floor(seconds/60); return minutes + ':' + String(seconds%60).padStart(2,'0') + '.' + Math.floor(value%1000/100); }
