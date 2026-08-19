@@ -133,7 +133,7 @@ function eventNameCompare_(a, b) {
 function adminList_(view) {
   if (view === 'events') return { events: events_().sort(eventNameCompare_) };
   const type = view === 'add' ? 'add' : view === 'delete' ? 'delete' : '';
-  const requests = rowsToRequests_().filter(r => !type || r.request_type === type).sort((a,b) => b.requested_at.localeCompare(a.requested_at));
+  const requests = rowsToRequests_().filter(r => (!type || r.request_type === type) && (view !== 'history' || r.status !== 'pending')).sort((a,b) => b.requested_at.localeCompare(a.requested_at));
   return { requests: requests };
 }
 function processRequest_(p) {
