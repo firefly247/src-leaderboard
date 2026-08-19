@@ -144,10 +144,11 @@ function processRequest_(p) {
     if (!request) throw new Error('요청을 찾을 수 없습니다.');
     if (request.status !== 'pending') throw new Error('이미 처리된 요청입니다.');
     if (p.decision === 'rejected') { updateRequest_(request, 'rejected', '관리자 거절'); return {}; }
+    let result = 'GitHub CSV 커밋 완료';
     if (request.request_type === 'add') approveAdd_(request);
-    else if (request.request_type === 'delete') approveDelete_(request);
+    else if (request.request_type === 'delete') { if (!approveDelete_(request)) result = '대상 기록이 이미 삭제되어 CSV 변경 없이 승인 처리'; }
     else throw new Error('요청 종류가 올바르지 않습니다.');
-    updateRequest_(request, 'approved', 'GitHub CSV 커밋 완료');
+    updateRequest_(request, 'approved', result);
     return {};
   } finally { lock.releaseLock(); }
 }
@@ -167,8 +168,9 @@ function approveAdd_(r) {
 }
 function approveDelete_(r) {
   const rows = records_(), next = rows.filter(row => row.record_id !== r.record_id);
-  if (rows.length === next.length) throw new Error('삭제 대상 기록이 이미 존재하지 않습니다.');
+  if (rows.length === next.length) return false;
   writeCsv_('data/records.csv', RECORD_COLUMNS, next, 'Approve record deletion ' + r.request_id);
+  return true;
 }
 function manageEvent_(p) {
   const lock = LockService.getScriptLock(); lock.waitLock(30000);
