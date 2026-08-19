@@ -1,0 +1,48 @@
+name: Deploy Google Apps Script
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps-script/**'
+      - '.clasp.json'
+      - '.github/workflows/deploy-apps-script.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLASP_DEPLOYMENT_ID: AKfycbwxHRgWZWMisQzVIK8KogLwU2ri5EfhCnY2FqqBLm7Nb8Oo9DYNIF_L28UgMfwO9q2f
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install clasp
+        run: npm install --global @google/clasp
+
+      - name: Configure Google authentication
+        if: ${{ secrets.CLASPRC_JSON != '' }}
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+        run: |
+          test -n "$CLASPRC_JSON"
+          printf '%s' "$CLASPRC_JSON" > "$HOME/.clasprc.json"
+
+      - name: Push and redeploy the existing web app
+        if: ${{ secrets.CLASPRC_JSON != '' }}
+        run: |
+          clasp push --force
+          clasp create-deployment --deploymentId "$CLASP_DEPLOYMENT_ID" --description "GitHub ${GITHUB_SHA}"
+
+      - name: Report missing authentication secret
+        if: ${{ secrets.CLASPRC_JSON == '' }}
+        run: echo "::warning::CLASPRC_JSON secret is not configured, so Apps Script deployment was skipped."
