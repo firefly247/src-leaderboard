@@ -103,6 +103,7 @@ tbody tr:hover { background: #f8fbff; }
 .form-panel input, .form-panel select, .inline-form input, .admin-table input { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; background: white; color: var(--text); font: inherit; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .form-grid > label { align-content: start; }
+.form-grid > .paired-input { margin-top: 24px; }
 .time-inputs { display: flex; align-items: center; gap: 7px; }
 .time-inputs { min-height: 44px; }
 .time-inputs input { width: 74px; min-width: 0; text-align: center; }
@@ -218,6 +219,7 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .main-tabs { gap: 2px !important; }
   .tab-button { padding: 26px 3px 22px; font-size: 11px; }
   .form-grid { grid-template-columns: 1fr; gap: 16px; }
+  .form-grid > .paired-input { margin-top: 0; }
   .form-panel h1 { font-size: 27px; }
   .admin-subtabs { display: grid; grid-template-columns: 1fr 1fr; }
   .admin-subtabs .secondary-button { margin-left: 0; }
