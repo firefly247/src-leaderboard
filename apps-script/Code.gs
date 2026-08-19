@@ -117,7 +117,7 @@ function requestSource_(payload, photoUrl) {
 function savePhotoToGitHub_(requestId, photo) {
   if (!photo.base64 || photo.mimeType !== 'image/jpeg') throw new Error('증빙사진 형식이 올바르지 않습니다.');
   const bytes = Utilities.base64Decode(photo.base64);
-  if (bytes.length > 512000) throw new Error('증빙사진은 500KB 이하여야 합니다.');
+  if (bytes.length > 307200) throw new Error('증빙사진은 300KB 이하여야 합니다.');
   const path = 'data/proofs/' + requestId + '.jpg';
   githubPutBase64_(path, photo.base64, 'Store proof photo for request ' + requestId);
   return githubRawUrl_(path);
