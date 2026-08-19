@@ -1,7 +1,7 @@
 "use strict";
 
 // Public endpoint only. Keep GAS password and GitHub token in Script Properties.
-const API_URL = "";
+const API_URL = "https://script.google.com/macros/s/AKfycbxeOv94sfaAO_TfuyfQ5sLk33GtxKmIkQBL_LC3Q803C6ZMw0xQNCTuxdrYA5brwq_t/exec";
 const DATA_URL = "./data";
 const state = { events: [], records: [], rankings: {}, members: [], adminToken: sessionStorage.getItem("ergAdminToken") || "" };
 const $ = (s) => document.querySelector(s);
