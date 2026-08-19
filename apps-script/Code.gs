@@ -75,15 +75,16 @@ function updateRequest_(request, status, result) {
 
 function requestAdd_(p) {
   validateAdd_(p);
-  const event = events_().find(e => e.event_id === p.eventId);
-  if (!event) throw new Error('존재하지 않는 종목입니다.');
+  const event = p.eventId ? events_().find(e => e.event_id === p.eventId) : null;
+  if (p.eventId && !event) throw new Error('존재하지 않는 종목입니다.');
+  const eventName = event ? event.event_name : clean_(p.eventName);
   const requestId = Utilities.getUuid();
   const photoUrl = p.photo ? savePhotoToGitHub_(requestId, p.photo) : '';
   const request = {
     request_id: requestId, request_type: 'add', requested_at: new Date().toISOString(),
     // Do not write the base64 image payload into the audit Spreadsheet cell.
-    source: requestSource_(p, photoUrl), status: 'pending', record_id: '', member_name: clean_(p.memberName), event_id: event.event_id,
-    event_name: event.event_name, time_display: clean_(p.timeDisplay), competition_date: clean_(p.competitionDate),
+    source: requestSource_(p, photoUrl), status: 'pending', record_id: '', member_name: clean_(p.memberName), event_id: event ? event.event_id : '',
+    event_name: eventName, time_display: clean_(p.timeDisplay), competition_date: clean_(p.competitionDate),
     competition: clean_(p.competition), note: clean_(p.note), proof_photo_url: photoUrl
   };
   appendRequest_(request);
@@ -104,7 +105,7 @@ function requestDelete_(p) {
   return { requestId: request.request_id };
 }
 function validateAdd_(p) {
-  if (!clean_(p.memberName) || !clean_(p.competitionDate) || !clean_(p.eventId) || !parseTimeMs_(p.timeDisplay)) throw new Error('이름, 날짜, 종목, 올바른 기록은 필수입니다.');
+  if (!clean_(p.memberName) || !clean_(p.competitionDate) || (!clean_(p.eventId) && !clean_(p.eventName)) || !parseTimeMs_(p.timeDisplay)) throw new Error('이름, 날짜, 종목, 올바른 기록은 필수입니다.');
   if (clean_(p.memberName).length > 50) throw new Error('이름은 50자 이하여야 합니다.');
 }
 function requestSource_(payload, photoUrl) {
@@ -144,10 +145,17 @@ function processRequest_(p) {
   } finally { lock.releaseLock(); }
 }
 function approveAdd_(r) {
-  const rows = records_(), event = events_().find(e => e.event_id === r.event_id);
+  const rows = records_(), events = events_();
+  let event = events.find(e => e.event_id === r.event_id);
+  if (!event && clean_(r.event_name)) event = events.find(e => e.event_name.toLowerCase() === r.event_name.toLowerCase());
+  if (!event && clean_(r.event_name)) {
+    event = { event_id: 'event-' + randomId_(), event_name: r.event_name };
+    events.push(event);
+    writeCsv_('data/events.csv', ['event_id','event_name'], events, 'Add requested leaderboard event ' + r.request_id);
+  }
   if (!event) throw new Error('종목이 삭제되어 승인할 수 없습니다.');
   const timeMs = parseTimeMs_(r.time_display);
-  rows.push({ record_id: Utilities.getUuid(), member_name: r.member_name, event_id: event.event_id, event_name: event.event_name, time_ms: String(timeMs), time_display: formatTime_(timeMs), competition: r.competition, competition_date: r.competition_date, note: r.note, proof_photo_url: r.proof_photo_url, created_at: new Date().toISOString() });
+  rows.push({ record_id: nextRecordId_(rows), member_name: r.member_name, event_id: event.event_id, event_name: event.event_name, time_ms: String(timeMs), time_display: formatTime_(timeMs), competition: r.competition, competition_date: r.competition_date, note: r.note, proof_photo_url: r.proof_photo_url, created_at: new Date().toISOString() });
   writeCsv_('data/records.csv', RECORD_COLUMNS, rows, 'Approve record request ' + r.request_id);
 }
 function approveDelete_(r) {
@@ -161,7 +169,7 @@ function manageEvent_(p) {
     const events = events_(), name = clean_(p.eventName);
     if (p.operation === 'add') {
       if (!name) throw new Error('종목 이름을 입력해 주세요.');
-      events.push({ event_id: 'event-' + Utilities.getUuid().slice(0,8), event_name: name });
+      events.push({ event_id: 'event-' + randomId_(), event_name: name });
     } else if (p.operation === 'rename') {
       const event = events.find(e => e.event_id === p.eventId);
       if (!event || !name) throw new Error('종목을 찾을 수 없거나 이름이 비어 있습니다.');
@@ -214,5 +222,15 @@ function githubUrl_(path) { return 'https://api.github.com/repos/' + prop_('GITH
 function githubRawUrl_(path) { return 'https://raw.githubusercontent.com/' + prop_('GITHUB_OWNER') + '/' + prop_('GITHUB_REPO') + '/' + (properties_().getProperty('GITHUB_BRANCH') || 'main') + '/' + path; }
 function githubHeaders_() { return { Authorization: 'Bearer ' + prop_('GITHUB_TOKEN'), Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }; }
 function clean_(v) { return String(v || '').trim(); }
+function randomId_() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_';
+  const digest = Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, Utilities.getUuid())).replace(/-/g, '_');
+  return digest.slice(0, 8);
+}
+function nextRecordId_(rows) {
+  let recordId;
+  do { recordId = randomId_(); } while (rows.some(row => row.record_id === recordId));
+  return recordId;
+}
 function parseTimeMs_(v) { const m=clean_(v).replace(',', '.').match(/^(?:(\d+):)?(\d{1,2})(?:\.(\d{1,3}))?$/); return !m || m[1] && Number(m[2]) >= 60 ? 0 : (Number(m[1] || 0) * 60 + Number(m[2])) * 1000 + Number((m[3] || '0').padEnd(3,'0').slice(0,3)); }
 function formatTime_(value) { const seconds=Math.floor(value/1000), minutes=Math.floor(seconds/60); return minutes ? minutes + ':' + String(seconds%60).padStart(2,'0') + '.' + Math.floor(value%1000/100) : (seconds%60) + '.' + Math.floor(value%1000/100); }
