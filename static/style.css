@@ -119,6 +119,7 @@ tbody tr:hover { background: #f8fbff; }
 .form-result { min-height: 20px; margin: 0; color: #137333; font-weight: 700; }
 .form-result.is-error { color: var(--danger); }
 .admin-subtabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.admin-events-button { margin-right: 16px; }
 .admin-subtabs button:not(.secondary-button) { border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; background: white; color: var(--text); font: inherit; font-weight: 800; cursor: pointer; }
 .admin-subtabs button.is-active { border-color: var(--primary); background: var(--primary); color: white; }
 .admin-subtabs .secondary-button { margin-left: auto; }
@@ -227,6 +228,7 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .form-grid > .paired-input { margin-top: 0; }
   .form-panel h1 { font-size: 27px; }
   .admin-subtabs { display: grid; grid-template-columns: 1fr 1fr; }
+  .admin-events-button { grid-column: 1 / -1; margin-right: 0; margin-bottom: 8px; }
   .admin-subtabs .secondary-button { margin-left: 0; }
   .inline-form { display: grid; }
   .inline-form input { max-width: none; }
