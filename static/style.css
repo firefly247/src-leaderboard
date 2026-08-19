@@ -100,6 +100,7 @@ tbody tr:hover { background: #f8fbff; }
 .form-description, .form-panel small { color: var(--muted); }
 .form-panel form { display: grid; gap: 16px; margin-top: 26px; }
 .form-panel label { display: grid; gap: 7px; color: #344054; font-size: 14px; font-weight: 800; }
+.required-mark { color: var(--danger); }
 .form-panel input, .form-panel select, .inline-form input, .admin-table input { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; background: white; color: var(--text); font: inherit; }
 .form-panel input[readonly] { background: #f3f6fa; color: var(--muted); cursor: not-allowed; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
