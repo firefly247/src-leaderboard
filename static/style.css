@@ -102,7 +102,9 @@ tbody tr:hover { background: #f8fbff; }
 .form-panel label { display: grid; gap: 7px; color: #344054; font-size: 14px; font-weight: 800; }
 .form-panel input, .form-panel select, .inline-form input, .admin-table input { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; background: white; color: var(--text); font: inherit; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-grid > label { align-content: start; }
 .time-inputs { display: flex; align-items: center; gap: 7px; }
+.time-inputs { min-height: 44px; }
 .time-inputs input { width: 74px; min-width: 0; text-align: center; }
 .time-inputs span { color: var(--muted); font-size: 13px; white-space: nowrap; }
 .primary-button, .secondary-button, .delete-request-button { border: 1px solid transparent; border-radius: 10px; min-height: 40px; padding: 8px 13px; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
