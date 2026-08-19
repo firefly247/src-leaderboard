@@ -1,7 +1,7 @@
 /**
  * Deploy this file as an Apps Script web app (execute as you; access: anyone).
  * Required Script Properties: ADMIN_PASSWORD, GITHUB_TOKEN, GITHUB_OWNER,
- * GITHUB_REPO, REQUEST_SHEET_ID, PROOF_DRIVE_FOLDER_ID.
+ * GITHUB_REPO and REQUEST_SHEET_ID.
  */
 const REQUEST_SHEET = 'REQUEST_LOG';
 const RECORD_COLUMNS = ['record_id','member_name','event_id','event_name','time_ms','time_display','competition','competition_date','note','proof_photo_url','created_at'];
@@ -77,10 +77,12 @@ function requestAdd_(p) {
   validateAdd_(p);
   const event = events_().find(e => e.event_id === p.eventId);
   if (!event) throw new Error('존재하지 않는 종목입니다.');
-  const photoUrl = p.photo ? savePhoto_(p.photo) : '';
+  const requestId = Utilities.getUuid();
+  const photoUrl = p.photo ? savePhotoToGitHub_(requestId, p.photo) : '';
   const request = {
-    request_id: Utilities.getUuid(), request_type: 'add', requested_at: new Date().toISOString(),
-    source: p, status: 'pending', record_id: '', member_name: clean_(p.memberName), event_id: event.event_id,
+    request_id: requestId, request_type: 'add', requested_at: new Date().toISOString(),
+    // Do not write the base64 image payload into the audit Spreadsheet cell.
+    source: requestSource_(p, photoUrl), status: 'pending', record_id: '', member_name: clean_(p.memberName), event_id: event.event_id,
     event_name: event.event_name, time_display: clean_(p.timeDisplay), competition_date: clean_(p.competitionDate),
     competition: clean_(p.competition), note: clean_(p.note), proof_photo_url: photoUrl
   };
@@ -105,13 +107,19 @@ function validateAdd_(p) {
   if (!clean_(p.memberName) || !clean_(p.competitionDate) || !clean_(p.eventId) || !parseTimeMs_(p.timeDisplay)) throw new Error('이름, 날짜, 종목, 올바른 기록은 필수입니다.');
   if (clean_(p.memberName).length > 50) throw new Error('이름은 50자 이하여야 합니다.');
 }
-function savePhoto_(photo) {
+function requestSource_(payload, photoUrl) {
+  const source = Object.assign({}, payload);
+  delete source.photo;
+  source.proof_photo_url = photoUrl;
+  return source;
+}
+function savePhotoToGitHub_(requestId, photo) {
   if (!photo.base64 || photo.mimeType !== 'image/jpeg') throw new Error('증빙사진 형식이 올바르지 않습니다.');
   const bytes = Utilities.base64Decode(photo.base64);
   if (bytes.length > 512000) throw new Error('증빙사진은 500KB 이하여야 합니다.');
-  const file = DriveApp.getFolderById(prop_('PROOF_DRIVE_FOLDER_ID')).createFile(Utilities.newBlob(bytes, 'image/jpeg', clean_(photo.name) || 'proof.jpg'));
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  return 'https://drive.google.com/uc?export=view&id=' + file.getId();
+  const path = 'data/proofs/' + requestId + '.jpg';
+  githubPutBase64_(path, photo.base64, 'Store proof photo for request ' + requestId);
+  return githubRawUrl_(path);
 }
 
 function adminList_(view) {
@@ -194,7 +202,16 @@ function githubPut_(path, content, message) {
   const response = UrlFetchApp.fetch(githubUrl_(path), { method: 'put', contentType: 'application/json', headers: githubHeaders_(), payload: JSON.stringify({ message: message, content: Utilities.base64Encode(content, Utilities.Charset.UTF_8), sha: current.sha, branch: properties_().getProperty('GITHUB_BRANCH') || 'main' }), muteHttpExceptions: true });
   if (response.getResponseCode() < 200 || response.getResponseCode() > 299) throw new Error('GitHub 커밋에 실패했습니다: ' + response.getContentText());
 }
+function githubPutBase64_(path, base64, message) {
+  const response = UrlFetchApp.fetch(githubUrl_(path), {
+    method: 'put', contentType: 'application/json', headers: githubHeaders_(),
+    payload: JSON.stringify({ message: message, content: base64, branch: properties_().getProperty('GITHUB_BRANCH') || 'main' }),
+    muteHttpExceptions: true
+  });
+  if (response.getResponseCode() < 200 || response.getResponseCode() > 299) throw new Error('증빙사진 GitHub 커밋에 실패했습니다: ' + response.getContentText());
+}
 function githubUrl_(path) { return 'https://api.github.com/repos/' + prop_('GITHUB_OWNER') + '/' + prop_('GITHUB_REPO') + '/contents/' + path; }
+function githubRawUrl_(path) { return 'https://raw.githubusercontent.com/' + prop_('GITHUB_OWNER') + '/' + prop_('GITHUB_REPO') + '/' + (properties_().getProperty('GITHUB_BRANCH') || 'main') + '/' + path; }
 function githubHeaders_() { return { Authorization: 'Bearer ' + prop_('GITHUB_TOKEN'), Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }; }
 function clean_(v) { return String(v || '').trim(); }
 function parseTimeMs_(v) { const m=clean_(v).replace(',', '.').match(/^(?:(\d+):)?(\d{1,2})(?:\.(\d{1,3}))?$/); return !m || m[1] && Number(m[2]) >= 60 ? 0 : (Number(m[1] || 0) * 60 + Number(m[2])) * 1000 + Number((m[3] || '0').padEnd(3,'0').slice(0,3)); }
