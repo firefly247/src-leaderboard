@@ -123,8 +123,15 @@ function savePhotoToGitHub_(requestId, photo) {
   return githubRawUrl_(path);
 }
 
+function eventNameCompare_(a, b) {
+  const aName = String(a.event_name || a), bName = String(b.event_name || b);
+  const aMatch = aName.match(/^\s*(\d+(?:\.\d+)?)/), bMatch = bName.match(/^\s*(\d+(?:\.\d+)?)/);
+  if (aMatch && bMatch && Number(aMatch[1]) !== Number(bMatch[1])) return Number(aMatch[1]) - Number(bMatch[1]);
+  return aName.localeCompare(bName, 'ko');
+}
+
 function adminList_(view) {
-  if (view === 'events') return { events: events_().sort(function(a, b) { return a.event_name.localeCompare(b.event_name, 'ko'); }) };
+  if (view === 'events') return { events: events_().sort(eventNameCompare_) };
   const type = view === 'add' ? 'add' : view === 'delete' ? 'delete' : '';
   const requests = rowsToRequests_().filter(r => !type || r.request_type === type).sort((a,b) => b.requested_at.localeCompare(a.requested_at));
   return { requests: requests };
