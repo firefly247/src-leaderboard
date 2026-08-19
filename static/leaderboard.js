@@ -1,7 +1,7 @@
 "use strict";
 
 // Public endpoint only. Keep GAS password and GitHub token in Script Properties.
-const API_URL = "https://script.google.com/macros/s/AKfycbzPeh2PqlI9v_WppOczeY0qIgegS4E-kgonBRAC-gHIdJiOibIUSHeCTeGnCVEWQ88o/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwxHRgWZWMisQzVIK8KogLwU2ri5EfhCnY2FqqBLm7Nb8Oo9DYNIF_L28UgMfwO9q2f/exec";
 const DATA_URL = "https://raw.githubusercontent.com/firefly247/src-leaderboard/main/data";
 const state = { events: [], records: [], rankings: {}, members: [], adminToken: sessionStorage.getItem("ergAdminToken") || "", refreshing: false, refreshedAt: 0 };
 const $ = (s) => document.querySelector(s);
