@@ -115,6 +115,7 @@ tbody tr:hover { background: #f8fbff; }
 .primary-button:hover { background: var(--primary-dark); }
 .secondary-button { border-color: #c8d5e8; background: #edf3ff; color: var(--primary-dark); }
 .delete-request-button { border-color: #efb7b7; background: #fff5f5; color: #a11b1b; }
+.pending-delete-button { border: 1px solid #f0ad4e; border-radius: 10px; min-height: 40px; padding: 8px 13px; background: #fff3dd; color: #a55a00; font: inherit; font-size: 13px; font-weight: 800; cursor: wait; }
 .form-result { min-height: 20px; margin: 0; color: #137333; font-weight: 700; }
 .form-result.is-error { color: var(--danger); }
 .admin-subtabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }

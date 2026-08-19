@@ -21,6 +21,7 @@ function dispatch_(action, p, token) {
   if (action === 'adminLogin') return login_(p.password);
   if (action === 'requestAdd') return requestAdd_(p);
   if (action === 'requestDelete') return requestDelete_(p);
+  if (action === 'pendingDeleteRecords') return pendingDeleteRecords_();
   requireAdmin_(token);
   if (action === 'adminList') return adminList_(p.view);
   if (action === 'processRequest') return processRequest_(p);
@@ -103,6 +104,9 @@ function requestDelete_(p) {
   };
   appendRequest_(request);
   return { requestId: request.request_id };
+}
+function pendingDeleteRecords_() {
+  return { recordIds: rowsToRequests_().filter(r => r.request_type === 'delete' && r.status === 'pending').map(r => r.record_id).filter(Boolean) };
 }
 function validateAdd_(p) {
   if (!clean_(p.memberName) || !clean_(p.competitionDate) || (!clean_(p.eventId) && !clean_(p.eventName)) || !parseTimeMs_(p.timeDisplay)) throw new Error('이름, 날짜, 종목, 올바른 기록은 필수입니다.');
