@@ -163,6 +163,8 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .event-sections .table-heading { display: block; }
   .event-sections .search-input { width: 100%; min-width: 0; margin-top: 12px; }
   .event-sections .ranking-scroll { max-height: 240px; }
+  .event-sections .ranking-scroll { height: 240px; }
+  .event-sections .event-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 /* 모바일: 959px 이하 */
 @media (max-width: 959px) {
