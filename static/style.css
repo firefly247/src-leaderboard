@@ -73,14 +73,17 @@ table { width: 100%; border-collapse: collapse; min-width: 680px; }
 .ranking-table th:nth-child(1), .ranking-table td:nth-child(1) { width: 82px; }
 .ranking-table th:nth-child(2), .ranking-table td:nth-child(2),
 .ranking-table th:nth-child(3), .ranking-table td:nth-child(3) { width: calc((100% - 82px) / 2); text-align: center; }
-.member-summary-table { min-width: 920px; }
-.member-summary-table th:nth-child(1), .member-summary-table td:nth-child(1) { width: 58px; }
+.member-summary-table { min-width: 820px; }
+.member-summary-table th:nth-child(1), .member-summary-table td:nth-child(1) { width: 48px; }
 .member-summary-table th:nth-child(2), .member-summary-table td:nth-child(2) { width: 18%; }
 .member-summary-table th:nth-child(3), .member-summary-table td:nth-child(3),
 .member-summary-table th:nth-child(4), .member-summary-table td:nth-child(4),
-.member-summary-table th:nth-child(5), .member-summary-table td:nth-child(5) { width: 120px; }
-.member-summary-table th:nth-child(6), .member-summary-table td:nth-child(6) { width: 94px; }
-.member-summary-table th:nth-child(7), .member-summary-table td:nth-child(7) { width: 145px; }
+.member-summary-table th:nth-child(5), .member-summary-table td:nth-child(5),
+.member-summary-table th:nth-child(6), .member-summary-table td:nth-child(6) { width: 96px; }
+.member-summary-table th:nth-child(7), .member-summary-table td:nth-child(7) { width: 62px; }
+.member-summary-table th:nth-child(8), .member-summary-table td:nth-child(8) { width: 72px; }
+.member-summary-table th:nth-last-child(2) { font-size: 0; }
+.member-summary-table th:nth-last-child(2)::after { content: "등록"; font-size: 12px; }
 .member-history-table { min-width: 650px; }
 .member-history-table th, .member-history-table td { width: 33.333%; }
 th, td { padding: 7px 12px; border-bottom: 1px solid var(--line); text-align: center; }
@@ -199,17 +202,19 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .ranking-table th:nth-child(1), .ranking-table td:nth-child(1) { width: 58px; }
   .ranking-table th:nth-child(2), .ranking-table td:nth-child(2),
   .ranking-table th:nth-child(3), .ranking-table td:nth-child(3) { width: calc((100% - 58px) / 2); }
-  .member-summary-table { min-width: 0; font-size: 11px; }
-  .member-summary-table th, .member-summary-table td { padding: 7px 3px; text-align: center; }
-  .member-summary-table th:nth-child(1), .member-summary-table td:nth-child(1) { width: 28px; }
-  .member-summary-table th:nth-child(2), .member-summary-table td:nth-child(2) { width: 19%; }
-  .member-summary-table td.member-name { font-size: 13px; }
+  .member-summary-table { min-width: 0; font-size: 10px; }
+  .member-summary-table th, .member-summary-table td { padding: 7px 1px; text-align: center; white-space: nowrap; }
+  .member-summary-table th:nth-child(1), .member-summary-table td:nth-child(1) { width: 6%; }
+  .member-summary-table th:nth-child(2), .member-summary-table td:nth-child(2) { width: 17%; }
+  .member-summary-table td.member-name { overflow: hidden; font-size: 12px; text-overflow: ellipsis; }
   .member-summary-table th:nth-child(3), .member-summary-table td:nth-child(3),
   .member-summary-table th:nth-child(4), .member-summary-table td:nth-child(4),
-  .member-summary-table th:nth-child(5), .member-summary-table td:nth-child(5) { width: 17%; }
-  .member-summary-table th:nth-child(6), .member-summary-table td:nth-child(6) { display: none; }
-  .member-summary-table th:nth-child(7), .member-summary-table td:nth-child(7) { width: 70px; }
-  .member-summary-table .record-detail-button { padding: 6px 4px; font-size: 10px; }
+  .member-summary-table th:nth-child(5), .member-summary-table td:nth-child(5),
+  .member-summary-table th:nth-child(6), .member-summary-table td:nth-child(6) { width: 14%; }
+  .member-summary-table th:nth-child(7), .member-summary-table td:nth-child(7) { width: 9%; }
+  .member-summary-table th:nth-child(8), .member-summary-table td:nth-child(8) { width: 11%; }
+  .member-summary-table th:nth-last-child(2)::after { font-size: 10px; }
+  .member-summary-table .record-detail-button { padding: 5px 3px; font-size: 9px; }
   .member-dialog { width: 96vw; padding: 20px 16px; border-radius: 18px; }
   .member-pb-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
   .member-pb-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 0; padding: 10px 4px; }
