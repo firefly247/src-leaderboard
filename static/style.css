@@ -151,6 +151,22 @@ tbody tr:hover { background: #f8fbff; }
 .status-message { padding: 13px 16px; margin-bottom: 18px; border-radius: 12px; background: #e8efff; color: var(--primary-dark); font-weight: 700; }
 .status-error { background: #ffebee; color: #9a1e2a; }
 footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px; }
+/* 일부 모바일 브라우저가 데스크톱 폭을 보고해도 회원 표는 터치 화면에 맞게 유지한다. */
+@media (pointer: coarse) {
+  .member-summary-table { min-width: 0; font-size: 10px; }
+  .member-summary-table th, .member-summary-table td { padding: 7px 1px; text-align: center; white-space: nowrap; }
+  .member-summary-table th:nth-child(1), .member-summary-table td:nth-child(1) { width: 6%; }
+  .member-summary-table th:nth-child(2), .member-summary-table td:nth-child(2) { width: 17%; }
+  .member-summary-table td.member-name { overflow: hidden; font-size: 12px; text-overflow: ellipsis; }
+  .member-summary-table th:nth-child(3), .member-summary-table td:nth-child(3),
+  .member-summary-table th:nth-child(4), .member-summary-table td:nth-child(4),
+  .member-summary-table th:nth-child(5), .member-summary-table td:nth-child(5),
+  .member-summary-table th:nth-child(6), .member-summary-table td:nth-child(6) { width: 14%; }
+  .member-summary-table th:nth-child(7), .member-summary-table td:nth-child(7) { width: 9%; }
+  .member-summary-table th:nth-child(8), .member-summary-table td:nth-child(8) { width: 11%; }
+  .member-summary-table th:nth-last-child(2)::after { font-size: 10px; }
+  .member-summary-table .record-detail-button { padding: 5px 3px; font-size: 9px; }
+}
 /* PC: 960px 이상 */
 @media (min-width: 960px) {
   .event-sections { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 18px; }
