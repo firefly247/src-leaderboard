@@ -1,34 +1,34 @@
-record_id,member_name,competition_id,competition_name,competition_event_id,competition_event_name,year,gold,silver,bronze,note,created_at
-cr-ysh-2401,양수현,competition-chungju,충주,competition-event-under-160,160미만,2024,0,0,0,,2026-09-20T00:00:00Z
-cr-ysh-2402,양수현,competition-yongin,용인,competition-event-under-160,160미만,2024,0,0,1,,2026-09-20T00:00:00Z
-cr-ysh-2501,양수현,competition-chungju,충주,competition-event-under-160,160미만,2025,0,0,1,,2026-09-20T00:00:00Z
-cr-ysh-2502a,양수현,competition-yongin,용인,competition-event-under-160,160미만,2025,0,1,0,,2026-09-20T00:00:00Z
-cr-ysh-2502b,양수현,competition-yongin,용인,competition-event-over-160,160이상,2025,0,0,1,,2026-09-20T00:00:00Z
-cr-ysh-2601,양수현,competition-yongin-indoor,용인실내,competition-event-under-160,160미만,2026,0,0,1,,2026-09-20T00:00:00Z
-cr-ysh-2602a,양수현,competition-yongin,용인,competition-event-under-160,160미만,2026,1,0,0,,2026-09-20T00:00:00Z
-cr-ysh-2602b,양수현,competition-yongin,용인,competition-event-over-160,160이상,2026,1,0,0,,2026-09-20T00:00:00Z
-cr-jjg-2301,장진구,competition-yedang,예당,competition-event-under-160,160미만,2023,0,0,0,,2026-09-20T00:00:00Z
-cr-jjg-2302,장진구,competition-seonakdong,서낙동강,competition-event-under-160,160미만,2023,0,0,1,,2026-09-20T00:00:00Z
-cr-jjg-2303,장진구,competition-tangeum,탄금호,competition-event-under-160,160미만,2023,0,0,0,,2026-09-20T00:00:00Z
-cr-jjg-2304,장진구,competition-yongin,용인,competition-event-under-160,160미만,2023,0,0,0,,2026-09-20T00:00:00Z
-cr-jjg-2401,장진구,competition-seonakdong,서낙동강,competition-event-under-160,160미만,2024,1,0,0,,2026-09-20T00:00:00Z
-cr-jjg-2402,장진구,competition-yangyang,양양,competition-event-under-160,160미만,2024,0,0,0,,2026-09-20T00:00:00Z
-cr-jjg-2403,장진구,competition-yedang,예당,competition-event-under-160,160미만,2024,0,0,1,,2026-09-20T00:00:00Z
-cr-jjg-2404,장진구,competition-misari,미사리,competition-event-under-160,160미만,2024,0,0,0,,2026-09-20T00:00:00Z
-cr-jjg-2405,장진구,competition-chungju,충주,competition-event-under-160,160미만,2024,0,0,0,,2026-09-20T00:00:00Z
-cr-jjg-2406,장진구,competition-gyeonggi,경기도,competition-event-under-160,160미만,2024,0,0,1,,2026-09-20T00:00:00Z
-cr-jjg-2501a,장진구,competition-chungju,충주,competition-event-under-160,160미만,2025,0,0,1,,2026-09-20T00:00:00Z
-cr-jjg-2501b,장진구,competition-chungju,충주,competition-event-over-160,160이상,2025,0,0,1,,2026-09-20T00:00:00Z
-cr-jjg-2502,장진구,competition-gyeonggi,경기도,competition-event-under-160,160미만,2025,0,0,1,,2026-09-20T00:00:00Z
-cr-jjg-2601a,장진구,competition-ulsan,울산,competition-event-under-160,160미만,2026,1,0,0,,2026-09-20T00:00:00Z
-cr-jjg-2601b,장진구,competition-ulsan,울산,competition-event-over-160,160이상,2026,0,1,1,,2026-09-20T00:00:00Z
-cr-jjg-2602,장진구,competition-yongin,용인,competition-event-under-160,160미만,2026,1,0,0,,2026-09-20T00:00:00Z
-cr-yka-2301,유경아,competition-seonakdong,서낙동강,competition-event-under-160,160미만,2023,0,0,1,,2026-09-20T00:00:00Z
-cr-yka-2302,유경아,competition-tangeum,탄금호,competition-event-under-160,160미만,2023,0,0,0,,2026-09-20T00:00:00Z
-cr-yka-2303,유경아,competition-yongin,용인,competition-event-under-160,160미만,2023,0,0,0,,2026-09-20T00:00:00Z
-cr-yka-2401,유경아,competition-seonakdong,서낙동강,competition-event-under-160,160미만,2024,1,0,0,,2026-09-20T00:00:00Z
-cr-yka-2402,유경아,competition-chungju,충주,competition-event-under-160,160미만,2024,0,0,0,,2026-09-20T00:00:00Z
-cr-yka-2403,유경아,competition-gyeonggi,경기도,competition-event-under-160,160미만,2024,0,0,0,,2026-09-20T00:00:00Z
-cr-yka-2501a,유경아,competition-chungju,충주,competition-event-under-160,160미만,2025,0,0,1,,2026-09-20T00:00:00Z
-cr-yka-2501b,유경아,competition-chungju,충주,competition-event-over-160,160이상,2025,0,0,1,,2026-09-20T00:00:00Z
-cr-yka-2502,유경아,competition-gyeonggi,경기도,competition-event-under-160,160미만,2025,0,1,0,,2026-09-20T00:00:00Z
+"record_id","member_name","competition_id","competition_name","competition_event_id","competition_event_name","competition_division_id","competition_division_name","year","gold","silver","bronze","note","created_at"
+"cr-ysh-2401","양수현","competition-chungju","충주","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2024","0","0","0","","2026-09-20T00:00:00Z"
+"cr-ysh-2402","양수현","competition-yongin","용인","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2024","0","0","1","","2026-09-20T00:00:00Z"
+"cr-ysh-2501","양수현","competition-chungju","충주","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2025","0","0","1","","2026-09-20T00:00:00Z"
+"cr-ysh-2502a","양수현","competition-yongin","용인","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2025","0","1","0","","2026-09-20T00:00:00Z"
+"cr-ysh-2502b","양수현","competition-yongin","용인","competition-event-8-plus","8+","division-mixed-over-160","혼성 160이상","2025","0","0","1","","2026-09-20T00:00:00Z"
+"cr-ysh-2601","양수현","competition-yongin-indoor","용인실내","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2026","0","0","1","","2026-09-20T00:00:00Z"
+"cr-ysh-2602a","양수현","competition-yongin","용인","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2026","1","0","0","","2026-09-20T00:00:00Z"
+"cr-ysh-2602b","양수현","competition-yongin","용인","competition-event-8-plus","8+","division-mixed-over-160","혼성 160이상","2026","1","0","0","","2026-09-20T00:00:00Z"
+"cr-jjg-2301","장진구","competition-yedang","예당","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2023","0","0","0","","2026-09-20T00:00:00Z"
+"cr-jjg-2302","장진구","competition-seonakdong","서낙동강","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2023","0","0","1","","2026-09-20T00:00:00Z"
+"cr-jjg-2303","장진구","competition-tangeum","탄금호","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2023","0","0","0","","2026-09-20T00:00:00Z"
+"cr-jjg-2304","장진구","competition-yongin","용인","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2023","0","0","0","","2026-09-20T00:00:00Z"
+"cr-jjg-2401","장진구","competition-seonakdong","서낙동강","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2024","1","0","0","","2026-09-20T00:00:00Z"
+"cr-jjg-2402","장진구","competition-yangyang","양양","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2024","0","0","0","","2026-09-20T00:00:00Z"
+"cr-jjg-2403","장진구","competition-yedang","예당","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2024","0","0","1","","2026-09-20T00:00:00Z"
+"cr-jjg-2404","장진구","competition-misari","미사리","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2024","0","0","0","","2026-09-20T00:00:00Z"
+"cr-jjg-2405","장진구","competition-chungju","충주","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2024","0","0","0","","2026-09-20T00:00:00Z"
+"cr-jjg-2406","장진구","competition-gyeonggi","경기도","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2024","0","0","1","","2026-09-20T00:00:00Z"
+"cr-jjg-2501a","장진구","competition-chungju","충주","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2025","0","0","1","","2026-09-20T00:00:00Z"
+"cr-jjg-2501b","장진구","competition-chungju","충주","competition-event-8-plus","8+","division-mixed-over-160","혼성 160이상","2025","0","0","1","","2026-09-20T00:00:00Z"
+"cr-jjg-2502","장진구","competition-gyeonggi","경기도","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2025","0","0","1","","2026-09-20T00:00:00Z"
+"cr-jjg-2601a","장진구","competition-ulsan","울산","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2026","1","0","0","","2026-09-20T00:00:00Z"
+"cr-jjg-2601b","장진구","competition-ulsan","울산","competition-event-8-plus","8+","division-mixed-over-160","혼성 160이상","2026","0","1","1","","2026-09-20T00:00:00Z"
+"cr-jjg-2602","장진구","competition-yongin","용인","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2026","1","0","0","","2026-09-20T00:00:00Z"
+"cr-yka-2301","유경아","competition-seonakdong","서낙동강","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2023","0","0","1","","2026-09-20T00:00:00Z"
+"cr-yka-2302","유경아","competition-tangeum","탄금호","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2023","0","0","0","","2026-09-20T00:00:00Z"
+"cr-yka-2303","유경아","competition-yongin","용인","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2023","0","0","0","","2026-09-20T00:00:00Z"
+"cr-yka-2401","유경아","competition-seonakdong","서낙동강","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2024","1","0","0","","2026-09-20T00:00:00Z"
+"cr-yka-2402","유경아","competition-chungju","충주","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2024","0","0","0","","2026-09-20T00:00:00Z"
+"cr-yka-2403","유경아","competition-gyeonggi","경기도","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2024","0","0","0","","2026-09-20T00:00:00Z"
+"cr-yka-2501a","유경아","competition-chungju","충주","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2025","0","0","1","","2026-09-20T00:00:00Z"
+"cr-yka-2501b","유경아","competition-chungju","충주","competition-event-8-plus","8+","division-mixed-over-160","혼성 160이상","2025","0","0","1","","2026-09-20T00:00:00Z"
+"cr-yka-2502","유경아","competition-gyeonggi","경기도","competition-event-4x-plus","4X+","division-mixed-under-160","혼성 160미만","2025","0","1","0","","2026-09-20T00:00:00Z"

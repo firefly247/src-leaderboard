@@ -5,7 +5,7 @@
  */
 const REQUEST_SHEET = 'REQUEST_LOG';
 const RECORD_COLUMNS = ['record_id','member_name','event_id','event_name','time_ms','time_display','competition','competition_date','note','proof_photo_url','created_at'];
-const COMPETITION_RECORD_COLUMNS = ['record_id','member_name','competition_id','competition_name','competition_event_id','competition_event_name','year','gold','silver','bronze','note','created_at'];
+const COMPETITION_RECORD_COLUMNS = ['record_id','member_name','competition_id','competition_name','competition_event_id','competition_event_name','competition_division_id','competition_division_name','year','gold','silver','bronze','note','created_at'];
 
 function doPost(e) {
   try {
@@ -30,6 +30,7 @@ function dispatch_(action, p, token) {
   if (action === 'manageEvent') return manageEvent_(p);
   if (action === 'manageCompetition') return manageCompetition_(p);
   if (action === 'manageCompetitionEvent') return manageCompetitionEvent_(p);
+  if (action === 'manageCompetitionDivision') return manageCompetitionDivision_(p);
   throw new Error('지원하지 않는 요청입니다.');
 }
 
@@ -117,7 +118,10 @@ function requestCompetitionAdd_(p) {
   const competitionEvent = p.competitionEventId ? competitionEvents_().find(e => e.competition_event_id === p.competitionEventId) : null;
   if (p.competitionEventId && !competitionEvent) throw new Error('존재하지 않는 대회 종목입니다.');
   const competitionEventName = competitionEvent ? competitionEvent.competition_event_name : clean_(p.competitionEventName);
-  const medalDisplay = competitionEventName + ' · 금 ' + Number(p.gold || 0) + ' · 은 ' + Number(p.silver || 0) + ' · 동 ' + Number(p.bronze || 0);
+  const competitionDivision = p.competitionDivisionId ? competitionDivisions_().find(d => d.competition_division_id === p.competitionDivisionId) : null;
+  if (p.competitionDivisionId && !competitionDivision) throw new Error('존재하지 않는 나이대입니다.');
+  const competitionDivisionName = competitionDivision ? competitionDivision.competition_division_name : clean_(p.competitionDivisionName);
+  const medalDisplay = competitionEventName + ' · ' + competitionDivisionName + ' · 금 ' + Number(p.gold || 0) + ' · 은 ' + Number(p.silver || 0) + ' · 동 ' + Number(p.bronze || 0);
   const request = {
     request_id: Utilities.getUuid(), request_type: 'competition_add', requested_at: new Date().toISOString(),
     source: p, status: 'pending', record_id: '', member_name: clean_(p.memberName),
@@ -137,10 +141,10 @@ function validateAdd_(p) {
 }
 function validateCompetitionAdd_(p) {
   const year = Number(p.year), medals = [p.gold, p.silver, p.bronze].map(Number);
-  if (!clean_(p.memberName) || (!clean_(p.competitionId) && !clean_(p.competitionName)) || (!clean_(p.competitionEventId) && !clean_(p.competitionEventName))) throw new Error('이름, 대회명, 대회 종목은 필수입니다.');
+  if (!clean_(p.memberName) || (!clean_(p.competitionId) && !clean_(p.competitionName)) || (!clean_(p.competitionEventId) && !clean_(p.competitionEventName)) || (!clean_(p.competitionDivisionId) && !clean_(p.competitionDivisionName))) throw new Error('이름, 대회명, 대회 종목, 나이대는 필수입니다.');
   if (!Number.isInteger(year) || year < 1900 || year > 2100) throw new Error('연도를 올바르게 입력해 주세요.');
   if (!medals.every(n => Number.isInteger(n) && n >= 0 && n <= 99)) throw new Error('메달 수는 0~99 사이의 정수여야 합니다.');
-  if (clean_(p.memberName).length > 50 || clean_(p.competitionName).length > 100 || clean_(p.competitionEventName).length > 100) throw new Error('입력값이 너무 깁니다.');
+  if (clean_(p.memberName).length > 50 || clean_(p.competitionName).length > 100 || clean_(p.competitionEventName).length > 100 || clean_(p.competitionDivisionName).length > 100) throw new Error('입력값이 너무 깁니다.');
 }
 function requestSource_(payload, photoUrl) {
   const source = Object.assign({}, payload);
@@ -168,6 +172,7 @@ function adminList_(view) {
   if (view === 'events') return { events: events_().sort(eventNameCompare_) };
   if (view === 'competitions') return { competitions: competitions_().sort((a,b) => a.competition_name.localeCompare(b.competition_name, 'ko')) };
   if (view === 'competition-events') return { competitionEvents: competitionEvents_() };
+  if (view === 'competition-divisions') return { competitionDivisions: competitionDivisions_() };
   const type = view === 'add' ? 'add' : view === 'competition-add' ? 'competition_add' : view === 'delete' ? 'delete' : '';
   const requests = rowsToRequests_().filter(r => (!type || r.request_type === type) && (view !== 'history' || r.status !== 'pending')).sort((a,b) => b.requested_at.localeCompare(a.requested_at));
   return { requests: requests };
@@ -210,7 +215,7 @@ function approveDelete_(r) {
   return true;
 }
 function approveCompetitionAdd_(r) {
-  const source = JSON.parse(r.source_json || '{}'), rows = competitionRecords_(), competitions = competitions_(), competitionEvents = competitionEvents_();
+  const source = JSON.parse(r.source_json || '{}'), rows = competitionRecords_(), competitions = competitions_(), competitionEvents = competitionEvents_(), competitionDivisions = competitionDivisions_();
   let competition = competitions.find(c => c.competition_id === (r.event_id || source.competitionId));
   if (!competition && clean_(r.event_name)) competition = competitions.find(c => c.competition_name.toLowerCase() === r.event_name.toLowerCase());
   if (!competition && clean_(r.event_name)) {
@@ -227,10 +232,19 @@ function approveCompetitionAdd_(r) {
     writeCsv_('data/competition_events.csv', ['competition_event_id','competition_event_name'], competitionEvents, 'Add requested competition event ' + r.request_id);
   }
   if (!competitionEvent) throw new Error('대회 종목이 삭제되어 승인할 수 없습니다.');
+  let competitionDivision = competitionDivisions.find(d => d.competition_division_id === source.competitionDivisionId);
+  if (!competitionDivision && clean_(source.competitionDivisionName)) competitionDivision = competitionDivisions.find(d => d.competition_division_name.toLowerCase() === clean_(source.competitionDivisionName).toLowerCase());
+  if (!competitionDivision && clean_(source.competitionDivisionName)) {
+    competitionDivision = { competition_division_id: 'division-' + randomId_(), competition_division_name: clean_(source.competitionDivisionName) };
+    competitionDivisions.push(competitionDivision);
+    writeCsv_('data/competition_divisions.csv', ['competition_division_id','competition_division_name'], competitionDivisions, 'Add requested competition division ' + r.request_id);
+  }
+  if (!competitionDivision) throw new Error('나이대가 삭제되어 승인할 수 없습니다.');
   rows.push({
     record_id: nextCompetitionRecordId_(rows), member_name: r.member_name,
     competition_id: competition.competition_id, competition_name: competition.competition_name,
     competition_event_id: competitionEvent.competition_event_id, competition_event_name: competitionEvent.competition_event_name,
+    competition_division_id: competitionDivision.competition_division_id, competition_division_name: competitionDivision.competition_division_name,
     year: String(Number(source.year || r.competition_date)), gold: String(Number(source.gold || 0)),
     silver: String(Number(source.silver || 0)), bronze: String(Number(source.bronze || 0)),
     note: r.note, created_at: new Date().toISOString()
@@ -311,10 +325,37 @@ function manageCompetitionEvent_(p) {
   } finally { lock.releaseLock(); }
 }
 
+function manageCompetitionDivision_(p) {
+  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    const divisions = competitionDivisions_(), name = clean_(p.competitionDivisionName);
+    if (p.operation === 'add') {
+      if (!name) throw new Error('나이대 이름을 입력해 주세요.');
+      if (divisions.some(d => d.competition_division_name.toLowerCase() === name.toLowerCase())) throw new Error('같은 이름의 나이대가 이미 있습니다.');
+      divisions.push({ competition_division_id: 'division-' + randomId_(), competition_division_name: name });
+    } else if (p.operation === 'rename') {
+      const division = divisions.find(d => d.competition_division_id === p.competitionDivisionId);
+      if (!division || !name) throw new Error('나이대를 찾을 수 없거나 이름이 비어 있습니다.');
+      division.competition_division_name = name;
+      const records = competitionRecords_();
+      records.forEach(r => { if (r.competition_division_id === p.competitionDivisionId) r.competition_division_name = name; });
+      writeCsv_('data/competition_records.csv', COMPETITION_RECORD_COLUMNS, records, 'Rename competition division records');
+    } else if (p.operation === 'delete') {
+      if (competitionRecords_().some(r => r.competition_division_id === p.competitionDivisionId)) throw new Error('이 나이대에 연결된 기록이 있어 삭제할 수 없습니다.');
+      const index = divisions.findIndex(d => d.competition_division_id === p.competitionDivisionId);
+      if (index < 0) throw new Error('나이대를 찾을 수 없습니다.');
+      divisions.splice(index, 1);
+    } else throw new Error('나이대 작업이 올바르지 않습니다.');
+    writeCsv_('data/competition_divisions.csv', ['competition_division_id','competition_division_name'], divisions, 'Manage competition division list');
+    return {};
+  } finally { lock.releaseLock(); }
+}
+
 function records_() { return readCsv_('data/records.csv'); }
 function events_() { return readCsv_('data/events.csv'); }
 function competitions_() { return readCsv_('data/competitions.csv'); }
 function competitionEvents_() { return readCsv_('data/competition_events.csv'); }
+function competitionDivisions_() { return readCsv_('data/competition_divisions.csv'); }
 function competitionRecords_() { return readCsv_('data/competition_records.csv'); }
 function readCsv_(path) {
   const text = githubGet_(path).content;
