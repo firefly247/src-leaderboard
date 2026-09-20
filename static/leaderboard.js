@@ -2,7 +2,7 @@
 
 const API_URL = "https://script.google.com/macros/s/AKfycbwxHRgWZWMisQzVIK8KogLwU2ri5EfhCnY2FqqBLm7Nb8Oo9DYNIF_L28UgMfwO9q2f/exec";
 const GITHUB_COMMIT_URL = "https://api.github.com/repos/firefly247/src-leaderboard/commits/main";
-const state = { events: [], records: [], competitions: [], competitionEvents: [], competitionDivisions: [], competitionRecords: [], rankings: {}, members: [], competitionMembers: [], pendingDeleteIds: new Set(), adminToken: sessionStorage.getItem("ergAdminToken") || "", refreshing: false, refreshedAt: 0 };
+const state = { events: [], records: [], competitions: [], competitionEvents: [], competitionDivisions: [], competitionRecords: [], rankings: {}, members: [], competitionMembers: [], clubMedals: {gold:0,silver:0,bronze:0}, pendingDeleteIds: new Set(), adminToken: sessionStorage.getItem("ergAdminToken") || "", refreshing: false, refreshedAt: 0 };
 const $ = (s) => document.querySelector(s);
 const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const eventNameCompare = (a,b) => { const an=String(a.event_name||a),bn=String(b.event_name||b),am=an.match(/^\s*(\d+(?:\.\d+)?)/),bm=bn.match(/^\s*(\d+(?:\.\d+)?)/);return am&&bm&&Number(am[1])!==Number(bm[1])?Number(am[1])-Number(bm[1]):an.localeCompare(bn,"ko"); };
@@ -15,7 +15,7 @@ function record(row) { const timeMs=Number(row.time_ms)||ms(row.time_display);re
 function competitionRecord(row) { return {...row,memberName:(row.member_name||"").trim(),competitionId:row.competition_id,competitionName:row.competition_name,competitionEventId:row.competition_event_id,competitionEventName:row.competition_event_name,competitionDivisionId:row.competition_division_id,competitionDivisionName:row.competition_division_name,year:Number(row.year),gold:Number(row.gold)||0,silver:Number(row.silver)||0,bronze:Number(row.bronze)||0}; }
 function medalCount(r) { return r.gold+r.silver+r.bronze; }
 function medalText(r) { const parts=[];if(r.gold)parts.push(`금 ${r.gold}`);if(r.silver)parts.push(`은 ${r.silver}`);if(r.bronze)parts.push(`동 ${r.bronze}`);return parts.join(" · ")||"참가"; }
-function medalIcons(rows) { if(!rows.length)return '<span class="matrix-empty">-</span>';const totals=rows.reduce((a,r)=>({gold:a.gold+r.gold,silver:a.silver+r.silver,bronze:a.bronze+r.bronze}),{gold:0,silver:0,bronze:0}),icons=[["🥇",totals.gold,"금"],["🥈",totals.silver,"은"],["🥉",totals.bronze,"동"]].filter(([,count])=>count).map(([icon,count,label])=>`<span class="result-icon" title="${label}메달 ${count}개">${icon}${count>1?`<small>×${count}</small>`:""}</span>`).join("");return icons||'<span class="result-icon participation" title="참가">👥</span>'; }
+function medalIcons(rows) { if(!rows.length)return '<span class="matrix-empty">-</span>';const icons=[["🥇","gold","금"],["🥈","silver","은"],["🥉","bronze","동"]].filter(([,color])=>rows.some(r=>r[color]>0)).map(([icon,,label])=>`<span class="result-icon" title="${label}메달">${icon}</span>`).join("");return icons||'<span class="result-icon participation" title="참가">👥</span>'; }
 
 function build() {
   const histories=new Map(),best=new Map();
@@ -23,8 +23,10 @@ function build() {
   state.rankings={};state.events.forEach(e=>{const rows=[...best.values()].filter(r=>r.eventId===e.event_id).sort((a,b)=>a.timeMs-b.timeMs||a.memberName.localeCompare(b.memberName,"ko"));let previous,rank;rows.forEach((r,i)=>{r.rank=r.timeMs===previous?rank:i+1;previous=r.timeMs;rank=r.rank;});state.rankings[e.event_id]=rows;});
   const allNames=new Set([...histories.keys(),...state.competitionRecords.map(r=>r.memberName)]);
   state.members=[...allNames].sort((a,b)=>a.localeCompare(b,"ko")).map(memberName=>({memberName,recordCount:(histories.get(memberName)||[]).length,pb:Object.fromEntries(state.events.map(e=>[e.event_id,best.get(memberName+"\0"+e.event_id)||null]))}));
-  const competitionMap=new Map(),attendanceKeys=new Set();state.competitionRecords.forEach(r=>{if(!competitionMap.has(r.memberName))competitionMap.set(r.memberName,{memberName:r.memberName,attendance:0,gold:0,silver:0,bronze:0});const m=competitionMap.get(r.memberName),attendanceKey=r.memberName+"\0"+r.year+"\0"+r.competitionId;if(!attendanceKeys.has(attendanceKey)){attendanceKeys.add(attendanceKey);m.attendance++;}m.gold+=r.gold;m.silver+=r.silver;m.bronze+=r.bronze;});
-  state.competitionMembers=[...competitionMap.values()];
+  const competitionMap=new Map(),attendanceKeys=new Set(),clubMedalKeys=new Set();
+  state.competitionRecords.forEach(r=>{if(!competitionMap.has(r.memberName))competitionMap.set(r.memberName,{memberName:r.memberName,attendance:0,gold:0,silver:0,bronze:0,medalKeys:new Set()});const m=competitionMap.get(r.memberName),attendanceKey=r.memberName+"\0"+r.year+"\0"+r.competitionId,boatKey=r.year+"\0"+r.competitionId+"\0"+r.competitionEventId+"\0"+r.competitionDivisionId;if(!attendanceKeys.has(attendanceKey)){attendanceKeys.add(attendanceKey);m.attendance++;}["gold","silver","bronze"].forEach(color=>{if(r[color]<=0)return;const memberKey=r.memberName+"\0"+boatKey+"\0"+color;if(!m.medalKeys.has(memberKey)){m.medalKeys.add(memberKey);m[color]++;}clubMedalKeys.add(boatKey+"\0"+color);});});
+  state.competitionMembers=[...competitionMap.values()].map(({medalKeys,...member})=>member);
+  state.clubMedals={gold:0,silver:0,bronze:0};clubMedalKeys.forEach(key=>{const color=key.split("\0").pop();state.clubMedals[color]++;});
 }
 
 function recordTime(r) { return r.proof_photo_url?`<button class="photo-link" type="button" data-photo-url="${esc(r.proof_photo_url)}">${esc(r.timeDisplay)}</button>`:esc(r.timeDisplay); }
@@ -38,7 +40,7 @@ function renderErgo() {
 }
 function topFiveRows(rows,type) { return rows.slice(0,5).map((m,i)=>`<article class="top-five-row"><span class="top-five-rank">${i+1}</span><strong>${esc(m.memberName)}</strong>${type==="attendance"?`<span><b>${m.attendance}</b>회 출전</span>`:`<span class="medal-score"><i class="gold">${m.gold}</i><i class="silver">${m.silver}</i><i class="bronze">${m.bronze}</i><small>총 ${m.gold+m.silver+m.bronze}</small></span>`}</article>`).join("")||'<p class="empty-cell">등록된 대회 기록이 없습니다.</p>'; }
 function renderCompetition() {
-  const total=state.competitionMembers.reduce((a,m)=>({gold:a.gold+m.gold,silver:a.silver+m.silver,bronze:a.bronze+m.bronze}),{gold:0,silver:0,bronze:0});
+  const total=state.clubMedals;
   $("#clubMedalTotal").innerHTML=`<div class="total-medals"><span>총 메달</span><strong>${total.gold+total.silver+total.bronze}</strong></div><div class="medal-total gold"><span>금</span><strong>${total.gold}</strong></div><div class="medal-total silver"><span>은</span><strong>${total.silver}</strong></div><div class="medal-total bronze"><span>동</span><strong>${total.bronze}</strong></div>`;
   const attendance=[...state.competitionMembers].sort((a,b)=>b.attendance-a.attendance||b.gold-a.gold||b.silver-a.silver||b.bronze-a.bronze||a.memberName.localeCompare(b.memberName,"ko"));
   const medals=[...state.competitionMembers].filter(m=>m.gold+m.silver+m.bronze>0).sort((a,b)=>b.gold-a.gold||b.silver-a.silver||b.bronze-a.bronze||b.attendance-a.attendance||a.memberName.localeCompare(b.memberName,"ko"));
