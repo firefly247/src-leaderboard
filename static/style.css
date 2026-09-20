@@ -105,6 +105,7 @@ tbody tr:hover { background: #f8fbff; }
 .required-mark { color: var(--danger); }
 .form-panel input, .form-panel select, .inline-form input, .admin-table input { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; background: white; color: var(--text); font: inherit; }
 .form-panel input[readonly] { background: #f3f6fa; color: var(--muted); cursor: not-allowed; }
+.competition-pair .paired-input[readonly] { display: none; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .form-grid > label { align-content: start; }
 .form-grid > .paired-input { margin-top: 24px; }
@@ -174,7 +175,20 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .request-switch { display: flex; width: min(720px,100%); margin: 0 auto 16px; padding: 5px; border: 1px solid var(--line); border-radius: 14px; background: white; }
 .request-switch button { flex: 1; border: 0; border-radius: 10px; padding: 11px; background: transparent; color: var(--muted); font: inherit; font-weight: 900; cursor: pointer; }.request-switch button.is-active { background: var(--primary); color: white; }
 .request-view { display: none; }.request-view.is-active { display: block; }
-.medal-inputs { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: 14px; }.medal-inputs legend { padding: 0 6px; color: #344054; font-size: 14px; font-weight: 800; }.medal-inputs label { grid-template-columns: auto 1fr; align-items: center; }.medal-inputs input { grid-column: 1 / -1; text-align: center; }.medal-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; }.medal-dot.gold { background: var(--gold); }.medal-dot.silver { background: var(--silver); }.medal-dot.bronze { background: var(--bronze); }
+.medal-inputs { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: 14px; }.medal-inputs legend { padding: 0 6px; color: #344054; font-size: 14px; font-weight: 800; }.medal-inputs label { grid-template-columns: auto 1fr; align-items: center; }.medal-inputs .wheel-trigger { grid-column: 1 / -1; text-align: center; }.medal-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; }.medal-dot.gold { background: var(--gold); }.medal-dot.silver { background: var(--silver); }.medal-dot.bronze { background: var(--bronze); }
+.wheel-native { display: none !important; }
+.wheel-trigger { position: relative; width: 100%; min-height: 48px; border: 1px solid var(--line); border-radius: 11px; padding: 10px 36px 10px 12px; background: white; color: var(--text); font: inherit; font-weight: 800; text-align: left; cursor: pointer; }
+.wheel-trigger::after { content: "↕"; position: absolute; top: 50%; right: 12px; color: var(--primary); font-size: 16px; transform: translateY(-50%); }
+.wheel-trigger.is-placeholder { color: var(--muted); font-weight: 600; }
+.wheel-picker-dialog { position: fixed; inset: auto 0 0; width: min(520px,100vw); max-width: none; margin: 0 auto; padding: 0 18px 24px; border: 0; border-radius: 26px 26px 0 0; background: rgba(255,255,255,.98); color: var(--text); box-shadow: 0 -20px 60px rgba(7,21,47,.22); }
+.wheel-picker-dialog::backdrop { background: rgba(7,21,47,.42); backdrop-filter: blur(2px); }
+.wheel-picker-head { display: grid; grid-template-columns: 72px 1fr 72px; align-items: center; min-height: 62px; border-bottom: 1px solid var(--line); }
+.wheel-picker-head strong { text-align: center; }
+.wheel-picker-head button { border: 0; padding: 10px 4px; background: transparent; color: var(--muted); font: inherit; font-weight: 800; cursor: pointer; }.wheel-picker-head button:last-child { color: var(--primary); }
+.wheel-picker-window { position: relative; height: 216px; overflow: hidden; }
+.wheel-picker-list { height: 216px; overflow-y: auto; padding: 82px 0; scroll-snap-type: y mandatory; scrollbar-width: none; mask-image: linear-gradient(to bottom,transparent 0,#000 30%,#000 70%,transparent 100%); }.wheel-picker-list::-webkit-scrollbar { display: none; }
+.wheel-option { position: relative; z-index: 2; display: block; width: 100%; height: 52px; border: 0; padding: 0 14px; scroll-snap-align: center; background: transparent; color: #a3aab5; font: inherit; font-size: 20px; font-weight: 700; cursor: pointer; transition: color .15s,font-size .15s; }.wheel-option.is-selected { color: #07152f; font-size: 27px; font-weight: 950; }
+.wheel-picker-highlight { position: absolute; z-index: 1; top: 82px; right: 8px; left: 8px; height: 52px; border-top: 1px solid #cfd7e3; border-bottom: 1px solid #cfd7e3; border-radius: 10px; background: rgba(22,93,255,.045); pointer-events: none; }
 /* 일부 모바일 브라우저가 데스크톱 폭을 보고해도 회원 표는 터치 화면에 맞게 유지한다. */
 @media (pointer: coarse) {
   .member-summary-table { min-width: 0; font-size: 10px; }
@@ -268,6 +282,9 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .main-tabs { gap: 2px !important; }
   .tab-button { padding: 26px 3px 22px; font-size: 11px; }
   .form-grid { grid-template-columns: 1fr; gap: 16px; }
+  .form-grid.competition-pair { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+  .competition-pair label { min-width: 0; }
+  .competition-pair .wheel-trigger { overflow: hidden; padding-right: 28px; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
   .form-grid > .paired-input { margin-top: 0; }
   .form-panel h1 { font-size: 27px; }
   .admin-subtabs { display: grid; grid-template-columns: 1fr 1fr; }
