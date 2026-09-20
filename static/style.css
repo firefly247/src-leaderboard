@@ -170,7 +170,7 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .top-five-row > span:last-child { color: var(--muted); font-size: 13px; }.top-five-row > span:last-child b { color: var(--primary-dark); font-size: 18px; }
 .medal-score { display: flex; align-items: center; gap: 5px; }.medal-score i { display: grid; place-items: center; min-width: 25px; height: 25px; border-radius: 50%; color: white; font-style: normal; font-size: 12px; font-weight: 900; }.medal-score .gold { background: var(--gold); }.medal-score .silver { background: var(--silver); }.medal-score .bronze { background: var(--bronze); }.medal-score small { margin-left: 4px; white-space: nowrap; }
 .competition-summary-table,.competition-member-table,.competition-detail-table { min-width: 760px; }.medal-number { font-size: 17px; font-weight: 900; }.medal-number.gold { color: #b88600; }.medal-number.silver { color: #6e7b8b; }.medal-number.bronze { color: #9a5725; }
-.medal-matrix { min-width: 1040px; table-layout: fixed; }.medal-matrix th:nth-child(1) { width: 70px; }.medal-matrix th:nth-child(2) { width: 130px; }.medal-matrix th:nth-child(3) { width: 70px; }.medal-matrix th:nth-child(n+4) { width: 120px; }.matrix-result { min-height: 45px; font-size: 20px; white-space: nowrap; }.result-icon { display: inline-flex; align-items: center; margin: 0 2px; line-height: 1; }.result-icon small { margin-left: -2px; padding: 1px 3px; border-radius: 8px; background: #334155; color: white; font-size: 9px; font-weight: 900; }.result-icon.participation { filter: grayscale(.15); }.matrix-empty { color: #bdc5d0; }.matrix-legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 14px; margin: 14px 2px 0; color: var(--muted); font-size: 12px; font-weight: 700; }
+.medal-matrix { min-width: 620px; table-layout: fixed; }.medal-matrix th:nth-child(1) { width: 48px; }.medal-matrix th:nth-child(2) { width: 92px; }.medal-matrix th:nth-child(3) { width: 48px; }.medal-matrix th:nth-child(n+4) { width: 72px; }.medal-matrix th,.medal-matrix td { padding: 7px 3px; }.matrix-year { background: #f8fafc; color: var(--primary-dark); font-size: 12px; font-weight: 900; vertical-align: middle; }.matrix-competition { overflow: hidden; font-size: 12px; line-height: 1.25; overflow-wrap: anywhere; }.matrix-event { font-size: 12px; }.matrix-result { min-height: 38px; font-size: 17px; line-height: 1.05; }.result-icon { display: inline-flex; align-items: center; margin: 1px 0; line-height: 1; }.result-icon small { margin-left: -2px; padding: 1px 3px; border-radius: 8px; background: #334155; color: white; font-size: 9px; font-weight: 900; }.result-icon.participation { filter: grayscale(.15); }.matrix-empty { color: #bdc5d0; }.matrix-legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 14px; margin: 14px 2px 0; color: var(--muted); font-size: 12px; font-weight: 700; }
 .competition-member-table { table-layout: fixed; }.competition-member-table th:first-child { width: 48px; }.competition-member-table th:nth-child(2) { width: 22%; }.competition-member-table th:last-child { width: 74px; }.competition-medal-cards { grid-template-columns: repeat(4,1fr); }.competition-detail-table { min-width: 720px; }
 .request-switch { display: flex; width: min(720px,100%); margin: 0 auto 16px; padding: 5px; border: 1px solid var(--line); border-radius: 14px; background: white; }
 .request-switch button { flex: 1; border: 0; border-radius: 10px; padding: 11px; background: transparent; color: var(--muted); font: inherit; font-weight: 900; cursor: pointer; }.request-switch button.is-active { background: var(--primary); color: white; }
@@ -298,6 +298,17 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .competition-leaderboards { grid-template-columns: 1fr; gap: 0; }
   .top-five-row { grid-template-columns: 34px 1fr auto; gap: 7px; padding: 8px; }
   .medal-score small { display: none; }
+  .medal-matrix { width: 100%; min-width: 0; font-size: 9px; }
+  .medal-matrix th,.medal-matrix td { padding: 6px 1px; letter-spacing: 0; }
+  .medal-matrix th:nth-child(1) { width: 9%; }
+  .medal-matrix th:nth-child(2) { width: 16%; }
+  .medal-matrix th:nth-child(3) { width: 10%; }
+  .medal-matrix th:nth-child(n+4) { width: 10.833%; }
+  .medal-matrix th:nth-child(n+4) { font-size: 8px; line-height: 1.15; overflow-wrap: anywhere; }
+  .medal-matrix .matrix-year { font-size: 9px; }
+  .medal-matrix .matrix-competition,.medal-matrix .matrix-event { font-size: 9px; line-height: 1.15; }
+  .medal-matrix .matrix-result { font-size: 14px; line-height: .95; }
+  .medal-matrix .result-icon { margin: 0; }
   .medal-inputs { gap: 7px; padding: 12px 8px; }
   .competition-medal-cards { grid-template-columns: repeat(2,1fr); }
 }
