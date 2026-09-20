@@ -309,6 +309,27 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .medal-matrix .matrix-competition,.medal-matrix .matrix-event { font-size: 9px; line-height: 1.15; }
   .medal-matrix .matrix-result { font-size: 14px; line-height: .95; }
   .medal-matrix .result-icon { margin: 0; }
+  .competition-member-table { width: 100%; min-width: 0; font-size: 10px; }
+  .competition-member-table th,.competition-member-table td { padding: 7px 1px; letter-spacing: 0; white-space: nowrap; }
+  .competition-member-table th:nth-child(1),.competition-member-table td:nth-child(1) { width: 6%; }
+  .competition-member-table th:nth-child(2),.competition-member-table td:nth-child(2) { width: 19%; }
+  .competition-member-table th:nth-child(3),.competition-member-table td:nth-child(3) { width: 12%; }
+  .competition-member-table th:nth-child(4),.competition-member-table td:nth-child(4),
+  .competition-member-table th:nth-child(5),.competition-member-table td:nth-child(5),
+  .competition-member-table th:nth-child(6),.competition-member-table td:nth-child(6) { width: 10%; }
+  .competition-member-table th:nth-child(7),.competition-member-table td:nth-child(7) { width: 17%; white-space: normal; }
+  .competition-member-table th:nth-child(8),.competition-member-table td:nth-child(8) { width: 16%; }
+  .competition-member-table td.member-name { overflow: hidden; font-size: 11px; text-overflow: ellipsis; }
+  .competition-member-table .medal-number { font-size: 13px; }
+  .competition-member-table .record-detail-button { padding: 5px 3px; border-radius: 7px; font-size: 9px; }
+  .member-dialog .competition-detail-table { width: 100%; min-width: 0; table-layout: fixed; font-size: 9px; }
+  .member-dialog .competition-detail-table th,.member-dialog .competition-detail-table td { padding: 7px 2px; letter-spacing: 0; line-height: 1.2; overflow-wrap: anywhere; }
+  .competition-detail-table th:nth-child(1) { width: 13%; }
+  .competition-detail-table th:nth-child(2) { width: 25%; }
+  .competition-detail-table th:nth-child(3) { width: 13%; }
+  .competition-detail-table th:nth-child(4) { width: 35%; }
+  .competition-detail-table th:nth-child(5) { width: 14%; }
+  .competition-detail-table .result-icon { margin: 0; font-size: 14px; }
   .medal-inputs { gap: 7px; padding: 12px 8px; }
   .competition-medal-cards { grid-template-columns: repeat(2,1fr); }
 }
