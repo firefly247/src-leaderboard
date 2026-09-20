@@ -151,6 +151,28 @@ tbody tr:hover { background: #f8fbff; }
 .status-message { padding: 13px 16px; margin-bottom: 18px; border-radius: 12px; background: #e8efff; color: var(--primary-dark); font-weight: 700; }
 .status-error { background: #ffebee; color: #9a1e2a; }
 footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px; }
+.competition-hero { display: flex; align-items: center; justify-content: space-between; gap: 28px; margin-bottom: 24px; padding: 34px; border-radius: 24px; background: linear-gradient(135deg,#07152f,#123873); color: white; box-shadow: var(--shadow); }
+.competition-hero h1 { margin: 5px 0 8px; font-size: clamp(30px,5vw,48px); }
+.competition-hero p:last-child { margin: 0; color: #c7d8f8; }
+.club-medal-total { display: grid; grid-template-columns: repeat(4,minmax(76px,1fr)); min-width: min(520px,50%); gap: 10px; }
+.club-medal-total > div { display: grid; place-items: center; min-height: 98px; border: 1px solid rgba(255,255,255,.18); border-radius: 16px; background: rgba(255,255,255,.09); }
+.club-medal-total span { font-size: 12px; font-weight: 800; color: #dbe7ff; }
+.club-medal-total strong { font-size: 30px; }
+.club-medal-total .gold strong { color: #ffd55c; }.club-medal-total .silver strong { color: #d9e1ec; }.club-medal-total .bronze strong { color: #eca96c; }
+.competition-leaderboards { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.competition-leaderboards .panel { min-width: 0; }
+.ranking-rule { margin: -12px 0 18px; color: var(--muted); font-size: 12px; }
+.top-five-list { display: grid; gap: 8px; }
+.top-five-row { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 12px; min-height: 54px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 13px; background: #fafcff; }
+.top-five-rank { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: #e8efff; color: var(--primary-dark); font-weight: 900; }
+.top-five-row:first-child .top-five-rank { background: var(--gold); color: white; }
+.top-five-row > span:last-child { color: var(--muted); font-size: 13px; }.top-five-row > span:last-child b { color: var(--primary-dark); font-size: 18px; }
+.medal-score { display: flex; align-items: center; gap: 5px; }.medal-score i { display: grid; place-items: center; min-width: 25px; height: 25px; border-radius: 50%; color: white; font-style: normal; font-size: 12px; font-weight: 900; }.medal-score .gold { background: var(--gold); }.medal-score .silver { background: var(--silver); }.medal-score .bronze { background: var(--bronze); }.medal-score small { margin-left: 4px; white-space: nowrap; }
+.competition-summary-table,.competition-history-table { min-width: 650px; }.medal-number { font-size: 17px; font-weight: 900; }.medal-number.gold { color: #b88600; }.medal-number.silver { color: #6e7b8b; }.medal-number.bronze { color: #9a5725; }
+.request-switch { display: flex; width: min(720px,100%); margin: 0 auto 16px; padding: 5px; border: 1px solid var(--line); border-radius: 14px; background: white; }
+.request-switch button { flex: 1; border: 0; border-radius: 10px; padding: 11px; background: transparent; color: var(--muted); font: inherit; font-weight: 900; cursor: pointer; }.request-switch button.is-active { background: var(--primary); color: white; }
+.request-view { display: none; }.request-view.is-active { display: block; }
+.medal-inputs { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: 14px; }.medal-inputs legend { padding: 0 6px; color: #344054; font-size: 14px; font-weight: 800; }.medal-inputs label { grid-template-columns: auto 1fr; align-items: center; }.medal-inputs input { grid-column: 1 / -1; text-align: center; }.medal-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; }.medal-dot.gold { background: var(--gold); }.medal-dot.silver { background: var(--silver); }.medal-dot.bronze { background: var(--bronze); }
 /* 일부 모바일 브라우저가 데스크톱 폭을 보고해도 회원 표는 터치 화면에 맞게 유지한다. */
 @media (pointer: coarse) {
   .member-summary-table { min-width: 0; font-size: 10px; }
@@ -251,4 +273,11 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .admin-subtabs .secondary-button { margin-left: 0; }
   .inline-form { display: grid; }
   .inline-form input { max-width: none; }
+  .competition-hero { display: grid; padding: 24px 18px; }
+  .club-medal-total { width: 100%; min-width: 0; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 5px; }
+  .club-medal-total > div { min-height: 76px; }.club-medal-total strong { font-size: 23px; }
+  .competition-leaderboards { grid-template-columns: 1fr; gap: 0; }
+  .top-five-row { grid-template-columns: 34px 1fr auto; gap: 7px; padding: 8px; }
+  .medal-score small { display: none; }
+  .medal-inputs { gap: 7px; padding: 12px 8px; }
 }
