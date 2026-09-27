@@ -17,7 +17,7 @@ function competitionTypeLabel(type) { return type==="indoor"?"실내":"수상"; 
 function catalogCompetitionType(id) { return String(id||"").includes("-indoor-")?"indoor":"water"; }
 function medalCount(r) { return r.gold+r.silver+r.bronze; }
 function medalText(r) { const parts=[];if(r.gold)parts.push(`금 ${r.gold}`);if(r.silver)parts.push(`은 ${r.silver}`);if(r.bronze)parts.push(`동 ${r.bronze}`);return parts.join(" · ")||"참가"; }
-function medalIcons(rows) { if(!rows.length)return '<span class="matrix-empty">-</span>';const medals=[["🥇","gold","금"],["🥈","silver","은"],["🥉","bronze","동"]].filter(([,color])=>rows.some(r=>r[color]>0)).map(([icon,,label])=>`<span class="result-icon" title="${label}메달">${icon}</span>`).join(""),participation=rows.some(r=>medalCount(r)===0)?'<span class="result-icon participation" title="참가">👥</span>':"";return medals+participation||'<span class="result-icon participation" title="참가">👥</span>'; }
+function medalIcons(rows) { if(!rows.length)return '<span class="matrix-empty">-</span>';const icons=[["🥇","gold","금"],["🥈","silver","은"],["🥉","bronze","동"]].filter(([,color])=>rows.some(r=>r[color]>0)).map(([icon,,label])=>`<span class="result-icon" title="${label}메달">${icon}</span>`).join("");return icons||'<span class="result-icon participation" title="참가">👥</span>'; }
 
 function build() {
   const histories=new Map(),best=new Map();
