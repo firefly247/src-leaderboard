@@ -1,3 +1,12 @@
 competition_event_id,competition_event_name
 competition-event-4x-plus,4X+
 competition-event-8-plus,8+
+competition-event-indoor-men-under-30,남자 30세미만
+competition-event-indoor-men-under-40,남자 40세미만
+competition-event-indoor-men-under-50,남자 50세미만
+competition-event-indoor-men-under-60,남자 60세미만
+competition-event-indoor-men-relay,남자 릴레이
+competition-event-indoor-women-under-30,여자 30세미만
+competition-event-indoor-women-under-40,여자 40세미만
+competition-event-indoor-women-relay,여자 릴레이
+competition-event-indoor-unspecified,종목 미확인

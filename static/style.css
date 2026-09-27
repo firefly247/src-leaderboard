@@ -306,7 +306,7 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .medal-matrix th:nth-child(1) { width: 9%; }
   .medal-matrix th:nth-child(2) { width: 16%; }
   .medal-matrix th:nth-child(3) { width: 10%; }
-  .medal-matrix th:nth-child(n+4) { width: 10.833%; }
+  .medal-matrix th:nth-child(n+4) { width: calc(65% / var(--division-count,6)); }
   .medal-matrix th:nth-child(n+4) { font-size: 8px; line-height: 1.15; overflow-wrap: anywhere; }
   .medal-matrix .matrix-year { font-size: 9px; }
   .medal-matrix .matrix-competition,.medal-matrix .matrix-event { font-size: 9px; line-height: 1.15; }

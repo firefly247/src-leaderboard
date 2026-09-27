@@ -143,7 +143,7 @@ function validateAdd_(p) {
 }
 function validateCompetitionAdd_(p) {
   const year = Number(p.year), medals = [p.gold, p.silver, p.bronze].map(Number);
-  if (!clean_(p.memberName) || (!clean_(p.competitionId) && !clean_(p.competitionName)) || (!clean_(p.competitionEventId) && !clean_(p.competitionEventName)) || (!clean_(p.competitionDivisionId) && !clean_(p.competitionDivisionName))) throw new Error('이름, 대회명, 대회 종목, 나이대는 필수입니다.');
+  if (!clean_(p.memberName) || (!clean_(p.competitionId) && !clean_(p.competitionName)) || (!clean_(p.competitionEventId) && !clean_(p.competitionEventName)) || (!clean_(p.competitionDivisionId) && !clean_(p.competitionDivisionName))) throw new Error('이름, 대회명, 대회 종목, 구분은 필수입니다.');
   if (!Number.isInteger(year) || year < 1900 || year > 2100) throw new Error('연도를 올바르게 입력해 주세요.');
   if (!['water','indoor'].includes(clean_(p.competitionType))) throw new Error('대회 구분을 선택해 주세요.');
   if (!medals.every(n => Number.isInteger(n) && n >= 0 && n <= 99)) throw new Error('메달 수는 0~99 사이의 정수여야 합니다.');
