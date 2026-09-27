@@ -5,7 +5,7 @@
  */
 const REQUEST_SHEET = 'REQUEST_LOG';
 const RECORD_COLUMNS = ['record_id','member_name','event_id','event_name','time_ms','time_display','competition','competition_date','note','proof_photo_url','created_at'];
-const COMPETITION_RECORD_COLUMNS = ['record_id','member_name','competition_id','competition_name','competition_event_id','competition_event_name','competition_division_id','competition_division_name','year','gold','silver','bronze','note','created_at'];
+const COMPETITION_RECORD_COLUMNS = ['record_id','member_name','competition_id','competition_name','competition_event_id','competition_event_name','competition_division_id','competition_division_name','year','competition_type','is_cox','gold','silver','bronze','note','created_at'];
 
 function doPost(e) {
   try {
@@ -121,7 +121,9 @@ function requestCompetitionAdd_(p) {
   const competitionDivision = p.competitionDivisionId ? competitionDivisions_().find(d => d.competition_division_id === p.competitionDivisionId) : null;
   if (p.competitionDivisionId && !competitionDivision) throw new Error('존재하지 않는 나이대입니다.');
   const competitionDivisionName = competitionDivision ? competitionDivision.competition_division_name : clean_(p.competitionDivisionName);
-  const medalDisplay = competitionEventName + ' · ' + competitionDivisionName + ' · 금 ' + Number(p.gold || 0) + ' · 은 ' + Number(p.silver || 0) + ' · 동 ' + Number(p.bronze || 0);
+  const competitionType = clean_(p.competitionType);
+  const isCox = p.isCox === true || String(p.isCox) === '1';
+  const medalDisplay = (competitionType === 'indoor' ? '실내대회' : '수상대회') + (isCox ? ' · COX' : '') + ' · ' + competitionEventName + ' · ' + competitionDivisionName + ' · 금 ' + Number(p.gold || 0) + ' · 은 ' + Number(p.silver || 0) + ' · 동 ' + Number(p.bronze || 0);
   const request = {
     request_id: Utilities.getUuid(), request_type: 'competition_add', requested_at: new Date().toISOString(),
     source: p, status: 'pending', record_id: '', member_name: clean_(p.memberName),
@@ -143,6 +145,7 @@ function validateCompetitionAdd_(p) {
   const year = Number(p.year), medals = [p.gold, p.silver, p.bronze].map(Number);
   if (!clean_(p.memberName) || (!clean_(p.competitionId) && !clean_(p.competitionName)) || (!clean_(p.competitionEventId) && !clean_(p.competitionEventName)) || (!clean_(p.competitionDivisionId) && !clean_(p.competitionDivisionName))) throw new Error('이름, 대회명, 대회 종목, 나이대는 필수입니다.');
   if (!Number.isInteger(year) || year < 1900 || year > 2100) throw new Error('연도를 올바르게 입력해 주세요.');
+  if (!['water','indoor'].includes(clean_(p.competitionType))) throw new Error('대회 구분을 선택해 주세요.');
   if (!medals.every(n => Number.isInteger(n) && n >= 0 && n <= 99)) throw new Error('메달 수는 0~99 사이의 정수여야 합니다.');
   if (clean_(p.memberName).length > 50 || clean_(p.competitionName).length > 100 || clean_(p.competitionEventName).length > 100 || clean_(p.competitionDivisionName).length > 100) throw new Error('입력값이 너무 깁니다.');
 }
@@ -245,7 +248,8 @@ function approveCompetitionAdd_(r) {
     competition_id: competition.competition_id, competition_name: competition.competition_name,
     competition_event_id: competitionEvent.competition_event_id, competition_event_name: competitionEvent.competition_event_name,
     competition_division_id: competitionDivision.competition_division_id, competition_division_name: competitionDivision.competition_division_name,
-    year: String(Number(source.year || r.competition_date)), gold: String(Number(source.gold || 0)),
+    year: String(Number(source.year || r.competition_date)), competition_type: clean_(source.competitionType) || 'water',
+    is_cox: source.isCox === true || String(source.isCox) === '1' ? '1' : '0', gold: String(Number(source.gold || 0)),
     silver: String(Number(source.silver || 0)), bronze: String(Number(source.bronze || 0)),
     note: r.note, created_at: new Date().toISOString()
   });
