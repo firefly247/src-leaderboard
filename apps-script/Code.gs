@@ -123,7 +123,8 @@ function requestCompetitionAdd_(p) {
   const competitionDivisionName = competitionDivision ? competitionDivision.competition_division_name : clean_(p.competitionDivisionName);
   const competitionType = clean_(p.competitionType);
   const isCox = p.isCox === true || String(p.isCox) === '1';
-  const medalDisplay = (competitionType === 'indoor' ? '실내대회' : '수상대회') + (isCox ? ' · COX' : '') + ' · ' + competitionEventName + ' · ' + competitionDivisionName + ' · 금 ' + Number(p.gold || 0) + ' · 은 ' + Number(p.silver || 0) + ' · 동 ' + Number(p.bronze || 0);
+  const competitionTypeDisplay = competitionType === 'indoor' ? '실내대회' : competitionType === 'beach' ? '비치대회' : '수상대회';
+  const medalDisplay = competitionTypeDisplay + (isCox ? ' · COX' : '') + ' · ' + competitionEventName + ' · ' + competitionDivisionName + ' · 금 ' + Number(p.gold || 0) + ' · 은 ' + Number(p.silver || 0) + ' · 동 ' + Number(p.bronze || 0);
   const request = {
     request_id: Utilities.getUuid(), request_type: 'competition_add', requested_at: new Date().toISOString(),
     source: p, status: 'pending', record_id: '', member_name: clean_(p.memberName),
@@ -145,7 +146,7 @@ function validateCompetitionAdd_(p) {
   const year = Number(p.year), medals = [p.gold, p.silver, p.bronze].map(Number);
   if (!clean_(p.memberName) || (!clean_(p.competitionId) && !clean_(p.competitionName)) || (!clean_(p.competitionEventId) && !clean_(p.competitionEventName)) || (!clean_(p.competitionDivisionId) && !clean_(p.competitionDivisionName))) throw new Error('이름, 대회명, 대회 종목, 나이대는 필수입니다.');
   if (!Number.isInteger(year) || year < 1900 || year > 2100) throw new Error('연도를 올바르게 입력해 주세요.');
-  if (!['water','indoor'].includes(clean_(p.competitionType))) throw new Error('대회 구분을 선택해 주세요.');
+  if (!['water','indoor','beach'].includes(clean_(p.competitionType))) throw new Error('대회 구분을 선택해 주세요.');
   if (!medals.every(n => Number.isInteger(n) && n >= 0 && n <= 99)) throw new Error('메달 수는 0~99 사이의 정수여야 합니다.');
   if (clean_(p.memberName).length > 50 || clean_(p.competitionName).length > 100 || clean_(p.competitionEventName).length > 100 || clean_(p.competitionDivisionName).length > 100) throw new Error('입력값이 너무 깁니다.');
 }
