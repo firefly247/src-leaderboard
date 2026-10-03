@@ -229,6 +229,17 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .batch-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; padding-top: 18px; border-top: 1px solid var(--line); }
 .batch-toolbar > div { display: flex; flex-wrap: wrap; gap: 8px; }
 .batch-lineup-summary { color: var(--muted); font-size: 13px; font-weight: 800; }
+.competition-team-toolbar { margin-top: 22px; }
+.competition-teams { display: grid; gap: 18px; margin: 12px 0 20px; }
+.competition-team { display: grid; gap: 16px; border: 1px solid #cdd9ee; border-radius: 18px; padding: 20px; background: #f8faff; box-shadow: 0 8px 24px rgba(31,61,112,.05); }
+.competition-team-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.competition-team-title { margin: 0; font-size: 21px; }
+.competition-team-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.competition-team-fields .form-grid { grid-template-columns: 1fr; gap: 7px; }
+.competition-team-participants .batch-toolbar { margin-top: 0; }
+.competition-team .delete-competition-team:disabled { opacity: .4; cursor: not-allowed; }
+.batch-row.is-submitted { border-color: #9ec8ae; background: #f0fbf4; opacity: .72; }
+.batch-row.is-submitted::after { content: "접수 완료"; position: absolute; right: 14px; top: 7px; color: #15723a; font-size: 11px; font-weight: 900; }
 .batch-rows { display: grid; gap: 10px; }
 .batch-column-headings { display: grid; gap: 10px; padding: 0 14px; color: #344054; font-size: 14px; }
 .ergo-batch-headings { grid-template-columns: 22px 26px minmax(160px,1fr) minmax(230px,1.2fr) minmax(190px,1fr); }
@@ -359,6 +370,9 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .competition-pair .dropdown-trigger { font-size: 13px; }
   .batch-toolbar { align-items: flex-start; }
   .batch-toolbar > div { justify-content: flex-end; }
+  .competition-team { padding: 15px; }
+  .competition-team-fields { grid-template-columns: 1fr; }
+  .competition-team-header { align-items: flex-start; }
   .batch-row[data-batch-row="ergo"],.batch-row[data-batch-row="competition"] { grid-template-columns: 22px 1fr; align-items: start; }
   .batch-column-headings { padding: 0 4px; }.batch-column-headings > span { display: none; }
   .ergo-batch-headings { grid-template-columns: repeat(3,1fr); }.competition-batch-headings { grid-template-columns: repeat(2,1fr); }
