@@ -5,7 +5,7 @@
  */
 const REQUEST_SHEET = 'REQUEST_LOG';
 const RECORD_COLUMNS = ['record_id','member_name','event_id','event_name','time_ms','time_display','competition','competition_date','note','proof_photo_url','created_at'];
-const COMPETITION_RECORD_COLUMNS = ['record_id','member_name','competition_id','competition_name','competition_event_id','competition_event_name','competition_division_id','competition_division_name','year','competition_type','is_cox','gold','silver','bronze','note','created_at'];
+const COMPETITION_RECORD_COLUMNS = ['record_id','member_name','competition_id','competition_name','competition_event_id','competition_event_name','competition_division_id','competition_division_name','year','competition_type','is_cox','gold','silver','bronze','note','created_at','lineup_group_id'];
 
 function doPost(e) {
   try {
@@ -306,7 +306,7 @@ function appendApprovedCompetitionAdd_(r, context) {
     year: String(Number(source.year || r.competition_date)), competition_type: clean_(source.competitionType) || 'water',
     is_cox: source.isCox === true || String(source.isCox) === '1' ? '1' : '0', gold: String(Number(source.gold || 0)),
     silver: String(Number(source.silver || 0)), bronze: String(Number(source.bronze || 0)),
-    note: r.note, created_at: new Date().toISOString()
+    note: r.note, created_at: new Date().toISOString(), lineup_group_id: clean_(source.lineupGroupId)
   });
 }
 function writeCompetitionApprovals_(context, message) {

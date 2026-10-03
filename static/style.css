@@ -228,14 +228,15 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .form-panel[data-registration-panel="bulk"] { width: min(1000px,100%); }
 .batch-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; padding-top: 18px; border-top: 1px solid var(--line); }
 .batch-toolbar > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.batch-lineup-summary { color: var(--muted); font-size: 13px; font-weight: 800; }
 .batch-rows { display: grid; gap: 10px; }
 .batch-column-headings { display: grid; gap: 10px; padding: 0 14px; color: #344054; font-size: 14px; }
 .ergo-batch-headings { grid-template-columns: 22px 26px minmax(160px,1fr) minmax(230px,1.2fr) minmax(190px,1fr); }
-.competition-batch-headings { grid-template-columns: 22px 26px minmax(190px,1fr) minmax(150px,.65fr); }
+.competition-batch-headings { grid-template-columns: 26px minmax(190px,1fr) minmax(150px,.65fr); }
 .batch-column-headings b { font-weight: 800; }
 .batch-row { position: relative; display: grid; align-items: end; gap: 10px; border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: #fafcff; }
 .batch-row[data-batch-row="ergo"] { grid-template-columns: 22px 26px minmax(160px,1fr) minmax(230px,1.2fr) minmax(190px,1fr); }
-.batch-row[data-batch-row="competition"] { grid-template-columns: 22px 26px minmax(190px,1fr) minmax(150px,.65fr); }
+.batch-row[data-batch-row="competition"] { grid-template-columns: 26px minmax(190px,1fr) minmax(150px,.65fr); }
 .batch-row-check { align-self: center; }.batch-row-check input { width: 18px; min-height: 18px; accent-color: var(--primary); cursor: pointer; }
 .batch-row-number { align-self: center; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: #e8efff; color: var(--primary-dark); font-size: 12px; font-weight: 900; }
 .batch-row label { min-width: 0; }
@@ -361,7 +362,7 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .batch-row[data-batch-row="ergo"],.batch-row[data-batch-row="competition"] { grid-template-columns: 22px 1fr; align-items: start; }
   .batch-column-headings { padding: 0 4px; }.batch-column-headings > span { display: none; }
   .ergo-batch-headings { grid-template-columns: repeat(3,1fr); }.competition-batch-headings { grid-template-columns: repeat(2,1fr); }
-  .batch-row-check { grid-column: 1; }.batch-row-number { grid-column: 2; }
+  .batch-row-check { grid-column: 1; }.batch-row-number { grid-column: 2; }.batch-row[data-batch-row="competition"] .batch-row-number { grid-column: 1 / -1; }
   .batch-row .batch-member-field,.batch-row .batch-time-field,.batch-row .batch-photo-field,.batch-row .batch-role-field { grid-column: 1 / -1; }
   .batch-row .time-inputs input { width: 64px; }
   .form-grid > .paired-input { margin-top: 0; }
