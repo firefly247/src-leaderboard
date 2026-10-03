@@ -238,7 +238,7 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .competition-team-fields .form-grid { grid-template-columns: 1fr; gap: 7px; }
 .competition-team-participants .batch-toolbar { margin-top: 0; }
 .competition-team .delete-competition-team:disabled { opacity: .4; cursor: not-allowed; }
-.competition-team-rows { gap: 0; border: 1px solid var(--line); border-radius: 14px; background: white; }
+.batch-rows.competition-team-rows { gap: 0; border: 1px solid var(--line); border-radius: 14px; background: white; }
 .competition-team-rows .batch-row { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 8px 14px; background: transparent; }
 .competition-team-rows .batch-row:last-child { border-bottom: 0; }
 .competition-team-rows .dropdown-trigger { min-height: 42px; }
