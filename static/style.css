@@ -131,7 +131,7 @@ tbody tr:hover { background: #f8fbff; }
 .admin-batch-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #f8fafc; }
 .admin-batch-toolbar label { display: flex; align-items: center; gap: 7px; font-weight: 800; }
 .admin-batch-toolbar span { color: var(--muted); font-size: 13px; font-weight: 700; }
-.admin-batch-toolbar .primary-button { margin-left: auto; }
+.admin-batch-actions { display: flex; gap: 8px; margin-left: auto; }
 .admin-check-column { width: 54px; }
 .admin-request-check, #adminSelectAll { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
 .form-result { min-height: 20px; margin: 0; color: #137333; font-weight: 700; }

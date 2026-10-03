@@ -29,6 +29,7 @@ function dispatch_(action, p, token) {
   if (action === 'processRequest') return processRequest_(p);
   if (action === 'processAddRequests') return processAddRequests_(p);
   if (action === 'processCompetitionAddRequests') return processCompetitionAddRequests_(p);
+  if (action === 'processRejectRequests') return processRejectRequests_(p);
   if (action === 'manageEvent') return manageEvent_(p);
   if (action === 'manageCompetition') return manageCompetition_(p);
   if (action === 'manageCompetitionEvent') return manageCompetitionEvent_(p);
@@ -231,6 +232,24 @@ function processCompetitionAddRequests_(p) {
     approveCompetitionAdds_(requests);
     const sheet = requestSheet_(), now = new Date().toISOString();
     requests.forEach(request => sheet.getRange(request._row, 5, 1, 3).setValues([['approved', now, 'GitHub CSV 일괄 커밋 완료']]));
+    return { processedCount: requests.length };
+  } finally { lock.releaseLock(); }
+}
+function processRejectRequests_(p) {
+  const requestIds = Array.isArray(p.requestIds) ? [...new Set(p.requestIds.map(clean_).filter(Boolean))] : [];
+  if (!requestIds.length) throw new Error('거절할 기록을 선택해 주세요.');
+  if (requestIds.length > 100) throw new Error('한 번에 최대 100건까지 거절할 수 있습니다.');
+  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    const allRequests = rowsToRequests_();
+    const requests = requestIds.map(id => allRequests.find(r => r.request_id === id));
+    if (requests.some(r => !r)) throw new Error('일부 요청을 찾을 수 없습니다. 목록을 새로고침해 주세요.');
+    if (requests.some(r => !['add','competition_add'].includes(r.request_type))) throw new Error('대회 또는 에르고 기록 요청만 일괄거절할 수 있습니다.');
+    if (requests.some(r => r.status !== 'pending')) throw new Error('이미 처리된 요청이 포함되어 있습니다. 목록을 새로고침해 주세요.');
+    const sheet = requestSheet_(), now = new Date().toISOString();
+    const range = sheet.getRange(2, 5, sheet.getLastRow() - 1, 3), values = range.getValues();
+    requests.forEach(request => { values[request._row - 2] = ['rejected', now, '관리자 일괄 거절']; });
+    range.setValues(values);
     return { processedCount: requests.length };
   } finally { lock.releaseLock(); }
 }
