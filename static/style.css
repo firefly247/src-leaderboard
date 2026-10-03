@@ -213,7 +213,9 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .batch-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; padding-top: 18px; border-top: 1px solid var(--line); }
 .batch-toolbar > div { display: flex; flex-wrap: wrap; gap: 8px; }
 .batch-rows { display: grid; gap: 10px; }
-.batch-column-headings { display: grid; grid-template-columns: 22px 26px minmax(190px,1fr) minmax(150px,.65fr); gap: 10px; padding: 0 14px; color: #344054; font-size: 14px; }
+.batch-column-headings { display: grid; gap: 10px; padding: 0 14px; color: #344054; font-size: 14px; }
+.ergo-batch-headings { grid-template-columns: 22px 26px minmax(160px,1fr) minmax(230px,1.2fr) minmax(190px,1fr); }
+.competition-batch-headings { grid-template-columns: 22px 26px minmax(190px,1fr) minmax(150px,.65fr); }
 .batch-column-headings b { font-weight: 800; }
 .batch-row { position: relative; display: grid; align-items: end; gap: 10px; border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: #fafcff; }
 .batch-row[data-batch-row="ergo"] { grid-template-columns: 22px 26px minmax(160px,1fr) minmax(230px,1.2fr) minmax(190px,1fr); }
@@ -341,7 +343,8 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .batch-toolbar { align-items: flex-start; }
   .batch-toolbar > div { justify-content: flex-end; }
   .batch-row[data-batch-row="ergo"],.batch-row[data-batch-row="competition"] { grid-template-columns: 22px 1fr; align-items: start; }
-  .batch-column-headings { grid-template-columns: 1fr 1fr; padding: 0 4px; }.batch-column-headings > span { display: none; }
+  .batch-column-headings { padding: 0 4px; }.batch-column-headings > span { display: none; }
+  .ergo-batch-headings { grid-template-columns: repeat(3,1fr); }.competition-batch-headings { grid-template-columns: repeat(2,1fr); }
   .batch-row-check { grid-column: 1; }.batch-row-number { grid-column: 2; }
   .batch-row .batch-member-field,.batch-row .batch-time-field,.batch-row .batch-photo-field,.batch-row .batch-role-field { grid-column: 1 / -1; }
   .batch-row .time-inputs input { width: 64px; }
