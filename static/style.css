@@ -134,11 +134,11 @@ tbody tr:hover { background: #f8fbff; }
 .admin-group-tabs { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); flex: 1; border-bottom: 1px solid var(--line); background: white; }
 .admin-group-tabs button { min-height: 54px; border: 0; border-bottom: 3px solid transparent; border-radius: 0; padding: 12px 8px 10px; background: transparent; color: var(--muted); font: inherit; font-weight: 900; cursor: pointer; }
 .admin-group-tabs button.is-active { border-bottom-color: var(--text); background: transparent; color: var(--text); box-shadow: none; }
-.admin-subtabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: white; }
+.admin-subtabs { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); margin-bottom: 16px; background: transparent; }
 .admin-subtabs[hidden] { display: none; }
 .admin-events-button { margin-right: 16px; }
-.admin-subtabs button:not(.secondary-button) { border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; background: white; color: var(--text); font: inherit; font-weight: 800; cursor: pointer; }
-.admin-subtabs button.is-active { border-color: var(--primary); background: var(--primary); color: white; }
+.admin-subtabs button { min-width: 0; border: 0; padding: 15px 6px; background: transparent; color: #98a0ad; font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.admin-subtabs button:hover, .admin-subtabs button.is-active { background: transparent; color: var(--text); font-weight: 950; }
 .admin-table { min-width: 900px; }
 .inline-form { display: flex; gap: 8px; margin: 16px 0; }
 .inline-form input { max-width: 320px; }
@@ -313,7 +313,8 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .competition-pair .wheel-trigger { overflow: hidden; padding-right: 28px; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
   .form-grid > .paired-input { margin-top: 0; }
   .form-panel h1 { font-size: 27px; }
-  .admin-subtabs { display: grid; grid-template-columns: 1fr 1fr; }
+  .admin-subtabs { grid-template-columns: repeat(4,minmax(0,1fr)); }
+  .admin-subtabs button { padding: 13px 2px; font-size: 10px; }
   .admin-console-toolbar { align-items: stretch; }
   .admin-group-tabs button { padding: 8px 5px; font-size: 12px; }
   .admin-events-button { grid-column: 1 / -1; margin-right: 0; margin-bottom: 8px; }
