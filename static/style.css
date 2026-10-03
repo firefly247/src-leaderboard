@@ -107,6 +107,11 @@ tbody tr:hover { background: #f8fbff; }
 .form-panel label { display: grid; gap: 7px; color: #344054; font-size: 14px; font-weight: 800; }
 .required-mark { color: var(--danger); }
 .form-panel input, .form-panel select, .inline-form input, .admin-table input { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; background: white; color: var(--text); font: inherit; }
+.form-panel input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
+.form-panel input[type="number"]::-webkit-inner-spin-button,.form-panel input[type="number"]::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
+.form-panel input[type="file"] { padding: 6px; color: var(--muted); font-size: 13px; cursor: pointer; }
+.form-panel input[type="file"]::file-selector-button { min-height: 32px; margin-right: 10px; border: 1px solid #bfd0ee; border-radius: 8px; padding: 6px 12px; background: #edf3ff; color: var(--primary-dark); font: inherit; font-weight: 800; cursor: pointer; transition: background .15s,border-color .15s,color .15s; }
+.form-panel input[type="file"]::file-selector-button:hover { border-color: var(--primary); background: var(--primary); color: white; }
 .form-panel input[readonly] { background: #f3f6fa; color: var(--muted); cursor: not-allowed; }
 .form-panel label > .paired-input[readonly] { display: none; }
 .competition-pair .paired-input[readonly] { display: none; }
