@@ -238,6 +238,10 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .competition-team-fields .form-grid { grid-template-columns: 1fr; gap: 7px; }
 .competition-team-participants .batch-toolbar { margin-top: 0; }
 .competition-team .delete-competition-team:disabled { opacity: .4; cursor: not-allowed; }
+.competition-team-rows { gap: 0; border: 1px solid var(--line); border-radius: 14px; background: white; }
+.competition-team-rows .batch-row { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 8px 14px; background: transparent; }
+.competition-team-rows .batch-row:last-child { border-bottom: 0; }
+.competition-team-rows .dropdown-trigger { min-height: 42px; }
 .batch-row.is-submitted { border-color: #9ec8ae; background: #f0fbf4; opacity: .72; }
 .batch-row.is-submitted::after { content: "접수 완료"; position: absolute; right: 14px; top: 7px; color: #15723a; font-size: 11px; font-weight: 900; }
 .batch-rows { display: grid; gap: 10px; }
@@ -373,6 +377,7 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .competition-team { padding: 15px; }
   .competition-team-fields { grid-template-columns: 1fr; }
   .competition-team-header { align-items: flex-start; }
+  .competition-team-rows .batch-row { padding: 9px 11px; }
   .batch-row[data-batch-row="ergo"],.batch-row[data-batch-row="competition"] { grid-template-columns: 22px 1fr; align-items: start; }
   .batch-column-headings { padding: 0 4px; }.batch-column-headings > span { display: none; }
   .ergo-batch-headings { grid-template-columns: repeat(3,1fr); }.competition-batch-headings { grid-template-columns: repeat(2,1fr); }
