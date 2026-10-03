@@ -179,7 +179,7 @@ function adminList_(view) {
   if (view === 'competition-events') return { competitionEvents: competitionEvents_() };
   if (view === 'competition-divisions') return { competitionDivisions: competitionDivisions_() };
   const type = view === 'add' ? 'add' : view === 'competition-add' ? 'competition_add' : view === 'delete' ? 'delete' : '';
-  const requests = rowsToRequests_().filter(r => (!type || r.request_type === type) && (view !== 'add' || r.status === 'pending') && (view !== 'history' || r.status !== 'pending')).sort((a,b) => b.requested_at.localeCompare(a.requested_at));
+  const requests = rowsToRequests_().filter(r => (!type || r.request_type === type) && (view === 'history' ? r.status !== 'pending' : r.status === 'pending')).sort((a,b) => b.requested_at.localeCompare(a.requested_at));
   return { requests: requests };
 }
 function processRequest_(p) {
