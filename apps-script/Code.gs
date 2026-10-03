@@ -27,6 +27,7 @@ function dispatch_(action, p, token) {
   requireAdmin_(token);
   if (action === 'adminList') return adminList_(p.view);
   if (action === 'processRequest') return processRequest_(p);
+  if (action === 'processAddRequests') return processAddRequests_(p);
   if (action === 'manageEvent') return manageEvent_(p);
   if (action === 'manageCompetition') return manageCompetition_(p);
   if (action === 'manageCompetitionEvent') return manageCompetitionEvent_(p);
@@ -178,7 +179,7 @@ function adminList_(view) {
   if (view === 'competition-events') return { competitionEvents: competitionEvents_() };
   if (view === 'competition-divisions') return { competitionDivisions: competitionDivisions_() };
   const type = view === 'add' ? 'add' : view === 'competition-add' ? 'competition_add' : view === 'delete' ? 'delete' : '';
-  const requests = rowsToRequests_().filter(r => (!type || r.request_type === type) && (view !== 'history' || r.status !== 'pending')).sort((a,b) => b.requested_at.localeCompare(a.requested_at));
+  const requests = rowsToRequests_().filter(r => (!type || r.request_type === type) && (view !== 'add' || r.status === 'pending') && (view !== 'history' || r.status !== 'pending')).sort((a,b) => b.requested_at.localeCompare(a.requested_at));
   return { requests: requests };
 }
 function processRequest_(p) {
@@ -198,19 +199,51 @@ function processRequest_(p) {
     return {};
   } finally { lock.releaseLock(); }
 }
+function processAddRequests_(p) {
+  const requestIds = Array.isArray(p.requestIds) ? [...new Set(p.requestIds.map(clean_).filter(Boolean))] : [];
+  if (!requestIds.length) throw new Error('승인할 에르고 기록을 선택해 주세요.');
+  if (requestIds.length > 100) throw new Error('한 번에 최대 100건까지 승인할 수 있습니다.');
+  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    const allRequests = rowsToRequests_();
+    const requests = requestIds.map(id => allRequests.find(r => r.request_id === id));
+    if (requests.some(r => !r)) throw new Error('일부 요청을 찾을 수 없습니다. 목록을 새로고침해 주세요.');
+    if (requests.some(r => r.request_type !== 'add')) throw new Error('에르고 기록 요청만 일괄승인할 수 있습니다.');
+    if (requests.some(r => r.status !== 'pending')) throw new Error('이미 처리된 요청이 포함되어 있습니다. 목록을 새로고침해 주세요.');
+    approveAdds_(requests);
+    const sheet = requestSheet_(), now = new Date().toISOString();
+    requests.forEach(request => sheet.getRange(request._row, 5, 1, 3).setValues([['approved', now, 'GitHub CSV 일괄 커밋 완료']]));
+    return { processedCount: requests.length };
+  } finally { lock.releaseLock(); }
+}
 function approveAdd_(r) {
   const rows = records_(), events = events_();
+  const eventAdded = appendApprovedAdd_(r, rows, events);
+  if (eventAdded) writeCsv_('data/events.csv', ['event_id','event_name'], events, 'Add requested leaderboard event ' + r.request_id);
+  writeCsv_('data/records.csv', RECORD_COLUMNS, rows, 'Approve record request ' + r.request_id);
+}
+function approveAdds_(requests) {
+  const rows = records_(), events = events_();
+  let eventAdded = false;
+  requests.forEach(request => { eventAdded = appendApprovedAdd_(request, rows, events) || eventAdded; });
+  const messageSuffix = requests.length + ' selected record requests';
+  if (eventAdded) writeCsv_('data/events.csv', ['event_id','event_name'], events, 'Add events for ' + messageSuffix);
+  writeCsv_('data/records.csv', RECORD_COLUMNS, rows, 'Approve ' + messageSuffix);
+}
+function appendApprovedAdd_(r, rows, events) {
   let event = events.find(e => e.event_id === r.event_id);
   if (!event && clean_(r.event_name)) event = events.find(e => e.event_name.toLowerCase() === r.event_name.toLowerCase());
+  let eventAdded = false;
   if (!event && clean_(r.event_name)) {
     event = { event_id: 'event-' + randomId_(), event_name: r.event_name };
     events.push(event);
-    writeCsv_('data/events.csv', ['event_id','event_name'], events, 'Add requested leaderboard event ' + r.request_id);
+    eventAdded = true;
   }
   if (!event) throw new Error('종목이 삭제되어 승인할 수 없습니다.');
   const timeMs = parseTimeMs_(r.time_display);
+  if (!timeMs) throw new Error('올바르지 않은 기록이 포함되어 있습니다: ' + r.member_name);
   rows.push({ record_id: nextRecordId_(rows), member_name: r.member_name, event_id: event.event_id, event_name: event.event_name, time_ms: String(timeMs), time_display: formatTime_(timeMs), competition: r.competition, competition_date: r.competition_date, note: r.note, proof_photo_url: r.proof_photo_url, created_at: new Date().toISOString() });
-  writeCsv_('data/records.csv', RECORD_COLUMNS, rows, 'Approve record request ' + r.request_id);
+  return eventAdded;
 }
 function approveDelete_(r) {
   const rows = records_(), next = rows.filter(row => row.record_id !== r.record_id);
