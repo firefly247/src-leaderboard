@@ -84,11 +84,14 @@ table { width: 100%; border-collapse: collapse; min-width: 680px; }
 .member-summary-table th:nth-child(5), .member-summary-table td:nth-child(5),
 .member-summary-table th:nth-child(6), .member-summary-table td:nth-child(6) { width: 96px; }
 .member-summary-table th:nth-child(7), .member-summary-table td:nth-child(7) { width: 62px; }
-.member-summary-table th:nth-child(8), .member-summary-table td:nth-child(8) { width: 72px; }
-.member-summary-table th:nth-last-child(2) { font-size: 0; }
-.member-summary-table th:nth-last-child(2)::after { content: "등록"; font-size: 12px; }
+.member-summary-table th:last-child { font-size: 0; }
+.member-summary-table th:last-child::after { content: "등록"; font-size: 12px; }
+.member-summary-table .member-name-button { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .member-history-table { min-width: 650px; }
-.member-history-table th, .member-history-table td { width: 33.333%; }
+.member-history-table th:nth-child(1),.member-history-table td:nth-child(1),.member-history-table th:nth-child(2),.member-history-table td:nth-child(2) { width: 20%; }
+.member-history-table th:nth-child(3),.member-history-table td:nth-child(3) { width: 38%; }
+.member-history-table th:nth-child(4),.member-history-table td:nth-child(4) { width: 22%; }
+.member-history-table .delete-request-button,.member-history-table .pending-delete-button { min-height: 28px; padding: 3px 7px; border-radius: 7px; font-size: 10px; white-space: nowrap; }
 th, td { padding: 7px 12px; border-bottom: 1px solid var(--line); text-align: center; }
 th { background: #f3f6fa; color: #4c5668; font-size: 12px; letter-spacing: .03em; text-transform: uppercase; }
 tbody tr:last-child td { border-bottom: 0; }
@@ -286,9 +289,8 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .member-summary-table th:nth-child(4), .member-summary-table td:nth-child(4),
   .member-summary-table th:nth-child(5), .member-summary-table td:nth-child(5),
   .member-summary-table th:nth-child(6), .member-summary-table td:nth-child(6) { width: 14%; }
-  .member-summary-table th:nth-child(7), .member-summary-table td:nth-child(7) { width: 9%; }
-  .member-summary-table th:nth-child(8), .member-summary-table td:nth-child(8) { width: 11%; }
-  .member-summary-table th:nth-last-child(2)::after { font-size: 10px; }
+  .member-summary-table th:nth-child(7), .member-summary-table td:nth-child(7) { width: 20%; }
+  .member-summary-table th:last-child::after { font-size: 10px; }
   .member-summary-table .record-detail-button { padding: 5px 3px; font-size: 9px; }
 }
 /* PC: 960px 이상 */
@@ -325,21 +327,29 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .header-source-link { font-size: 11px; white-space: nowrap; }
   .refresh-button { width: 34px; height: 34px; }
   .refresh-button span { font-size: 17px; }
-  .top-champions { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding-bottom: 26px; }
-  .top-champion-card { display: grid; grid-template-columns: 1fr; gap: 4px; min-width: 0; min-height: 92px; padding: 10px 5px; text-align: center; }
-  .top-champion-card span { font-size: 10px; letter-spacing: 0; }
-  .top-champion-card strong { width: 100%; font-size: 15px; text-align: center; }
-  .top-champion-card small { font-size: 15px; }
-  .event-sections { margin-top: 26px; }
-  .event-section + .event-section { margin-top: 26px; padding-top: 26px; border-top: 2px solid var(--line); }
+  .top-champions { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin-top: 10px; padding-bottom: 14px; }
+  .top-champion-card { display: grid; grid-template-columns: 1fr; gap: 2px; min-width: 0; min-height: 66px; padding: 6px 3px; border-radius: 12px; text-align: center; }
+  .top-champion-card span { font-size: 8px; letter-spacing: 0; }
+  .top-champion-card strong { width: 100%; font-size: 13px; text-align: center; }
+  .top-champion-card small { font-size: 12px; }
+  .event-sections { margin-top: 14px; }
+  .event-section + .event-section { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .tab-panel[data-panel="ergo"] .event-title { margin-bottom: 9px; font-size: 25px; }
+  .tab-panel[data-panel="ergo"] .event-section .podium-section,.tab-panel[data-panel="ergo"] .event-section .panel { margin-bottom: 10px; padding: 11px; border-radius: 14px; }
+  .tab-panel[data-panel="ergo"] .event-section .section-heading { margin-bottom: 7px; }
   .podium-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; gap: 6px; }
-  .podium-card, .podium-1 { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-width: 0; min-height: 118px; padding: 10px 4px; text-align: center; }
+  .podium-card, .podium-1 { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0; min-height: 88px; padding: 6px 3px; border-radius: 12px; text-align: center; }
   .podium-card::after { display: none; }
-  .podium-card .medal, .podium-1 .medal { width: 30px; height: 30px; margin: 0; }
-  .podium-card h3 { width: 100%; overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
-  .podium-card .record-time { margin: 0; font-size: 18px; white-space: nowrap; }
+  .podium-card .medal, .podium-1 .medal { width: 24px; height: 24px; margin: 0; font-size: 11px; }
+  .podium-card h3 { width: 100%; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+  .podium-card .record-time { margin: 0; font-size: 16px; white-space: nowrap; }
   .podium-card p, .podium-card small { display: none; }
-  .ranking-scroll { max-height: 240px; }
+  .tab-panel[data-panel="ergo"] .ranking-scroll { max-height: 190px; }
+  .tab-panel[data-panel="ergo"] .ranking-table th,.tab-panel[data-panel="ergo"] .ranking-table td { padding: 5px 3px; }
+  .tab-panel[data-panel="ergo"] .rank-badge { min-width: 22px; height: 22px; padding: 0 5px; border-radius: 6px; font-size: 10px; }
+  .tab-panel[data-panel="ergo"] > .panel { margin-bottom: 12px; padding: 14px; }
+  .tab-panel[data-panel="ergo"] > .panel .section-heading { margin-bottom: 10px; }
+  .tab-panel[data-panel="ergo"] > .panel #memberSearch { margin-top: 8px; padding: 8px 10px; }
   .ranking-table th:nth-child(1), .ranking-table td:nth-child(1) { width: 58px; }
   .ranking-table th:nth-child(2), .ranking-table td:nth-child(2),
   .ranking-table th:nth-child(3), .ranking-table td:nth-child(3) { width: calc((100% - 58px) / 2); }
@@ -352,9 +362,8 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .member-summary-table th:nth-child(4), .member-summary-table td:nth-child(4),
   .member-summary-table th:nth-child(5), .member-summary-table td:nth-child(5),
   .member-summary-table th:nth-child(6), .member-summary-table td:nth-child(6) { width: 14%; }
-  .member-summary-table th:nth-child(7), .member-summary-table td:nth-child(7) { width: 9%; }
-  .member-summary-table th:nth-child(8), .member-summary-table td:nth-child(8) { width: 11%; }
-  .member-summary-table th:nth-last-child(2)::after { font-size: 10px; }
+  .member-summary-table th:nth-child(7), .member-summary-table td:nth-child(7) { width: 20%; }
+  .member-summary-table th:last-child::after { font-size: 10px; }
   .member-summary-table .record-detail-button { padding: 5px 3px; font-size: 9px; }
   .member-dialog { width: 96vw; padding: 20px 16px; border-radius: 18px; }
   .member-pb-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
@@ -423,12 +432,38 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .inline-form { display: grid; }
   .inline-form input { max-width: none; }
   .competition-hero { display: grid; padding: 24px 18px; }
+  .competition-hero:not(.ergo-hero) { gap: 12px; margin-bottom: 12px; padding: 16px 14px; border-radius: 16px; }
+  .competition-hero:not(.ergo-hero) h1 { margin: 2px 0 0; font-size: 26px; }
+  .competition-hero:not(.ergo-hero) .eyebrow { font-size: 10px; }
+  .competition-hero:not(.ergo-hero) .club-medal-summary { gap: 6px; }
+  .competition-hero:not(.ergo-hero) .club-medal-total > div { min-height: 56px; border-radius: 10px; }
+  .competition-hero:not(.ergo-hero) .club-medal-total span { font-size: 10px; }
+  .competition-hero:not(.ergo-hero) .club-medal-total strong { font-size: 20px; }
+  .ergo-hero { gap: 12px; margin-bottom: 10px; padding: 16px 14px; border-radius: 16px; }
+  .ergo-hero h1 { margin: 2px 0 0; font-size: 26px; }
+  .ergo-hero .eyebrow { font-size: 10px; }
+  .ergo-hero .club-medal-summary { gap: 6px; }
+  .ergo-hero .club-medal-total > div { min-height: 56px; border-radius: 10px; }
+  .ergo-hero .club-medal-total span { font-size: 10px; }
+  .ergo-hero .club-medal-total strong { font-size: 20px; }
   .club-medal-summary { width: 100%; min-width: 0; }
   .club-medal-total { width: 100%; min-width: 0; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 5px; }
   .ergo-record-total { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .club-medal-total > div { min-height: 76px; }.club-medal-total strong { font-size: 23px; }
-  .competition-leaderboards { grid-template-columns: 1fr; gap: 0; }
-  .top-five-row { grid-template-columns: 34px 1fr auto; gap: 7px; padding: 8px; }
+  .competition-leaderboards { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+  .competition-leaderboards .panel { padding: 11px 7px; border-radius: 14px; }
+  .competition-leaderboards .section-heading { min-height: 38px; margin-bottom: 7px; }
+  .competition-leaderboards .section-heading h2 { margin-top: 2px; font-size: 13px; line-height: 1.2; }
+  .competition-leaderboards .eyebrow { font-size: 8px; letter-spacing: .09em; }
+  .competition-leaderboards .ranking-rule { min-height: 31px; margin: -3px 0 7px; font-size: 8px; line-height: 1.25; }
+  .competition-leaderboards .top-five-list { gap: 3px; }
+  .competition-leaderboards .top-five-row { grid-template-columns: 21px minmax(0,1fr) auto; gap: 3px; min-height: 34px; padding: 3px 4px; border-radius: 8px; }
+  .competition-leaderboards .top-five-row > strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+  .competition-leaderboards .top-five-rank { width: 20px; height: 20px; border-radius: 6px; font-size: 9px; }
+  .competition-leaderboards .top-five-row > span:last-child { font-size: 8px; white-space: nowrap; }
+  .competition-leaderboards .top-five-row > span:last-child b { font-size: 11px; }
+  .competition-leaderboards .medal-score { gap: 1px; }
+  .competition-leaderboards .medal-score i { min-width: 16px; height: 16px; font-size: 8px; }
   .medal-score small { display: none; }
   .medal-matrix { width: 100%; min-width: 0; font-size: 9px; }
   .medal-matrix th,.medal-matrix td { padding: 6px 1px; letter-spacing: 0; }

@@ -107,3 +107,34 @@ test("회원별 표는 0과 기록 버튼을 숨기고 이름을 상세 버튼�
   assert.doesNotMatch(html, />기록<\/button>/);
   assert.doesNotMatch(html, />0<\/td>/);
 });
+
+test("모바일 대회 요약은 2열과 조밀한 레이아웃을 사용한다", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const styles = fs.readFileSync(path.join(__dirname, "..", "static", "style.css"), "utf8");
+  assert.doesNotMatch(html, /출전의 순간부터 시상대의 영광까지/);
+  assert.match(styles, /\.competition-leaderboards \{ grid-template-columns: repeat\(2,minmax\(0,1fr\)\); gap: 8px; \}/);
+  assert.match(styles, /\.competition-leaderboards \.top-five-row \{[^}]*min-height: 34px;[^}]*padding: 3px 4px;/);
+  assert.match(styles, /\.competition-hero:not\(\.ergo-hero\) \{[^}]*padding: 16px 14px;/);
+});
+
+test("에르고 화면은 종목 검색과 설명을 제거하고 모바일 간격을 줄인다", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const source = fs.readFileSync(path.join(__dirname, "..", "static", "leaderboard.js"), "utf8");
+  const styles = fs.readFileSync(path.join(__dirname, "..", "static", "style.css"), "utf8");
+  assert.doesNotMatch(html, /훈련과 도전의 순간/);
+  assert.doesNotMatch(source, /event-search|data-ranking-table|#eventSections"\)\.oninput/);
+  assert.match(styles, /\.ergo-hero \{[^}]*padding: 16px 14px;/);
+  assert.match(styles, /\.top-champion-card \{[^}]*min-height: 66px;[^}]*padding: 6px 3px;/);
+  assert.match(styles, /\.tab-panel\[data-panel="ergo"\] \.ranking-scroll \{ max-height: 190px; \}/);
+});
+
+test("회원별 PB 이름과 삭제요청 버튼이 상세 동작을 제공한다", () => {
+  const source = fs.readFileSync(path.join(__dirname, "..", "static", "leaderboard.js"), "utf8");
+  const styles = fs.readFileSync(path.join(__dirname, "..", "static", "style.css"), "utf8");
+  assert.match(source, /class="member-name-button" type="button" data-member-index=/);
+  assert.doesNotMatch(source, /record-detail-button" data-member-index=/);
+  assert.doesNotMatch(source, /<th>상세<\/th>/);
+  assert.match(source, />삭제요청<\/button>/);
+  assert.match(source, /<th>삭제요청<\/th>/);
+  assert.match(styles, /\.member-history-table \.delete-request-button,[^{]+\{ min-height: 28px; padding: 3px 7px;/);
+});
