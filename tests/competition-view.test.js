@@ -67,21 +67,24 @@ function createView() {
   return { context, elements };
 }
 
-test("대회와 성별 헤더를 병합하고 메달 아이콘을 참가자 명단에 연결한다", () => {
+test("대회와 성별 헤더를 병합하고 대회명을 참가자 명단에 연결한다", () => {
   const { context, elements } = createView();
   assert.match(elements["#competitionSummaryHead"].innerHTML, /colspan="3">남자/);
   assert.ok(elements["#competitionSummaryHead"].innerHTML.indexOf("200이상") < elements["#competitionSummaryHead"].innerHTML.indexOf("일반부"));
   assert.match(elements["#competitionSummaryHead"].innerHTML, />여자</);
   assert.match(elements["#competitionSummaryHead"].innerHTML, />혼성</);
-  assert.equal((elements["#competitionSummaryBody"].innerHTML.match(/>탄금호<\/td>/g) || []).length, 1);
-  assert.match(elements["#competitionSummaryBody"].innerHTML, /rowspan="2" title="탄금호"/);
+  assert.equal((elements["#competitionSummaryBody"].innerHTML.match(/>탄금호<\/button>/g) || []).length, 1);
+  assert.match(elements["#competitionSummaryBody"].innerHTML, /rowspan="2"><button class="competition-name-button"/);
 
-  const lineupSize = vm.runInContext("state.competitionLineups.get('lineup-1').length", context);
-  assert.equal(lineupSize, 5);
-  vm.runInContext("openCompetitionLineup('lineup-1')", context);
+  assert.match(elements["#competitionSummaryBody"].innerHTML, /data-competition-participants="competition-1"/);
+  assert.doesNotMatch(elements["#competitionSummaryBody"].innerHTML, /data-lineup-key/);
+  const participantCount = vm.runInContext("state.competitionLineups.get('competition-1').length", context);
+  assert.equal(participantCount, 14);
+  vm.runInContext("openCompetitionParticipants('competition-1')", context);
   assert.match(elements["#dialogContent"].innerHTML, /<th>COX<\/th><th>CREW<\/th>/);
   assert.match(elements["#dialogContent"].innerHTML, />김콕스<\/td>/);
   assert.match(elements["#dialogContent"].innerHTML, /김크루, 박크루, 이크루, 최크루/);
+  assert.match(elements["#dialogContent"].innerHTML, /팔크루1, 팔크루2, 팔크루3, 팔크루4, 팔크루5, 팔크루6, 팔크루7, 팔크루8/);
 });
 
 test("참가자 검색은 일치하는 팀의 전체 명단을 유지한다", () => {
@@ -90,7 +93,7 @@ test("참가자 검색은 일치하는 팀의 전체 명단을 유지한다", ()
   vm.runInContext("renderCompetitionTables()", context);
   assert.match(elements["#competitionSummaryBody"].innerHTML, /4X\+/);
   assert.doesNotMatch(elements["#competitionSummaryBody"].innerHTML, />8\+</);
-  assert.equal(vm.runInContext("state.competitionLineups.get('lineup-1').length", context), 5);
+  assert.equal(vm.runInContext("state.competitionLineups.get('competition-1').length", context), 14);
 });
 
 test("회원별 표는 0과 기록 버튼을 숨기고 이름을 상세 버튼으로 쓴다", () => {
