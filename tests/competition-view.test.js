@@ -167,12 +167,19 @@ test("회원별 PB 이름과 삭제요청 버튼이 상세 동작을 제공한�
   assert.match(styles, /\.member-history-table \.delete-request-button,[^{]+\{ min-height: 28px; padding: 3px 7px;/);
 });
 
-test("대회 일괄 등록은 기존 팀명 선택과 새 팀명 입력을 지원한다", () => {
+test("대회 일괄 등록은 팀당 한 행과 직접 입력 회원 자동완성을 지원한다", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
   const source = fs.readFileSync(path.join(__dirname, "..", "static", "leaderboard.js"), "utf8");
   const styles = fs.readFileSync(path.join(__dirname, "..", "static", "style.css"), "utf8");
   assert.match(source, /function competitionTeamNames\(\)/);
   assert.match(source, /competition-team-name-select/);
   assert.match(source, /<option value="__new__">새 팀명 입력<\/option>/);
+  assert.match(html, /competition-team-grid-headings[^>]*>.*종목.*나이대.*팀명.*메달.*COX.*CREW/);
+  assert.match(html, /<datalist id="competitionMemberSuggestions"><\/datalist>/);
+  assert.match(source, /list="competitionMemberSuggestions"/);
+  assert.match(source, /class="batch-member-input competition-person-input"/);
+  assert.match(source, /rows=\[\.\.\.team\.querySelectorAll\("\.competition-person"\)\]/);
   assert.match(source, /lineupGroupId,note:teamName,memberName/);
-  assert.match(styles, /\.competition-team-fields \{[^}]*grid-template-columns: repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(styles, /\.competition-team-grid-headings,\.competition-team \{[^}]*grid-template-columns:/);
+  assert.match(styles, /\.competition-team-crew-inputs \{ grid-template-columns: repeat\(4,minmax\(0,1fr\)\); \}/);
 });

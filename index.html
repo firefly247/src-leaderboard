@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="삼성조정클럽 에르고 기록과 대회 실적 리더보드">
   <title>삼성조정클럽 명예의 전당</title>
-  <link rel="stylesheet" href="static/style.css?v=20261005-05">
+  <link rel="stylesheet" href="static/style.css?v=20261005-06">
 </head>
 <body>
   <header class="site-header">
@@ -67,7 +67,8 @@
         <div class="form-grid competition-pair"><label><span>연도 <span class="required-mark">*</span></span><select id="bulkCompetitionYearSelect" class="dropdown-source" name="year" aria-label="연도 선택"></select></label><label><span>대회유형 <span class="required-mark">*</span></span><select id="bulkCompetitionTypeSelect" class="dropdown-source" name="competitionType"><option value="water" selected>수상대회</option><option value="indoor">실내대회</option><option value="beach">비치대회</option></select></label></div>
         <div class="form-grid"><label><span>대회명 <span class="required-mark">*</span></span><select id="bulkRaceSelect" class="dropdown-source" name="competitionId"><option value="" selected disabled>대회 선택</option><option value="__new__">새 대회 등록</option></select></label><input id="bulkRaceNameInput" class="paired-input" name="competitionName" maxlength="100" placeholder="새 대회명" aria-label="새 대회명" readonly></div>
         <div class="batch-toolbar competition-team-toolbar"><strong>참가 팀</strong><button id="addCompetitionTeam" class="secondary-button" type="button">팀 추가</button></div>
-        <div id="competitionTeams" class="competition-teams"></div>
+        <div class="competition-team-table-wrap"><div class="competition-team-grid-headings" aria-hidden="true"><strong>팀</strong><strong>종목</strong><strong>나이대</strong><strong>팀명</strong><strong>메달</strong><strong>COX</strong><strong>CREW</strong><span></span></div><div id="competitionTeams" class="competition-teams"></div></div>
+        <datalist id="competitionMemberSuggestions"></datalist>
         <button class="primary-button" type="submit">대회 기록 일괄 등록 요청</button><p id="bulkCompetitionRequestResult" class="form-result" role="status"></p>
       </form></section>
     </section>
@@ -75,6 +76,6 @@
   </main>
   <dialog id="memberDialog" class="member-dialog" aria-labelledby="dialogMemberName"><div class="dialog-header"><div><p class="eyebrow">MEMBER RECORDS</p><h2 id="dialogMemberName"></h2></div><button id="dialogCloseButton" class="dialog-close" type="button" aria-label="팝업 닫기">×</button></div><div id="dialogContent"></div></dialog><dialog id="photoDialog" class="photo-dialog"><button class="dialog-close" type="button" data-close-photo aria-label="팝업 닫기">×</button><img id="proofPhotoImage" alt="기록 증빙사진"></dialog>
   <dialog id="batchProgressDialog" class="batch-progress-dialog" aria-labelledby="batchProgressTitle"><div class="batch-progress-icon" aria-hidden="true"><span></span></div><p class="eyebrow">RECORD REQUEST</p><h2 id="batchProgressTitle">기록 요청 진행 중</h2><p id="batchProgressMessage" class="batch-progress-message" aria-live="polite"></p><div class="batch-progress-track" aria-hidden="true"><span id="batchProgressBar"></span></div><strong id="batchProgressCount" class="batch-progress-count"></strong><button id="batchProgressConfirm" class="primary-button" type="button" hidden>확인</button></dialog>
-  <footer>© <span id="currentYear"></span> 삼성조정클럽</footer><script src="static/leaderboard.js?v=20261005-01"></script>
+  <footer>© <span id="currentYear"></span> 삼성조정클럽</footer><script src="static/leaderboard.js?v=20261005-02"></script>
 </body>
 </html>
