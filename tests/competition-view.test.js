@@ -124,6 +124,24 @@ test("모바일 대회 요약은 2열과 조밀한 레이아웃을 사용한다"
   assert.match(styles, /\.competition-leaderboards \.top-five-row > strong \{[^}]*font-size: 12px;/);
 });
 
+test("자동 생성된 실내 나이대도 실내대회 열에 표시한다", () => {
+  const { context, elements } = createView();
+  vm.runInContext(`
+    state.competitionSummaryType = "indoor";
+    state.competitionDivisions = [{ competition_division_id: "division-random", competition_division_name: "남자 50세미만(경량)" }];
+    state.competitionRecords = [competitionRecord({
+      member_name: "박경량", competition_id: "competition-indoor", competition_name: "용인실내",
+      competition_event_id: "competition-event-indoor-rowing", competition_event_name: "로잉머신",
+      competition_division_id: "division-random", competition_division_name: "남자 50세미만(경량)",
+      competition_type: "indoor", year: "2026", is_cox: "0", gold: "0", silver: "1", bronze: "0"
+    })];
+    build();
+    renderCompetitionTables();
+  `, context);
+  assert.match(elements["#competitionSummaryHead"].innerHTML, /50세미만\(경량\)/);
+  assert.match(elements["#competitionSummaryBody"].innerHTML, /은메달/);
+});
+
 test("에르고 화면은 종목 검색과 설명을 제거하고 모바일 간격을 줄인다", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
   const source = fs.readFileSync(path.join(__dirname, "..", "static", "leaderboard.js"), "utf8");
