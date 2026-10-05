@@ -178,6 +178,7 @@ test("대회 일괄 등록은 팀당 한 행과 직접 입력 회원 자동완�
   assert.match(html, /<datalist id="competitionMemberSuggestions"><\/datalist>/);
   assert.match(source, /list="competitionMemberSuggestions"/);
   assert.match(source, /class="batch-member-input competition-person-input"/);
+  assert.doesNotMatch(source, /competition-team-summary|CREW \$\{crewIndex\}명/);
   assert.match(source, /rows=\[\.\.\.team\.querySelectorAll\("\.competition-person"\)\]/);
   assert.match(source, /lineupGroupId,note:teamName,memberName/);
   assert.match(styles, /\.competition-team-grid-headings,\.competition-team \{[^}]*grid-template-columns:/);
