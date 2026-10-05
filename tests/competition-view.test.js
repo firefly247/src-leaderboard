@@ -87,7 +87,7 @@ test("대회와 성별 헤더를 병합하고 대회명을 참가자 명단에 �
   assert.match(elements["#dialogContent"].innerHTML, /<td>8\+<\/td><td>남자 일반부<\/td><td>B팀<\/td><td class="lineup-medal"><span class="result-icon participation" title="참가">👥<\/span><\/td>/);
   assert.match(elements["#dialogContent"].innerHTML, />김콕스<\/td>/);
   assert.match(elements["#dialogContent"].innerHTML, /김크루, 박크루, 이크루, 최크루/);
-  assert.match(elements["#dialogContent"].innerHTML, /팔크루1, 팔크루2, 팔크루3, 팔크루4, 팔크루5, 팔크루6, 팔크루7, 팔크루8/);
+  assert.match(elements["#dialogContent"].innerHTML, /<span class="crew-line">팔크루1, 팔크루2, 팔크루3, 팔크루4<\/span><span class="crew-line">팔크루5, 팔크루6, 팔크루7, 팔크루8<\/span>/);
 });
 
 test("참가자 검색은 일치하는 팀의 전체 명단을 유지한다", () => {
