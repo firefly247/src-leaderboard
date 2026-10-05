@@ -455,8 +455,8 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .club-medal-total > div { min-height: 76px; }.club-medal-total strong { font-size: 23px; }
   .competition-leaderboards { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
   .competition-leaderboards .panel { padding: 11px 7px; border-radius: 14px; }
-  .competition-leaderboards .section-heading { min-height: 38px; margin-bottom: 7px; }
-  .competition-leaderboards .section-heading h2 { margin-top: 2px; font-size: 15px; line-height: 1.2; }
+  .competition-leaderboards .section-heading { min-height: 42px; margin-bottom: 7px; }
+  .competition-leaderboards .section-heading h2 { margin-top: 2px; font-size: 19px; line-height: 1.2; white-space: nowrap; }
   .competition-leaderboards .eyebrow { font-size: 8px; letter-spacing: .09em; }
   .competition-leaderboards .ranking-rule { margin: 7px 2px 0; font-size: 8px; line-height: 1.25; }
   .competition-leaderboards .top-five-list { gap: 3px; }

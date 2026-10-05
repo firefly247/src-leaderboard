@@ -118,7 +118,7 @@ test("모바일 대회 요약은 2열과 조밀한 레이아웃을 사용한다"
   assert.match(html, /<h2>대회 출석왕<\/h2>/);
   assert.match(html, /<h2>대회 메달왕<\/h2>/);
   assert.match(html, /id="medalTop5"[^>]*><\/div><p class="ranking-rule">금메달 수를 우선하며/);
-  assert.match(styles, /\.competition-leaderboards \.section-heading h2 \{[^}]*font-size: 15px;/);
+  assert.match(styles, /\.competition-leaderboards \.section-heading h2 \{[^}]*font-size: 19px;[^}]*white-space: nowrap;/);
   assert.match(styles, /\.competition-leaderboards \.top-five-row > strong \{[^}]*font-size: 12px;/);
 });
 
