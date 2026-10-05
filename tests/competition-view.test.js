@@ -115,6 +115,8 @@ test("모바일 대회 요약은 2열과 조밀한 레이아웃을 사용한다"
   assert.match(styles, /\.competition-leaderboards \{ grid-template-columns: repeat\(2,minmax\(0,1fr\)\); gap: 8px; \}/);
   assert.match(styles, /\.competition-leaderboards \.top-five-row \{[^}]*min-height: 34px;[^}]*padding: 3px 4px;/);
   assert.match(styles, /\.competition-hero:not\(\.ergo-hero\) \{[^}]*padding: 16px 14px;/);
+  assert.match(styles, /\.competition-summary-filters \{[^}]*grid-template-columns: minmax\(0,2fr\) minmax\(96px,1fr\);[^}]*width: 100%;/);
+  assert.match(styles, /\.competition-summary-filters \.search-input \{[^}]*margin-top: 0;/);
   assert.match(html, /<h2>대회 출석왕<\/h2>/);
   assert.match(html, /<h2>대회 메달왕<\/h2>/);
   assert.match(html, /id="medalTop5"[^>]*><\/div><p class="ranking-rule">금메달 수를 우선하며/);

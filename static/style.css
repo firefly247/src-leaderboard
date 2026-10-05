@@ -318,6 +318,8 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .podium-1 { order: -1; }
   .table-heading { display: block; }
   .search-input { margin-top: 15px; width: 100%; }
+  .competition-summary-filters { display: grid; grid-template-columns: minmax(0,2fr) minmax(96px,1fr); gap: 8px; width: 100%; margin-top: 15px; }
+  .competition-summary-filters .search-input { min-width: 0; margin-top: 0; }
   .page-shell { width: 94vw; margin-top: 18px; }
   .podium-section, .panel { padding: 20px; border-radius: 18px; }
   .brand { gap: 8px; letter-spacing: 0; }
