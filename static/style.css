@@ -253,9 +253,9 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .competition-team-mobile-label { display: none; }
 .competition-team-cox-inputs,.competition-team-crew-inputs { display: grid; gap: 4px; }
 .competition-team-crew-inputs { grid-template-columns: repeat(4,110px); justify-content: start; }
-.competition-person { min-width: 0; }
+.competition-person { display: block; min-width: 0; line-height: 0; }
 .competition-person-input { min-width: 0; }
-.competition-team-summary { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; text-align: right; }
+.competition-team-summary { display: none; }
 .competition-team-cox-group.is-empty::after { content: "-"; display: grid; place-items: center; min-height: 38px; color: var(--muted); }
 .competition-team .delete-competition-team { align-self: center; min-height: 32px; margin: 0; padding: 5px; font-size: 10px; }
 .competition-team .delete-competition-team:disabled { opacity: .4; cursor: not-allowed; }
