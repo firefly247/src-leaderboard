@@ -431,7 +431,7 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .admin-events-button { grid-column: 1 / -1; margin-right: 0; margin-bottom: 8px; }
   .inline-form { display: grid; }
   .inline-form input { max-width: none; }
-  .competition-hero { display: grid; padding: 24px 18px; }
+  .competition-hero { display: grid; grid-template-columns: minmax(0,1fr); justify-content: stretch; padding: 24px 18px; }
   .competition-hero:not(.ergo-hero) { gap: 12px; margin-bottom: 12px; padding: 16px 14px; border-radius: 16px; }
   .competition-hero:not(.ergo-hero) h1 { margin: 2px 0 0; font-size: 26px; }
   .competition-hero:not(.ergo-hero) .eyebrow { font-size: 10px; }

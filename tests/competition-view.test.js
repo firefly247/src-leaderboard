@@ -128,6 +128,7 @@ test("에르고 화면은 종목 검색과 설명을 제거하고 모바일 간�
   const styles = fs.readFileSync(path.join(__dirname, "..", "static", "style.css"), "utf8");
   assert.doesNotMatch(html, /훈련과 도전의 순간/);
   assert.doesNotMatch(source, /event-search|data-ranking-table|#eventSections"\)\.oninput/);
+  assert.match(styles, /\.competition-hero \{[^}]*grid-template-columns: minmax\(0,1fr\);[^}]*justify-content: stretch;/);
   assert.match(styles, /\.ergo-hero \{[^}]*padding: 16px 14px;/);
   assert.match(styles, /\.ergo-hero \.club-medal-summary \{ justify-items: stretch; \}/);
   assert.match(styles, /\.ergo-hero \.ergo-record-total \{ width: 100%; \}/);
