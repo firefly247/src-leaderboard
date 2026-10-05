@@ -1,4 +1,4 @@
-record_id,member_name,competition_id,competition_name,competition_event_id,competition_event_name,competition_division_id,competition_division_name,year,competition_type,is_cox,gold,silver,bronze,note,created_at,lineup_group_id
+record_id,member_name,competition_id,competition_name,competition_event_id,competition_event_name,competition_division_id,competition_division_name,year,competition_type,is_cox,gold,silver,bronze,note,created_at
 cr-ulsan-2026-001,이찬희,competition-ulsan,울산,competition-event-4x-plus,4X+,division-men-under-160,남자 160미만,2026,water,1,0,0,1,,2026-09-28T00:00:00Z
 cr-ulsan-2026-002,장진구,competition-ulsan,울산,competition-event-4x-plus,4X+,division-men-under-160,남자 160미만,2026,water,0,0,0,1,,2026-09-28T00:00:00Z
 cr-ulsan-2026-003,황진찬,competition-ulsan,울산,competition-event-4x-plus,4X+,division-men-under-160,남자 160미만,2026,water,0,0,0,1,,2026-09-28T00:00:00Z
@@ -124,3 +124,10 @@ cr-S32gV3t7,김경준,competition-seonakdong,서낙동강,competition-event-4x-p
 cr-bG8emKAx,임재형,competition-seonakdong,서낙동강,competition-event-4x-plus,4X+,division-men-160-200,남자 160~200,2024,water,0,1,0,0,,2026-10-03T15:16:00.367Z
 cr-Gg2hBSVd,장진구,competition-seonakdong,서낙동강,competition-event-4x-plus,4X+,division-men-160-200,남자 160~200,2024,water,0,1,0,0,,2026-10-03T15:16:00.369Z
 cr-eaayRd46,이수관,competition-seonakdong,서낙동강,competition-event-4x-plus,4X+,division-men-160-200,남자 160~200,2024,water,0,1,0,0,,2026-10-03T15:16:00.371Z
+cr-qAknDiNr,황진찬,competition-yongin-indoor,용인실내,competition-event-indoor-rowing,로잉머신,division-indoor-men-under-30,남자 30세미만,2026,indoor,0,0,0,0,,2026-10-05T12:19:34.073Z
+cr-CxpxFDOW,윤병욱,competition-yongin-indoor,용인실내,competition-event-indoor-rowing,로잉머신,division-indoor-men-under-50,남자 50세미만,2026,indoor,0,0,0,0,,2026-10-05T12:19:34.077Z
+cr-hMlh_kCh,김기현,competition-yongin-indoor,용인실내,competition-event-indoor-rowing,로잉머신,division-indoor-men-under-50,남자 50세미만,2026,indoor,0,0,0,0,,2026-10-05T12:19:34.080Z
+cr-ZGUH4_sM,양수현,competition-yongin-indoor,용인실내,competition-event-indoor-rowing,로잉머신,division-indoor-men-under-40,남자 40세미만,2026,indoor,0,0,0,1,,2026-10-05T12:19:34.087Z
+cr-ohWjvqKK,박태용,competition-yongin-indoor,용인실내,competition-event-indoor-rowing,로잉머신,division-biVoDn05,남자 50세미만(경량),2026,indoor,0,0,1,0,,2026-10-05T12:19:34.094Z
+cr-JS_R3fPv,이동훈A,competition-yongin-indoor,용인실내,competition-event-indoor-rowing,로잉머신,division-biVoDn05,남자 50세미만(경량),2026,indoor,0,1,0,0,,2026-10-05T12:19:34.097Z
+cr-Ga1bSH_f,이찬희,competition-yongin-indoor,용인실내,competition-event-indoor-rowing,로잉머신,division-mn5Jrxab,남자 40세미만(경량),2026,indoor,0,0,0,1,,2026-10-05T12:19:34.112Z
