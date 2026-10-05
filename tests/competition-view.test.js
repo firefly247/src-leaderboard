@@ -166,3 +166,13 @@ test("회원별 PB 이름과 삭제요청 버튼이 상세 동작을 제공한�
   assert.match(source, /<th>삭제요청<\/th>/);
   assert.match(styles, /\.member-history-table \.delete-request-button,[^{]+\{ min-height: 28px; padding: 3px 7px;/);
 });
+
+test("대회 일괄 등록은 기존 팀명 선택과 새 팀명 입력을 지원한다", () => {
+  const source = fs.readFileSync(path.join(__dirname, "..", "static", "leaderboard.js"), "utf8");
+  const styles = fs.readFileSync(path.join(__dirname, "..", "static", "style.css"), "utf8");
+  assert.match(source, /function competitionTeamNames\(\)/);
+  assert.match(source, /competition-team-name-select/);
+  assert.match(source, /<option value="__new__">새 팀명 입력<\/option>/);
+  assert.match(source, /lineupGroupId,note:teamName,memberName/);
+  assert.match(styles, /\.competition-team-fields \{[^}]*grid-template-columns: repeat\(3,minmax\(0,1fr\)\)/);
+});
