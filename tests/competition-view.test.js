@@ -52,7 +52,7 @@ function createView() {
       gold: "0",
       silver: "0",
       bronze: String(bronze),
-      note: "",
+      note: lineupGroupId === "team-4x" ? "A팀" : "B팀",
       lineup_group_id: lineupGroupId
     });
     state.competitionRecords = [
@@ -81,7 +81,9 @@ test("대회와 성별 헤더를 병합하고 대회명을 참가자 명단에 �
   const participantCount = vm.runInContext("state.competitionLineups.get('competition-1').length", context);
   assert.equal(participantCount, 14);
   vm.runInContext("openCompetitionParticipants('competition-1')", context);
-  assert.match(elements["#dialogContent"].innerHTML, /<th>COX<\/th><th>CREW<\/th>/);
+  assert.match(elements["#dialogContent"].innerHTML, /<th>대회<\/th><th>메달<\/th><th>팀명<\/th><th>종목<\/th><th>나이대<\/th><th>COX<\/th><th>CREW<\/th>/);
+  assert.match(elements["#dialogContent"].innerHTML, /<td>동 1<\/td><td>A팀<\/td><td>4X\+<\/td>/);
+  assert.match(elements["#dialogContent"].innerHTML, /<td>참가<\/td><td>B팀<\/td><td>8\+<\/td>/);
   assert.match(elements["#dialogContent"].innerHTML, />김콕스<\/td>/);
   assert.match(elements["#dialogContent"].innerHTML, /김크루, 박크루, 이크루, 최크루/);
   assert.match(elements["#dialogContent"].innerHTML, /팔크루1, 팔크루2, 팔크루3, 팔크루4, 팔크루5, 팔크루6, 팔크루7, 팔크루8/);
