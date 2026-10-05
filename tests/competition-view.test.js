@@ -115,6 +115,11 @@ test("모바일 대회 요약은 2열과 조밀한 레이아웃을 사용한다"
   assert.match(styles, /\.competition-leaderboards \{ grid-template-columns: repeat\(2,minmax\(0,1fr\)\); gap: 8px; \}/);
   assert.match(styles, /\.competition-leaderboards \.top-five-row \{[^}]*min-height: 34px;[^}]*padding: 3px 4px;/);
   assert.match(styles, /\.competition-hero:not\(\.ergo-hero\) \{[^}]*padding: 16px 14px;/);
+  assert.match(html, /<h2>대회 출석왕<\/h2>/);
+  assert.match(html, /<h2>대회 메달왕<\/h2>/);
+  assert.match(html, /id="medalTop5"[^>]*><\/div><p class="ranking-rule">금메달 수를 우선하며/);
+  assert.match(styles, /\.competition-leaderboards \.section-heading h2 \{[^}]*font-size: 15px;/);
+  assert.match(styles, /\.competition-leaderboards \.top-five-row > strong \{[^}]*font-size: 12px;/);
 });
 
 test("에르고 화면은 종목 검색과 설명을 제거하고 모바일 간격을 줄인다", () => {
@@ -124,6 +129,8 @@ test("에르고 화면은 종목 검색과 설명을 제거하고 모바일 간�
   assert.doesNotMatch(html, /훈련과 도전의 순간/);
   assert.doesNotMatch(source, /event-search|data-ranking-table|#eventSections"\)\.oninput/);
   assert.match(styles, /\.ergo-hero \{[^}]*padding: 16px 14px;/);
+  assert.match(styles, /\.ergo-hero \.club-medal-summary \{ justify-items: stretch; \}/);
+  assert.match(styles, /\.ergo-hero \.ergo-record-total \{ width: 100%; \}/);
   assert.match(styles, /\.top-champion-card \{[^}]*min-height: 66px;[^}]*padding: 6px 3px;/);
   assert.match(styles, /\.tab-panel\[data-panel="ergo"\] \.ranking-scroll \{ max-height: 190px; \}/);
 });

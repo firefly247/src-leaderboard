@@ -208,7 +208,7 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .club-medal-total .gold strong { color: #ffd55c; }.club-medal-total .silver strong { color: #d9e1ec; }.club-medal-total .bronze strong { color: #eca96c; }
 .competition-leaderboards { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 .competition-leaderboards .panel { min-width: 0; }
-.ranking-rule { margin: -12px 0 18px; color: var(--muted); font-size: 12px; }
+.ranking-rule { margin: 14px 0 0; color: var(--muted); font-size: 12px; }
 .top-five-list { display: grid; gap: 8px; }
 .top-five-row { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 12px; min-height: 54px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 13px; background: #fafcff; }
 .top-five-rank { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: #e8efff; color: var(--primary-dark); font-weight: 900; }
@@ -443,6 +443,9 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .ergo-hero h1 { margin: 2px 0 0; font-size: 26px; }
   .ergo-hero .eyebrow { font-size: 10px; }
   .ergo-hero .club-medal-summary { gap: 6px; }
+  .ergo-hero .club-medal-summary { justify-items: stretch; }
+  .ergo-hero .competition-filter-toggles { width: 100%; }
+  .ergo-hero .ergo-record-total { width: 100%; }
   .ergo-hero .club-medal-total > div { min-height: 56px; border-radius: 10px; }
   .ergo-hero .club-medal-total span { font-size: 10px; }
   .ergo-hero .club-medal-total strong { font-size: 20px; }
@@ -453,12 +456,12 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .competition-leaderboards { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
   .competition-leaderboards .panel { padding: 11px 7px; border-radius: 14px; }
   .competition-leaderboards .section-heading { min-height: 38px; margin-bottom: 7px; }
-  .competition-leaderboards .section-heading h2 { margin-top: 2px; font-size: 13px; line-height: 1.2; }
+  .competition-leaderboards .section-heading h2 { margin-top: 2px; font-size: 15px; line-height: 1.2; }
   .competition-leaderboards .eyebrow { font-size: 8px; letter-spacing: .09em; }
-  .competition-leaderboards .ranking-rule { min-height: 31px; margin: -3px 0 7px; font-size: 8px; line-height: 1.25; }
+  .competition-leaderboards .ranking-rule { margin: 7px 2px 0; font-size: 8px; line-height: 1.25; }
   .competition-leaderboards .top-five-list { gap: 3px; }
   .competition-leaderboards .top-five-row { grid-template-columns: 21px minmax(0,1fr) auto; gap: 3px; min-height: 34px; padding: 3px 4px; border-radius: 8px; }
-  .competition-leaderboards .top-five-row > strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+  .competition-leaderboards .top-five-row > strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
   .competition-leaderboards .top-five-rank { width: 20px; height: 20px; border-radius: 6px; font-size: 9px; }
   .competition-leaderboards .top-five-row > span:last-child { font-size: 8px; white-space: nowrap; }
   .competition-leaderboards .top-five-row > span:last-child b { font-size: 11px; }

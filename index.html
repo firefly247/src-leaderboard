@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="삼성조정클럽 에르고 기록과 대회 실적 리더보드">
   <title>삼성조정클럽 명예의 전당</title>
-  <link rel="stylesheet" href="static/style.css?v=20261004-02">
+  <link rel="stylesheet" href="static/style.css?v=20261005-01">
 </head>
 <body>
   <header class="site-header">
@@ -30,8 +30,8 @@
     <section class="tab-panel" data-panel="competition">
       <section class="competition-hero"><div><p class="eyebrow">CLUB MEDALS</p><h1>대회 기록</h1></div><div class="club-medal-summary"><div class="competition-filter-toggles"><label class="indoor-medal-toggle" for="excludeIndoorMedals"><span>실내대회 제외</span><input id="excludeIndoorMedals" type="checkbox" checked><i aria-hidden="true"></i></label></div><div id="clubMedalTotal" class="club-medal-total"></div></div></section>
       <div class="competition-leaderboards">
-        <section class="panel"><div class="section-heading"><div><p class="eyebrow">MOST ACTIVE</p><h2>대회 출석왕 TOP 5</h2></div></div><div id="attendanceTop5" class="top-five-list"></div></section>
-        <section class="panel"><div class="section-heading"><div><p class="eyebrow">MEDAL HONORS</p><h2>메달 명예의 전당 TOP 5</h2></div></div><p class="ranking-rule">금메달 수를 우선하며, 동률이면 은메달·동메달 순으로 비교합니다.</p><div id="medalTop5" class="top-five-list"></div></section>
+        <section class="panel"><div class="section-heading"><div><p class="eyebrow">MOST ACTIVE</p><h2>대회 출석왕</h2></div></div><div id="attendanceTop5" class="top-five-list"></div></section>
+        <section class="panel"><div class="section-heading"><div><p class="eyebrow">MEDAL HONORS</p><h2>대회 메달왕</h2></div></div><div id="medalTop5" class="top-five-list"></div><p class="ranking-rule">금메달 수를 우선하며, 동률이면 은메달·동메달 순으로 비교합니다.</p></section>
       </div>
       <section class="panel"><div class="section-heading table-heading"><div><p class="eyebrow">COMPETITION RESULTS</p><h2>대회별 메달 현황</h2></div><div class="competition-summary-filters"><input id="competitionParticipantSearch" class="search-input" type="search" placeholder="참가자 검색" aria-label="대회별 참가자 검색"><select id="competitionYearFilter" class="search-input" aria-label="연도 선택"><option value="">전체 연도</option></select></div></div><div class="competition-type-tabs" role="tablist" aria-label="대회 구분"><button class="is-active" type="button" role="tab" aria-selected="true" data-competition-type="water">수상대회</button><button type="button" role="tab" aria-selected="false" data-competition-type="indoor">실내대회</button><button type="button" role="tab" aria-selected="false" data-competition-type="beach">비치대회</button></div><div class="table-wrap"><table class="competition-summary-table medal-matrix"><colgroup id="competitionSummaryColumns"></colgroup><thead id="competitionSummaryHead"></thead><tbody id="competitionSummaryBody"></tbody></table></div><p class="matrix-legend"><span>🥇 금</span><span>🥈 은</span><span>🥉 동</span><span>👥 참가</span><span>대회명을 누르면 참가자 명단을 볼 수 있습니다.</span></p></section>
       <section class="panel"><div class="section-heading table-heading"><div><p class="eyebrow">MEMBER MEDALS</p><div class="title-with-help"><h2>회원별 메달 현황</h2><small>상세 기록을 보려면 이름을 누르세요</small></div></div><input id="competitionMemberSearch" class="search-input" type="search" placeholder="회원 검색" aria-label="대회 회원 검색"></div><div class="table-wrap"><table id="competitionMemberTable" class="competition-member-table"><thead><tr><th>#</th><th>이름</th><th>출전</th><th>금</th><th>은</th><th>동</th><th>총 메달</th></tr></thead><tbody id="competitionHistoryBody"></tbody></table></div></section>
