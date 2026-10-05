@@ -82,8 +82,8 @@ test("대회와 성별 헤더를 병합하고 대회명을 참가자 명단에 �
   assert.equal(participantCount, 14);
   vm.runInContext("openCompetitionParticipants('competition-1')", context);
   assert.match(elements["#dialogContent"].innerHTML, /<th>대회<\/th><th>메달<\/th><th>팀명<\/th><th>종목<\/th><th>나이대<\/th><th>COX<\/th><th>CREW<\/th>/);
-  assert.match(elements["#dialogContent"].innerHTML, /<td>동 1<\/td><td>A팀<\/td><td>4X\+<\/td>/);
-  assert.match(elements["#dialogContent"].innerHTML, /<td>참가<\/td><td>B팀<\/td><td>8\+<\/td>/);
+  assert.match(elements["#dialogContent"].innerHTML, /<td class="lineup-medal"><span class="result-icon" title="동메달">🥉<\/span><\/td><td>A팀<\/td><td>4X\+<\/td>/);
+  assert.match(elements["#dialogContent"].innerHTML, /<td class="lineup-medal"><span class="result-icon participation" title="참가">👥<\/span><\/td><td>B팀<\/td><td>8\+<\/td>/);
   assert.match(elements["#dialogContent"].innerHTML, />김콕스<\/td>/);
   assert.match(elements["#dialogContent"].innerHTML, /김크루, 박크루, 이크루, 최크루/);
   assert.match(elements["#dialogContent"].innerHTML, /팔크루1, 팔크루2, 팔크루3, 팔크루4, 팔크루5, 팔크루6, 팔크루7, 팔크루8/);
