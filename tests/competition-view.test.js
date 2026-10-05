@@ -182,4 +182,7 @@ test("대회 일괄 등록은 팀당 한 행과 직접 입력 회원 자동완�
   assert.match(source, /lineupGroupId,note:teamName,memberName/);
   assert.match(styles, /\.competition-team-grid-headings,\.competition-team \{[^}]*grid-template-columns:/);
   assert.match(styles, /\.competition-team-crew-inputs \{ grid-template-columns: repeat\(4,minmax\(0,1fr\)\); \}/);
+  assert.match(source, /wrapper\.closest\("\.competition-team-table-wrap"\)/);
+  assert.match(source, /menu\.classList\.add\("is-floating"\);document\.body\.appendChild\(menu\)/);
+  assert.match(styles, /\.dropdown-menu\.is-floating \{[^}]*position: fixed;[^}]*z-index: 1000;/);
 });
