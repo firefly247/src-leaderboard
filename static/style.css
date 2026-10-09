@@ -121,6 +121,11 @@ tbody tr:hover { background: #f8fbff; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .form-grid > label { align-content: start; }
 .form-grid > .paired-input { margin-top: 24px; }
+.ergo-direct-input { position: relative; display: block; }
+.ergo-direct-input[hidden] { display: none; }
+.form-panel .ergo-direct-input input { padding-right: 58px; }
+.ergo-swap-return { position: absolute; top: 50%; right: 7px; min-height: 30px; transform: translateY(-50%); border: 0; border-radius: 7px; padding: 4px 8px; background: #e8efff; color: var(--primary-dark); font-size: 11px; font-weight: 800; cursor: pointer; }
+.ergo-swap-return:hover { background: #d9e5ff; }
 .time-inputs { display: flex; align-items: center; gap: 7px; }
 .time-inputs { min-height: 44px; }
 .time-inputs input { width: 74px; min-width: 0; text-align: center; }
