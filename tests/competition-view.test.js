@@ -205,3 +205,26 @@ test("에르고 등록은 종목과 장소를 한 행에 두고 직접 입력 �
   assert.match(source, /class="batch-member-input ergo-member-input" list="ergoMemberSuggestions"/);
   assert.doesNotMatch(source, /batchMemberOptions|bindBatchMember|batch-member-select/);
 });
+
+test("선수 Beta는 전체 메달, 배지, 전 종목 비교를 제공한다", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const source = fs.readFileSync(path.join(__dirname, "..", "static", "leaderboard.js"), "utf8");
+  const styles = fs.readFileSync(path.join(__dirname, "..", "static", "style.css"), "utf8");
+  const panel = html.match(/<section class="tab-panel" data-panel="athletes">([\s\S]*?)<section class="tab-panel" data-panel="request">/)[1];
+  assert.match(html, /data-tab="athletes"[^>]*>선수\(Beta\)<\/button>/);
+  assert.match(panel, /id="athleteSearch"/);
+  assert.match(panel, /data-athlete-view="card"/);
+  assert.match(panel, /data-athlete-view="compare"/);
+  assert.doesNotMatch(panel, /프로필|나이|<img/);
+  assert.match(source, /water:\{label:"수상대회"/);
+  assert.match(source, /indoor:\{label:"실내대회"/);
+  assert.match(source, /beach:\{label:"비치대회"/);
+  assert.match(source, /state\.events\.slice\(\)\.sort\(eventNameCompare\)/);
+  assert.match(source, /left\?\.timeDisplay\|\|"없음"/);
+  assert.match(source, /right\?\.timeDisplay\|\|"없음"/);
+  ["오각형 완성","PB 갱신","윈터 챌린지","성장왕","첫 출전","첫 메달","금빛 질주","멀티 레이서","그랜드 슬램"].forEach(name=>assert.match(source,new RegExp(name)));
+  assert.doesNotMatch(source, /대회 개근/);
+  assert.match(styles, /\.athlete-badge\.is-locked \{ filter: grayscale\(1\); opacity: \.52; \}/);
+  assert.match(source, /aria-label="미획득">🔒/);
+  assert.match(styles, /\.athlete-workspace \{ grid-template-columns: minmax\(0,1fr\); gap: 10px; \}/);
+});
