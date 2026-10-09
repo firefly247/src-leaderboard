@@ -189,3 +189,14 @@ test("대회 일괄 등록은 팀당 한 행과 직접 입력 회원 자동완�
   assert.match(source, /menu\.classList\.add\("is-floating"\);document\.body\.appendChild\(menu\)/);
   assert.match(styles, /\.dropdown-menu\.is-floating \{[^}]*position: fixed;[^}]*z-index: 1000;/);
 });
+
+test("에르고 등록은 용인 훈련장을 기본 장소로 쓰고 이름 직접 입력을 지원한다", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const source = fs.readFileSync(path.join(__dirname, "..", "static", "leaderboard.js"), "utf8");
+  assert.match(html, /id="competitionInput"[^>]*value="용인 훈련장"[^>]*readonly/);
+  assert.match(html, /id="bulkCompetitionInput"[^>]*value="용인 훈련장"[^>]*readonly/);
+  assert.match(html, /id="memberNameInput"[^>]*list="ergoMemberSuggestions"[^>]*autocomplete="off"/);
+  assert.match(html, /<datalist id="ergoMemberSuggestions"><\/datalist>/);
+  assert.match(source, /class="batch-member-input ergo-member-input" list="ergoMemberSuggestions"/);
+  assert.doesNotMatch(source, /batchMemberOptions|bindBatchMember|batch-member-select/);
+});
