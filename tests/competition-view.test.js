@@ -226,10 +226,14 @@ test("선수 Beta는 전체 메달, 배지, 전 종목 비교를 제공한다", 
   assert.doesNotMatch(source, /대회 개근/);
   assert.match(source, /class="athlete-badge-name"[^>]*aria-expanded="false"/);
   assert.match(source, /class="athlete-badge-rule" role="tooltip"/);
+  assert.match(source, /static\/badges\/pentagon-complete\.png/);
+  assert.match(source, /static\/badges\/grand-slam\.png/);
+  assert.match(source, /<img src="\$\{esc\(item\.image\)\}" alt="" loading="lazy">/);
   assert.match(source, /배지 이름을 누르거나 마우스를 올리면 달성 기준을 확인할 수 있습니다/);
   assert.match(source, /badgeCard\.classList\.add\("is-explaining"\)/);
   assert.match(styles, /\.athlete-badge:hover \.athlete-badge-rule/);
   assert.match(styles, /\.athlete-badge\.is-locked \.athlete-badge-icon/);
+  assert.match(styles, /\.athlete-badge-icon img \{[^}]*object-fit: contain;/);
   assert.match(source, /aria-label="미획득">🔒/);
   assert.match(styles, /\.athlete-workspace \{ grid-template-columns: minmax\(0,1fr\); gap: 10px; \}/);
 });
