@@ -224,7 +224,12 @@ test("선수 Beta는 전체 메달, 배지, 전 종목 비교를 제공한다", 
   assert.match(source, /right\?\.timeDisplay\|\|"없음"/);
   ["오각형 완성","PB 갱신","윈터 챌린지","성장왕","첫 출전","첫 메달","금빛 질주","멀티 레이서","그랜드 슬램"].forEach(name=>assert.match(source,new RegExp(name)));
   assert.doesNotMatch(source, /대회 개근/);
-  assert.match(styles, /\.athlete-badge\.is-locked \{ filter: grayscale\(1\); opacity: \.52; \}/);
+  assert.match(source, /class="athlete-badge-name"[^>]*aria-expanded="false"/);
+  assert.match(source, /class="athlete-badge-rule" role="tooltip"/);
+  assert.match(source, /배지 이름을 누르거나 마우스를 올리면 달성 기준을 확인할 수 있습니다/);
+  assert.match(source, /badgeCard\.classList\.add\("is-explaining"\)/);
+  assert.match(styles, /\.athlete-badge:hover \.athlete-badge-rule/);
+  assert.match(styles, /\.athlete-badge\.is-locked \.athlete-badge-icon/);
   assert.match(source, /aria-label="미획득">🔒/);
   assert.match(styles, /\.athlete-workspace \{ grid-template-columns: minmax\(0,1fr\); gap: 10px; \}/);
 });
