@@ -99,7 +99,7 @@ test("server rejects malformed, out of range years and unknown members without c
   assert.equal(lock.held, false);
 });
 
-test("birth year admin view escapes names and offers selection and batch save with a 1985 starting year", () => {
+test("birth year admin view escapes names and keeps missing years empty and offers year step controls", () => {
   const container = { innerHTML: "" };
   const context = vm.createContext({ document: { querySelector: () => container }, sessionStorage: { getItem: () => "" } });
   vm.runInContext(clientSource.slice(0, clientSource.indexOf('document.querySelectorAll(".tab-button")')), context);
@@ -114,7 +114,10 @@ test("birth year admin view escapes names and offers selection and batch save wi
   assert.doesNotMatch(container.innerHTML, /<img/);
   assert.match(container.innerHTML, /&lt;img/);
   context.adminContent("player-birth-years", { players: [{ memberName: "미입력선수", birthYear: "" }] });
-  assert.match(container.innerHTML, /value="1985"/);
+  assert.match(container.innerHTML, /value=""/);
+  assert.doesNotMatch(container.innerHTML, /value="1985"/);
+  assert.match(container.innerHTML, /data-birth-year-step="1"/);
+  assert.match(container.innerHTML, /data-birth-year-step="-1"/);
 });
 
 test("late admin responses cannot repopulate private data after logout", async () => {
@@ -132,6 +135,27 @@ test("late admin responses cannot repopulate private data after logout", async (
   resolve({ ok: true, json: async () => ({ ok: true, players: [{ memberName: "김선수", birthYear: "1985" }] }) });
   await pending;
   assert.equal(container.innerHTML, "");
+});
+
+test("year arrows start an empty field at 1985 then change by one without affecting typed years", () => {
+  const context = vm.createContext({ document: { querySelector: () => ({}) }, sessionStorage: { getItem: () => "" }, Event: class {} });
+  vm.runInContext(clientSource.slice(0, clientSource.indexOf('document.querySelectorAll(".tab-button")')), context);
+  const input = {
+    value: "",
+    stepUp() { this.value = String(Number(this.value) + 1); },
+    stepDown() { this.value = String(Number(this.value) - 1); },
+    dispatchEvent() {},
+  };
+  for (const direction of [1, -1]) {
+    input.value = "";
+    context.stepBirthYear(input, direction);
+    assert.equal(input.value, "1985");
+    context.stepBirthYear(input, direction);
+    assert.equal(input.value, String(1985 + direction));
+  }
+  input.value = "1978";
+  context.stepBirthYear(input, 1);
+  assert.equal(input.value, "1979");
 });
 
 test("batch saving updates selected players and preserves others; invalid batches write nothing", () => {

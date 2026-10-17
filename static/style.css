@@ -624,3 +624,9 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 
 .birth-year-search { margin: 18px 0 24px; }
 .birth-year-table .birth-year-check, #birthYearSelectAll { width: 18px; min-width: 18px; height: 18px; min-height: 18px; padding: 0; accent-color: var(--primary); cursor: pointer; }
+
+.birth-year-control { display: inline-flex; align-items: center; gap: 4px; }
+.birth-year-input { appearance: textfield; -moz-appearance: textfield; }
+.birth-year-input::-webkit-inner-spin-button, .birth-year-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.birth-year-stepper { display: grid; gap: 2px; }
+.birth-year-stepper button { width: 28px; min-height: 22px; padding: 0; border: 1px solid var(--line); border-radius: 5px; background: #f8fafc; color: var(--text); font-size: 10px; cursor: pointer; }
