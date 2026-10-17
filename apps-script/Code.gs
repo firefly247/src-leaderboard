@@ -4,6 +4,7 @@
  * GITHUB_REPO and REQUEST_SHEET_ID.
  */
 const REQUEST_SHEET = 'REQUEST_LOG';
+const BIRTH_YEAR_SHEET = 'PLAYER_BIRTH_YEARS';
 const RECORD_COLUMNS = ['record_id','member_name','event_id','event_name','time_ms','time_display','competition','competition_date','note','proof_photo_url','created_at'];
 const COMPETITION_RECORD_COLUMNS = ['record_id','member_name','competition_id','competition_name','competition_event_id','competition_event_name','competition_division_id','competition_division_name','year','competition_type','is_cox','gold','silver','bronze','note','created_at','lineup_group_id'];
 
@@ -26,6 +27,7 @@ function dispatch_(action, p, token) {
   if (action === 'pendingDeleteRecords') return pendingDeleteRecords_();
   requireAdmin_(token);
   if (action === 'adminList') return adminList_(p.view);
+  if (action === 'savePlayerBirthYear') return savePlayerBirthYear_(p);
   if (action === 'processRequest') return processRequest_(p);
   if (action === 'processAddRequests') return processAddRequests_(p);
   if (action === 'processCompetitionAddRequests') return processCompetitionAddRequests_(p);
@@ -176,6 +178,7 @@ function eventNameCompare_(a, b) {
 }
 
 function adminList_(view) {
+  if (view === 'player-birth-years') return { players: playerBirthYears_() };
   if (view === 'events') return { events: events_().sort(eventNameCompare_) };
   if (view === 'competitions') return { competitions: competitions_().sort((a,b) => a.competition_name.localeCompare(b.competition_name, 'ko')) };
   if (view === 'competition-events') return { competitionEvents: competitionEvents_() };
@@ -183,6 +186,52 @@ function adminList_(view) {
   const type = view === 'add' ? 'add' : view === 'competition-add' ? 'competition_add' : view === 'delete' ? 'delete' : '';
   const requests = rowsToRequests_().filter(r => (!type || r.request_type === type) && (view === 'history' ? r.status !== 'pending' : r.status === 'pending')).sort((a,b) => b.requested_at.localeCompare(a.requested_at));
   return { requests: requests };
+}
+
+// Birth years are private reference data. Never write them to GitHub CSVs or request logs.
+function birthYearSheet_(create) {
+  const ss = SpreadsheetApp.openById(prop_('REQUEST_SHEET_ID'));
+  let sheet = ss.getSheetByName(BIRTH_YEAR_SHEET);
+  if (!sheet && create) {
+    sheet = ss.insertSheet(BIRTH_YEAR_SHEET);
+    sheet.appendRow(['member_name', 'birth_year', 'updated_at']);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+function playerBirthYears_() {
+  const sheet = birthYearSheet_(false);
+  const values = sheet ? sheet.getDataRange().getDisplayValues().slice(1) : [];
+  const years = new Map(values.filter(row => row[0]).map(row => [row[0], row[1]]));
+  const names = new Set([...records_(), ...competitionRecords_()].map(row => clean_(row.member_name)).filter(Boolean));
+  years.forEach((year, name) => names.add(name));
+  return [...names].sort((a, b) => a.localeCompare(b, 'ko')).map(name => ({ memberName: name, birthYear: years.get(name) || '' }));
+}
+function savePlayerBirthYear_(p) {
+  const name = clean_(p.memberName), year = p.birthYear == null ? '' : String(p.birthYear).trim();
+  const currentYear = Number(Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy'));
+  if (year && (!/^\d{4}$/.test(year) || Number(year) < 1900 || Number(year) > currentYear)) {
+    throw new Error('생년은 1900년부터 올해까지의 4자리 연도로 입력해 주세요.');
+  }
+  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    if (!name || !playerBirthYears_().some(player => player.memberName === name)) throw new Error('등록된 선수를 선택해 주세요.');
+    const sheet = birthYearSheet_(true);
+    const rows = sheet.getDataRange().getDisplayValues();
+    const index = rows.findIndex((row, i) => i > 0 && row[0] === name);
+    if (!year) {
+      if (index > 0) sheet.deleteRow(index + 1);
+    } else if (index > 0) {
+      sheet.getRange(index + 1, 2, 1, 2).setValues([[year, new Date().toISOString()]]);
+    } else {
+      // Force names to text, even when a name starts with a spreadsheet formula character.
+      const nextRow = sheet.getLastRow() + 1;
+      sheet.getRange(nextRow, 1).setNumberFormat('@').setValue(name);
+      sheet.getRange(nextRow, 2, 1, 2).setValues([[year, new Date().toISOString()]]);
+    }
+    SpreadsheetApp.flush();
+    return { memberName: name, birthYear: year };
+  } finally { lock.releaseLock(); }
 }
 function processRequest_(p) {
   if (!['approved','rejected'].includes(p.decision)) throw new Error('처리 결과가 올바르지 않습니다.');

@@ -617,3 +617,7 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .athlete-compare-result { gap: 4px; font-size: 10px; }
   .athlete-compare-result i { height: 5px; }
 }
+
+.birth-year-table { min-width: 340px; }
+.birth-year-table input { min-width: 100px; max-width: 160px; }
+.birth-year-result { display: block; margin: 6px 0 0; font-size: 12px; white-space: normal; }
