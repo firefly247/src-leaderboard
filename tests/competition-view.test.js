@@ -206,6 +206,32 @@ test("에르고 등록은 종목과 장소를 한 행에 두고 직접 입력 �
   assert.doesNotMatch(source, /batchMemberOptions|bindBatchMember|batch-member-select/);
 });
 
+test("선수 카드의 접이식 기록은 기존 이름 클릭 팝업과 같은 내용을 사용한다", () => {
+  const {context,elements}=createView();
+  elements["#athleteCard"]={innerHTML:""};
+  vm.runInContext(`
+    state.events=[{event_id:"500",event_name:"500m"}];
+    state.records=[record({record_id:"proof-1",member_name:"김콕스",event_id:"500",event_name:"500m",time_ms:"95000",competition_date:"2026-03-14",proof_photo_url:"https://example.com/proof.png"})];
+    build();
+    state.athleteSelectedName="김콕스";
+    athleteProfiles=new Map([["김콕스",{type:"기록 수집 중",stats:[{name:"500m",pb:state.members.find(m=>m.memberName==="김콕스").pb["500"]}],tags:[],strengths:[],goals:[],rivals:[]}]]);
+    renderAthleteProfile();
+    openMember(state.members.findIndex(m=>m.memberName==="김콕스"));
+  `,context);
+  const card=elements["#athleteCard"].innerHTML;
+  assert.ok(card.includes(elements["#dialogContent"].innerHTML));
+  assert.match(elements["#dialogContent"].innerHTML,/data-photo-url="https:\/\/example.com\/proof.png"/);
+  assert.match(elements["#dialogContent"].innerHTML,/data-record-id="proof-1"/);
+  vm.runInContext('openCompetitionMember("김콕스")',context);
+  assert.ok(card.includes(elements["#dialogContent"].innerHTML));
+  assert.match(card,/<details class="athlete-record-disclosure" data-athlete-records="ergo"><summary>에르고 기록/);
+  assert.match(card,/<details class="athlete-record-disclosure" data-athlete-records="competition"><summary>대회 기록/);
+  assert.doesNotMatch(card,/<details class="athlete-record-disclosure"[^>]*\sopen/);
+  const positions=["athlete-name-line","athlete-profile-tags","athlete-layout-main","athlete-rivals","athlete-insight-grid","athlete-record-disclosures","athlete-badges"].map(name=>card.indexOf(name));
+  assert.ok(positions.every((position,index)=>position>=0&&(!index||position>positions[index-1])));
+  assert.match(vm.runInContext('memberCompetitionRecordsHtml("기록없는회원")',context),/등록된 대회 기록이 없습니다/);
+});
+
 test("선수 Beta는 전체 메달, 배지, 전 종목 비교를 제공한다", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
   const source = fs.readFileSync(path.join(__dirname, "..", "static", "leaderboard.js"), "utf8");
