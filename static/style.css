@@ -619,5 +619,8 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 }
 
 .birth-year-table { min-width: 340px; }
-.birth-year-table input { min-width: 100px; max-width: 160px; }
-.birth-year-result { display: block; margin: 6px 0 0; font-size: 12px; white-space: normal; }
+.birth-year-table .birth-year-input { min-width: 100px; max-width: 160px; }
+.birth-year-result { display: block; margin: 0 0 14px; font-size: 12px; white-space: normal; }
+
+.birth-year-search { margin: 18px 0 24px; }
+.birth-year-table .birth-year-check, #birthYearSelectAll { width: 18px; min-width: 18px; height: 18px; min-height: 18px; padding: 0; accent-color: var(--primary); cursor: pointer; }

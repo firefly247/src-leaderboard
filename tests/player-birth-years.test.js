@@ -65,6 +65,7 @@ test("birth year reads and writes reject missing, invalid and expired admin toke
   for (const token of ["", "invalid", "expired"]) {
     assert.throws(() => call("adminList", { view: "player-birth-years" }, token), /관리자 인증/);
     assert.throws(() => call("savePlayerBirthYear", { memberName: "김선수", birthYear: "1985" }, token), /관리자 인증/);
+    assert.throws(() => call("savePlayerBirthYears", { players: [{ memberName: "김선수", birthYear: "1985" }] }, token), /관리자 인증/);
   }
   assert.equal(sheets.size, 0);
 });
@@ -98,7 +99,7 @@ test("server rejects malformed, out of range years and unknown members without c
   assert.equal(lock.held, false);
 });
 
-test("birth year admin view escapes names and offers per-player year forms", () => {
+test("birth year admin view escapes names and offers selection and batch save with a 1985 starting year", () => {
   const container = { innerHTML: "" };
   const context = vm.createContext({ document: { querySelector: () => container }, sessionStorage: { getItem: () => "" } });
   vm.runInContext(clientSource.slice(0, clientSource.indexOf('document.querySelectorAll(".tab-button")')), context);
@@ -106,9 +107,14 @@ test("birth year admin view escapes names and offers per-player year forms", () 
   assert.match(container.innerHTML, /선수 생년 입력/);
   assert.match(container.innerHTML, /value="1985"/);
   assert.match(container.innerHTML, /type="number" min="1900"/);
-  assert.match(container.innerHTML, /form="birthYearForm0"/);
+  assert.match(container.innerHTML, /id="birthYearBatchForm"/);
+  assert.match(container.innerHTML, /id="birthYearBatchSave"/);
+  assert.match(container.innerHTML, /class="birth-year-check"/);
+  assert.doesNotMatch(container.innerHTML, /<th>관리<|birthYearForm0/);
   assert.doesNotMatch(container.innerHTML, /<img/);
   assert.match(container.innerHTML, /&lt;img/);
+  context.adminContent("player-birth-years", { players: [{ memberName: "미입력선수", birthYear: "" }] });
+  assert.match(container.innerHTML, /value="1985"/);
 });
 
 test("late admin responses cannot repopulate private data after logout", async () => {
@@ -126,4 +132,70 @@ test("late admin responses cannot repopulate private data after logout", async (
   resolve({ ok: true, json: async () => ({ ok: true, players: [{ memberName: "김선수", birthYear: "1985" }] }) });
   await pending;
   assert.equal(container.innerHTML, "");
+});
+
+test("batch saving updates selected players and preserves others; invalid batches write nothing", () => {
+  const { call, sheets, lock } = server();
+  call("savePlayerBirthYear", { memberName: "이선수", birthYear: "1975" });
+  const result = call("savePlayerBirthYears", { players: [
+    { memberName: "김선수", birthYear: "1985" },
+    { memberName: "박선수", birthYear: "1986" },
+  ] });
+  assert.equal(result.savedCount, 2);
+  const before = JSON.stringify(sheets.get("PLAYER_BIRTH_YEARS").rows);
+  for (const players of [
+    [{ memberName: "김선수", birthYear: "1995" }, { memberName: "박선수", birthYear: "2027" }],
+    [{ memberName: "김선수", birthYear: "1995" }, { memberName: "미등록", birthYear: "1985" }],
+    [{ memberName: "김선수", birthYear: "1995" }, { memberName: "김선수", birthYear: "1985" }],
+    [], [null],
+  ]) {
+    assert.throws(() => call("savePlayerBirthYears", { players }));
+    assert.equal(JSON.stringify(sheets.get("PLAYER_BIRTH_YEARS").rows), before);
+    assert.equal(lock.held, false);
+  }
+  call("savePlayerBirthYears", { players: [
+    { memberName: "김선수", birthYear: "" },
+    { memberName: "박선수", birthYear: "1990" },
+  ] });
+  const players = call("adminList", { view: "player-birth-years" }).players;
+  assert.equal(players.find(p => p.memberName === "김선수").birthYear, "");
+  assert.equal(players.find(p => p.memberName === "박선수").birthYear, "1990");
+  assert.equal(players.find(p => p.memberName === "이선수").birthYear, "1975");
+});
+
+test("client batch save sends only selected rows and retains edits on API failure", async () => {
+  const button = { disabled: false, textContent: "" };
+  const message = { textContent: "", classList: { remove() {}, add() {} } };
+  const makeRow = (name, checked, value) => {
+    const check = { checked }, input = { value, reportValidity: () => true };
+    return { dataset: { birthYearName: name }, querySelector: selector => selector === ".birth-year-check" ? check : input };
+  };
+  const rows = [makeRow("김선수", true, "1985"), makeRow("박선수", false, "invalid")];
+  const form = {
+    isConnected: false,
+    querySelectorAll: selector => selector === "input,button" ? [button] : rows,
+    querySelector: selector => selector === "#birthYearBatchSave" ? button : message,
+  };
+  let sent;
+  const context = vm.createContext({
+    document: { querySelector: () => ({}) }, sessionStorage: { getItem: () => "valid" },
+    fetch: async (url, options) => {
+      sent = JSON.parse(options.body);
+      return { ok: true, json: async () => ({ ok: true, savedCount: 1 }) };
+    },
+  });
+  vm.runInContext(clientSource.slice(0, clientSource.indexOf('document.querySelectorAll(".tab-button")')), context);
+  await context.saveSelectedBirthYears(form);
+  assert.equal(sent.action, "savePlayerBirthYears");
+  assert.equal(sent.adminToken, "valid");
+  assert.deepEqual(sent.payload.players, [{ memberName: "김선수", birthYear: "1985" }]);
+  assert.equal(rows[0].querySelector(".birth-year-check").checked, false);
+  assert.equal(rows[1].querySelector(".birth-year-input").value, "invalid");
+  rows[0].querySelector(".birth-year-check").checked = true;
+  context.fetch = async () => { throw new Error("연결 실패"); };
+  await context.saveSelectedBirthYears(form);
+  assert.equal(rows[0].querySelector(".birth-year-check").checked, true);
+  assert.equal(rows[0].querySelector(".birth-year-input").value, "1985");
+  assert.equal(message.textContent, "연결 실패");
+  assert.equal(button.disabled, false);
 });

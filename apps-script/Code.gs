@@ -28,6 +28,7 @@ function dispatch_(action, p, token) {
   requireAdmin_(token);
   if (action === 'adminList') return adminList_(p.view);
   if (action === 'savePlayerBirthYear') return savePlayerBirthYear_(p);
+  if (action === 'savePlayerBirthYears') return savePlayerBirthYears_(p);
   if (action === 'processRequest') return processRequest_(p);
   if (action === 'processAddRequests') return processAddRequests_(p);
   if (action === 'processCompetitionAddRequests') return processCompetitionAddRequests_(p);
@@ -208,29 +209,41 @@ function playerBirthYears_() {
   return [...names].sort((a, b) => a.localeCompare(b, 'ko')).map(name => ({ memberName: name, birthYear: years.get(name) || '' }));
 }
 function savePlayerBirthYear_(p) {
-  const name = clean_(p.memberName), year = p.birthYear == null ? '' : String(p.birthYear).trim();
+  const result = savePlayerBirthYears_({ players: [p] });
+  return result.players[0];
+}
+function savePlayerBirthYears_(p) {
+  if (!Array.isArray(p.players) || !p.players.length || p.players.length > 1000) throw new Error('저장할 선수를 1~1000명 선택해 주세요.');
   const currentYear = Number(Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy'));
-  if (year && (!/^\d{4}$/.test(year) || Number(year) < 1900 || Number(year) > currentYear)) {
-    throw new Error('생년은 1900년부터 올해까지의 4자리 연도로 입력해 주세요.');
-  }
+  const players = p.players.map(player => {
+    if (!player || typeof player !== 'object') throw new Error('선수 정보가 올바르지 않습니다.');
+    const name = clean_(player.memberName), year = player.birthYear == null ? '' : String(player.birthYear).trim();
+    if (year && (!/^\d{4}$/.test(year) || Number(year) < 1900 || Number(year) > currentYear)) {
+      throw new Error(name + ': 생년은 1900년부터 올해까지의 4자리 연도로 입력해 주세요.');
+    }
+    return { memberName: name, birthYear: year };
+  });
+  if (new Set(players.map(player => player.memberName)).size !== players.length) throw new Error('중복된 선수가 있습니다.');
   const lock = LockService.getScriptLock(); lock.waitLock(30000);
   try {
-    if (!name || !playerBirthYears_().some(player => player.memberName === name)) throw new Error('등록된 선수를 선택해 주세요.');
-    const sheet = birthYearSheet_(true);
-    const rows = sheet.getDataRange().getDisplayValues();
-    const index = rows.findIndex((row, i) => i > 0 && row[0] === name);
-    if (!year) {
-      if (index > 0) sheet.deleteRow(index + 1);
-    } else if (index > 0) {
-      sheet.getRange(index + 1, 2, 1, 2).setValues([[year, new Date().toISOString()]]);
-    } else {
-      // Force names to text, even when a name starts with a spreadsheet formula character.
-      const nextRow = sheet.getLastRow() + 1;
-      sheet.getRange(nextRow, 1).setNumberFormat('@').setValue(name);
-      sheet.getRange(nextRow, 2, 1, 2).setValues([[year, new Date().toISOString()]]);
+    const names = new Set(playerBirthYears_().map(player => player.memberName));
+    if (players.some(player => !player.memberName || !names.has(player.memberName))) throw new Error('등록된 선수를 선택해 주세요.');
+    const sheet = birthYearSheet_(true), previous = sheet.getDataRange().getDisplayValues().slice(1);
+    const saved = new Map(previous.filter(row => row[0]).map(row => [row[0], row]));
+    const now = new Date().toISOString();
+    players.forEach(player => {
+      if (player.birthYear) saved.set(player.memberName, [player.memberName, player.birthYear, now]);
+      else saved.delete(player.memberName);
+    });
+    const values = [...saved.values()];
+    // Clear removed rows in the same write, after validating every selected player.
+    while (values.length < previous.length) values.push(['', '', '']);
+    if (values.length) {
+      sheet.getRange(2, 1, values.length, 1).setNumberFormat('@');
+      sheet.getRange(2, 1, values.length, 3).setValues(values);
     }
     SpreadsheetApp.flush();
-    return { memberName: name, birthYear: year };
+    return { savedCount: players.length, players: players };
   } finally { lock.releaseLock(); }
 }
 function processRequest_(p) {
