@@ -27,6 +27,7 @@ function dispatch_(action, p, token) {
   if (action === 'pendingDeleteRecords') return pendingDeleteRecords_();
   requireAdmin_(token);
   if (action === 'adminList') return adminList_(p.view);
+  if (action === 'updateCompetitionRequests') return updateCompetitionRequests_(p);
   if (action === 'savePlayerBirthYear') return savePlayerBirthYear_(p);
   if (action === 'savePlayerBirthYears') return savePlayerBirthYears_(p);
   if (action === 'processRequest') return processRequest_(p);
@@ -83,6 +84,40 @@ function updateRequest_(request, status, result) {
   const sheet = requestSheet_();
   const now = new Date().toISOString();
   sheet.getRange(request._row, 5, 1, 3).setValues([[status, now, result]]);
+}
+function updateCompetitionRequests_(p) {
+  const edits = p.edits;
+  if (!Array.isArray(edits) || !edits.length || edits.length > 100) throw new Error('수정할 대회 요청을 1~100건 지정해 주세요.');
+  if (new Set(edits.map(edit => edit.requestId)).size !== edits.length) throw new Error('중복된 요청입니다.');
+  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    const requests = rowsToRequests_();
+    // Validate the entire batch before writing, including the source seen by the administrator.
+    const updates = edits.map(edit => {
+      const request = requests.find(r => r.request_id === edit.requestId);
+      if (!request || request.request_type !== 'competition_add' || request.status !== 'pending') throw new Error('승인 대기 중인 대회 요청만 수정할 수 있습니다.');
+      if (typeof edit.expectedSourceJson !== 'string' || request.source_json !== edit.expectedSourceJson) throw new Error('요청 내용이 변경되었습니다. 새로 조회한 뒤 수정해 주세요.');
+      const source = JSON.parse(request.source_json);
+      if (!['year','gold','silver','bronze'].some(key => Object.prototype.hasOwnProperty.call(edit, key))) throw new Error('수정할 연도 또는 메달 수를 지정해 주세요.');
+      ['year','gold','silver','bronze'].forEach(key => {
+        if (!Object.prototype.hasOwnProperty.call(edit, key)) return;
+        if (typeof edit[key] !== 'number' || !Number.isInteger(edit[key])) throw new Error('연도와 메달 수는 정수여야 합니다.');
+        source[key] = edit[key];
+      });
+      validateCompetitionAdd_(source);
+      const type = source.competitionType === 'indoor' ? '실내대회' : source.competitionType === 'beach' ? '비치대회' : '수상대회';
+      const isCox = source.isCox === true || String(source.isCox) === '1';
+      const display = type + (isCox ? ' · COX' : '') + ' · ' + source.competitionEventName + ' · ' + source.competitionDivisionName + ' · 금 ' + Number(source.gold || 0) + ' · 은 ' + Number(source.silver || 0) + ' · 동 ' + Number(source.bronze || 0);
+      return { request: request, source: JSON.stringify(source), display: display, year: String(source.year) };
+    });
+    const sheet = requestSheet_();
+    updates.forEach(update => {
+      sheet.getRange(update.request._row, 4).setValue(update.source);
+      sheet.getRange(update.request._row, 12, 1, 2).setValues([[update.display, update.year]]);
+    });
+    SpreadsheetApp.flush();
+    return { updatedCount: updates.length };
+  } finally { lock.releaseLock(); }
 }
 
 function requestAdd_(p) {
