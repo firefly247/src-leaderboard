@@ -7,6 +7,7 @@ GitHub Pages의 공개 UI, 저장소의 CSV를 최종 승인 기록 저장소, G
 - data/records.csv: 승인된 기록의 최종 저장소입니다. 기존 이름·종목·기록·대회·날짜·메모 구조를 유지하고 정확한 삭제를 위한 record_id를 추가했습니다.
 - data/events.csv: event_id, event_name으로 관리되는 동적 종목 목록입니다. 기본값은 500m, 1000m, 2000m입니다.
 - data/competitions.csv: 관리자가 추가·수정·삭제하는 조정대회 목록입니다.
+- data/competition_dates.csv: 대회 ID·연도별 개최일을 저장합니다. 관리자 → 기준정보 관리 → 대회 개최일에서 출전 기록에 있는 조합의 날짜를 입력·변경·해제합니다. 같은 연도의 대회는 개최일 내림차순으로 정렬하고, 미입력 대회는 해당 연도의 마지막에 표시합니다. 대회명을 변경해도 ID가 같으면 날짜는 유지됩니다. 프런트엔드와 Apps Script를 함께 배포해야 합니다.
 - data/competition_events.csv: 4X+, 8+처럼 관리되는 대회 종목 목록입니다.
 - data/competition_divisions.csv: 남자·여자·혼성 및 160 체급으로 구성되는 출전 구분 목록입니다.
 - data/competition_records.csv: 회원별 대회 참가 연도·종목·출전 구분과 금·은·동메달 수를 저장합니다. 같은 대회의 여러 종목에 출전해도 대회 참석 횟수는 한 번으로 집계합니다.

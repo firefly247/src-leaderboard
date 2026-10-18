@@ -27,6 +27,7 @@ function dispatch_(action, p, token) {
   if (action === 'pendingDeleteRecords') return pendingDeleteRecords_();
   requireAdmin_(token);
   if (action === 'adminList') return adminList_(p.view);
+  if (action === 'saveCompetitionDates') return saveCompetitionDates_(p);
   if (action === 'updateCompetitionRequests') return updateCompetitionRequests_(p);
   if (action === 'savePlayerBirthYear') return savePlayerBirthYear_(p);
   if (action === 'savePlayerBirthYears') return savePlayerBirthYears_(p);
@@ -214,6 +215,7 @@ function eventNameCompare_(a, b) {
 }
 
 function adminList_(view) {
+  if (view === 'competition-dates') return { competitionDates: competitionDateCatalog_() };
   if (view === 'player-birth-years') return { players: playerBirthYears_() };
   if (view === 'events') return { events: events_().sort(eventNameCompare_) };
   if (view === 'competitions') return { competitions: competitions_().sort((a,b) => a.competition_name.localeCompare(b.competition_name, 'ko')) };
@@ -543,6 +545,50 @@ function manageCompetitionDivision_(p) {
 
 function records_() { return readCsv_('data/records.csv'); }
 function events_() { return readCsv_('data/events.csv'); }
+function competitionDates_() { return readCsv_('data/competition_dates.csv'); }
+function competitionDateCatalog_() {
+  const names = new Map(competitions_().map(c => [c.competition_id, c.competition_name]));
+  const dates = new Map(competitionDates_().map(row => [row.year + '\0' + row.competition_id, row.competition_date]));
+  const entries = new Map();
+  competitionRecords_().forEach(row => {
+    const key = row.year + '\0' + row.competition_id;
+    if (!entries.has(key)) entries.set(key, {
+      competition_id: row.competition_id, competition_name: names.get(row.competition_id) || row.competition_name,
+      year: Number(row.year), competition_date: dates.get(key) || ''
+    });
+  });
+  return [...entries.values()].sort((a,b) => b.year - a.year || b.competition_date.localeCompare(a.competition_date) || a.competition_name.localeCompare(b.competition_name, 'ko'));
+}
+function saveCompetitionDates_(p) {
+  if (!Array.isArray(p.dates) || !p.dates.length || p.dates.length > 100) throw new Error('저장할 대회 날짜를 1~100건 지정해 주세요.');
+  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    const available = new Set(competitionRecords_().map(row => row.year + '\0' + row.competition_id));
+    const seen = new Set();
+    const edits = p.dates.map(row => {
+      const year = Number(row.year), id = clean_(row.competitionId), date = row.date;
+      const key = year + '\0' + id;
+      if (!Number.isInteger(year) || year < 1900 || year > 2100 || !available.has(key)) throw new Error('기록에 있는 연도와 대회만 날짜를 지정할 수 있습니다.');
+      if (seen.has(key)) throw new Error('같은 연도와 대회가 중복되었습니다.');
+      seen.add(key);
+      if (typeof date !== 'string') throw new Error('날짜를 YYYY-MM-DD 형식으로 입력해 주세요.');
+      if (date) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('날짜를 YYYY-MM-DD 형식으로 입력해 주세요.');
+        const parsed = new Date(date + 'T00:00:00Z');
+        if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0,10) !== date) throw new Error('실제 존재하는 날짜를 입력해 주세요.');
+        if (Number(date.slice(0,4)) !== year) throw new Error('개최일의 연도는 해당 대회 연도와 같아야 합니다.');
+      }
+      return { key: key, competition_id: id, year: String(year), competition_date: date };
+    });
+    const dates = new Map(competitionDates_().map(row => [row.year + '\0' + row.competition_id, row]));
+    edits.forEach(row => {
+      if (row.competition_date) dates.set(row.key, row);
+      else dates.delete(row.key);
+    });
+    writeCsv_('data/competition_dates.csv', ['competition_id','year','competition_date'], [...dates.values()].sort((a,b) => Number(b.year) - Number(a.year) || a.competition_id.localeCompare(b.competition_id)), 'Update competition dates');
+    return { savedCount: edits.length, competitionDates: competitionDateCatalog_() };
+  } finally { lock.releaseLock(); }
+}
 function competitions_() { return readCsv_('data/competitions.csv'); }
 function competitionEvents_() { return readCsv_('data/competition_events.csv'); }
 function competitionDivisions_() { return readCsv_('data/competition_divisions.csv'); }
