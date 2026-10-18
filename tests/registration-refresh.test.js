@@ -9,10 +9,11 @@ const vm = require("node:vm");
 function formView() {
   const elements = {};
   function element(id, select = false) {
-    const field = { tagName: select ? "SELECT" : "INPUT", value: "", readOnly: true,
+    const field = { tagName: select ? "SELECT" : "INPUT", value: "", readOnly: true, rebuilds: 0,
       options: [], closest: () => null };
     Object.defineProperty(field, "innerHTML", { set(html) {
       if (!select) return;
+      this.rebuilds++;
       this.options = [...html.matchAll(/<option value="([^"]*)"([^>]*)>/g)]
         .map(match => ({ value: match[1], selected: match[2].includes("selected") }));
       this.value = (this.options.find(option => option.selected) || this.options[0])?.value || "";
@@ -38,7 +39,10 @@ function formView() {
     state.competitionEvents=[{competition_event_id:'competition-event-indoor-rowing',competition_event_name:'로잉머신'}];
     renderForms();
   `, context);
-  return { elements, render: () => vm.runInContext("renderForms()", context) };
+  return { elements, render: (catalogChanged = false) => {
+    if(catalogChanged)vm.runInContext("state.competitions.push({competition_id:'new',competition_name:'새 대회'});",context);
+    vm.runInContext("renderForms()", context);
+  } };
 }
 
 test("catalog refresh preserves competition draft and direct-entry mode", () => {
@@ -50,7 +54,7 @@ test("catalog refresh preserves competition draft and direct-entry mode", () => 
   e.raceSelect.value = "__new__";
   e.raceNameInput.value = "새 대회";
   e.raceNameInput.readOnly = false;
-  render();
+  render(true);
   assert.equal(e.bulkCompetitionYearSelect.value, "2024");
   assert.equal(e.bulkCompetitionTypeSelect.value, "indoor");
   assert.equal(e.bulkRaceSelect.value, "hanam");
@@ -71,8 +75,23 @@ test("refresh keeps a cleared direct-entry place empty and editable", () => {
   e.bulkCompetitionSelect.value = "__new__";
   e.bulkCompetitionInput.value = "";
   e.bulkCompetitionInput.readOnly = false;
-  render();
+  render(true);
   assert.equal(e.bulkCompetitionSelect.value, "__new__");
   assert.equal(e.bulkCompetitionInput.value, "");
   assert.equal(e.bulkCompetitionInput.readOnly, false);
+});
+
+test("repeated background refresh leaves registration controls untouched", () => {
+  const { elements: e, render } = formView();
+  e.bulkCompetitionYearSelect.value = "2025";
+  e.bulkCompetitionTypeSelect.value = "indoor";
+  e.bulkRaceSelect.value = "hanam";
+  e.bulkRaceNameInput.value = "하남";
+  const rebuilds = e.bulkRaceSelect.rebuilds;
+  for(let index=0;index<3;index++)render();
+  assert.equal(e.bulkRaceSelect.rebuilds, rebuilds);
+  assert.equal(e.bulkCompetitionYearSelect.value, "2025");
+  assert.equal(e.bulkCompetitionTypeSelect.value, "indoor");
+  assert.equal(e.bulkRaceSelect.value, "hanam");
+  assert.equal(e.bulkRaceNameInput.value, "하남");
 });
