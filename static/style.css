@@ -161,6 +161,7 @@ tbody tr:hover { background: #f8fbff; }
 .competition-date-table th,.competition-date-table td { white-space: normal; overflow-wrap: anywhere; }
 .competition-date-table .competition-date-input { width: 100%; min-width: 0; max-width: 100%; min-inline-size: 0; }
 .competition-name-line { display: block; }
+.division-heading-line { display: block; white-space: nowrap; }
 .medal-matrix .matrix-month-col { width: 28px; }
 .matrix-month { font-size: 12px; font-weight: 700; vertical-align: middle; }
 .inline-form { display: flex; gap: 8px; margin: 16px 0; }
