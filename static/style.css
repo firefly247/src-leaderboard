@@ -154,6 +154,15 @@ tbody tr:hover { background: #f8fbff; }
 .admin-subtabs button { min-width: 0; border: 0; padding: 15px 6px; background: transparent; color: #98a0ad; font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
 .admin-subtabs button:hover, .admin-subtabs button.is-active { background: transparent; color: var(--text); font-weight: 950; }
 .admin-table { min-width: 900px; }
+.admin-table.competition-date-table { width: 100%; min-width: 0; table-layout: fixed; }
+.competition-date-table .date-year-col { width: 17%; }
+.competition-date-table .date-name-col { width: 31%; }
+.competition-date-table .date-value-col { width: 52%; }
+.competition-date-table th,.competition-date-table td { white-space: normal; overflow-wrap: anywhere; }
+.competition-date-table .competition-date-input { width: 100%; min-width: 0; max-width: 100%; min-inline-size: 0; }
+.competition-name-line { display: block; }
+.medal-matrix .matrix-month-col { width: 28px; }
+.matrix-month { font-size: 12px; font-weight: 700; vertical-align: middle; }
 .inline-form { display: flex; gap: 8px; margin: 16px 0; }
 .inline-form input { max-width: 320px; }
 .photo-dialog { width: min(900px, 96vw); max-height: 92vh; padding: 48px 18px 18px; border: 0; border-radius: 18px; background: var(--surface); box-shadow: 0 30px 90px rgba(7,21,47,.35); }
@@ -527,17 +536,21 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .medal-matrix { width: 100%; min-width: 0; font-size: 9px; }
   .medal-matrix th,.medal-matrix td { padding: 6px 1px; letter-spacing: 0; }
   .medal-matrix .matrix-year-col { width: 9%; }
+  .medal-matrix .matrix-month-col { width: 6%; }
   .medal-matrix .matrix-competition-col { width: 16%; }
   .medal-matrix .matrix-event-col { width: 10%; }
-  .medal-matrix .matrix-division-col { width: calc(65% / var(--division-count,6)); }
+  .medal-matrix .matrix-division-col { width: calc(59% / var(--division-count,6)); }
   .medal-matrix thead tr:nth-child(2) th { font-size: 8px; line-height: 1.15; overflow-wrap: anywhere; }
   .medal-matrix .matrix-year { font-size: 9px; }
+  .medal-matrix .matrix-month { font-size: 9px; }
+  .competition-date-table th,.competition-date-table td { padding: 8px 3px; font-size: 12px; }
+  .competition-date-table .competition-date-input { padding: 7px 3px; font-size: 11px; }
   .medal-matrix .matrix-competition,.medal-matrix .matrix-event { font-size: 9px; line-height: 1.15; }
   .medal-matrix .matrix-result { font-size: 14px; line-height: .95; }
   .medal-matrix .result-icon { margin: 0; }
   .medal-matrix.is-indoor .matrix-year-col { width: 9%; }
   .medal-matrix.is-indoor .matrix-competition-col { width: 16%; }
-  .medal-matrix.is-indoor .matrix-division-col { width: calc(75% / var(--division-count,9)); }
+  .medal-matrix.is-indoor .matrix-division-col { width: calc(69% / var(--division-count,9)); }
   .competition-member-table { width: 100%; min-width: 0; font-size: 10px; }
   .competition-member-table th,.competition-member-table td { padding: 7px 1px; letter-spacing: 0; white-space: nowrap; }
   .competition-member-table th:nth-child(1),.competition-member-table td:nth-child(1) { width: 6%; }

@@ -90,6 +90,22 @@ test("대회와 성별 헤더를 병합하고 대회명을 참가자 명단에 �
   assert.match(elements["#dialogContent"].innerHTML, /<span class="crew-line">팔크루1, 팔크루2, 팔크루3, 팔크루4<\/span><span class="crew-line">팔크루5, 팔크루6, 팔크루7, 팔크루8<\/span>/);
 });
 
+test("개최월은 연도 옆에서 종목 행을 병합하고 대회명 괄호는 둘째 줄에 표시한다", () => {
+  const { context, elements } = createView();
+  vm.runInContext(`
+    state.competitionDates=[{competition_id:'competition-tangeum',year:2026,competition_date:'2026-09-06'}];
+    state.competitionRecords.forEach(row=>row.competitionName='용인(경기도)');
+    renderCompetitionTables();
+  `,context);
+  assert.match(elements["#competitionSummaryHead"].innerHTML,/>연도<\/th><th rowspan="2">월<\/th><th rowspan="2">대회/);
+  const html=elements["#competitionSummaryBody"].innerHTML;
+  assert.match(html,/class="matrix-month" rowspan="2">9<\/td>/);
+  assert.match(html,/<span class="competition-name-line">용인<\/span><span class="competition-name-line">\(경기도\)<\/span>/);
+  assert.doesNotMatch(html,/2026-09-06|class="record-tags"/);
+  vm.runInContext('state.competitionDates=[];renderCompetitionTables()',context);
+  assert.match(elements["#competitionSummaryBody"].innerHTML,/class="matrix-month" rowspan="2"><\/td>/);
+});
+
 test("참가자 검색은 일치하는 팀의 전체 명단을 유지한다", () => {
   const { context, elements } = createView();
   elements["#competitionParticipantSearch"].value = "김크루";
