@@ -76,6 +76,8 @@ python -m http.server 8000
 
 ## 검증 시나리오
 
+Android 앱은 사이트 메뉴의 **Android APK 다운로드**에서 설치할 수 있습니다. 배포 파일은 `downloads/samsung-rowing-club.apk`, 버전·SHA-256은 `downloads/android-release.json`입니다. 네이티브 프로젝트와 서명키 백업·재빌드 절차는 [Android 앱 문서](android/README.md)에 정리했습니다. 사이트 내용은 온라인으로 반영되며, 앱 자체를 업데이트할 때는 같은 서명키와 더 높은 versionCode를 사용합니다.
+
 1. 새 회원의 기록·사진을 신청하고 관리자에서 승인합니다. records.csv의 GitHub commit과 리더보드 반영을 확인합니다.
    여러 에르고 요청을 선택해 일괄승인하고 선택된 기록만 한 번에 추가되는지도 확인합니다.
 2. 회원 상세에서 삭제 요청을 만들고 승인합니다. 해당 record_id 한 건만 사라지는지 확인합니다.

@@ -1,0 +1,10 @@
+{
+  "applicationId": "io.github.firefly247.srcleaderboard",
+  "versionName": "1.0.0",
+  "versionCode": 1,
+  "minSdkVersion": 26,
+  "targetSdkVersion": 36,
+  "file": "samsung-rowing-club.apk",
+  "bytes": 259472,
+  "sha256": "be6d7f9f62e1cfdb1d91527c51c9b8f3437dbdb35ef0ee68e79a9470c67d0cf6"
+}

@@ -28,6 +28,7 @@ jobs:
           mkdir _site
           cp index.html _site/
           cp -r static _site/static
+          cp -r downloads _site/downloads
           touch _site/.nojekyll
       - name: Configure Pages
         uses: actions/configure-pages@v5
