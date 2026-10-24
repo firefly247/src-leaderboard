@@ -118,6 +118,12 @@ test("birth year admin view escapes names and keeps missing years empty and offe
   assert.doesNotMatch(container.innerHTML, /value="1985"/);
   assert.match(container.innerHTML, /data-birth-year-step="1"/);
   assert.match(container.innerHTML, /data-birth-year-step="-1"/);
+  assert.match(container.innerHTML, /name="joinYear"[^>]*value=""/);
+  assert.match(container.innerHTML, /data-join-year-step="1"/);
+  assert.match(container.innerHTML, /data-join-year-step="-1"/);
+  context.adminContent("player-birth-years", { players: [{ memberName: "기존선수", birthYear: "1980", joinYear: "2018" }] });
+  assert.match(container.innerHTML, /name="joinYear"[^>]*value="2018"/);
+  assert.doesNotMatch(container.innerHTML, /name="joinYear"[^>]*value="2026"/);
 });
 
 test("late admin responses cannot repopulate private data after logout", async () => {
@@ -187,6 +193,24 @@ test("batch saving updates selected players and preserves others; invalid batche
   assert.equal(players.find(p => p.memberName === "이선수").birthYear, "1975");
 });
 
+test("joining year arrows initialize a blank field at 2026 and preserve entered years", () => {
+  const context = vm.createContext({ document: { querySelector: () => ({}) }, sessionStorage: { getItem: () => "" }, Event: class {} });
+  vm.runInContext(clientSource.slice(0, clientSource.indexOf('document.querySelectorAll(".tab-button")')), context);
+  const input = { value: "", stepUp() { this.value = String(Number(this.value) + 1); }, stepDown() { this.value = String(Number(this.value) - 1); }, dispatchEvent() {} };
+  for (const direction of [1,-1]) {
+    input.value = "";
+    context.stepJoinYear(input,direction);
+    assert.equal(input.value,"2026");
+    context.stepJoinYear(input,-1);
+    assert.equal(input.value,"2025");
+  }
+  input.value="2018";
+  context.stepJoinYear(input,1);
+  assert.equal(input.value,"2019");
+  context.stepJoinYear(input,-1);
+  assert.equal(input.value,"2018");
+});
+
 test("client batch save sends only selected rows and retains edits on API failure", async () => {
   const button = { disabled: false, textContent: "" };
   const message = { textContent: "", classList: { remove() {}, add() {} } };
@@ -215,6 +239,10 @@ test("client batch save sends only selected rows and retains edits on API failur
   assert.deepEqual(sent.payload.players, [{ memberName: "김선수", birthYear: "1985", joinYear: "2020" }]);
   assert.equal(rows[0].querySelector(".birth-year-check").checked, false);
   assert.equal(rows[1].querySelector(".birth-year-input").value, "invalid");
+  rows[0].dataset.savedJoinYear = "2020";
+  rows[0].querySelector(".birth-year-check").checked = true;
+  await context.saveSelectedBirthYears(form);
+  assert.deepEqual(sent.payload.players, [{ memberName: "김선수", birthYear: "1985" }]);
   rows[0].querySelector(".birth-year-check").checked = true;
   context.fetch = async () => { throw new Error("연결 실패"); };
   await context.saveSelectedBirthYears(form);
