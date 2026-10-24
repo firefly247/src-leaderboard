@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 function app(userAgent='Android',matches=false){
   const listeners={},elements={},windowEvents={};let closedMenu=false;
-  for(const id of ['appInstallButton','appInstallDialog','appInstallSteps','appInstallClose','appInstallCopyLink','headerMenuToggle'])elements[id]={textContent:'',disabled:false,open:false,addEventListener(type,fn){(listeners[id]??={})[type]=fn;},showModal(){this.open=true;},close(){this.open=false;},replaceChildren(...items){this.items=items;},focus(){}};
+  for(const id of ['appInstallButton','appInstallDialog','appInstallSteps','appInstallClose','headerMenuToggle'])elements[id]={textContent:'',disabled:false,open:false,addEventListener(type,fn){(listeners[id]??={})[type]=fn;},showModal(){this.open=true;},close(){this.open=false;},replaceChildren(...items){this.items=items;},focus(){}};
   const context=vm.createContext({document:{querySelector:selector=>elements[selector.slice(1)],createElement:()=>({textContent:''})},navigator:{userAgent,platform:'',maxTouchPoints:0},window:{matchMedia:()=>({matches,addEventListener(){}}),addEventListener:(type,fn)=>windowEvents[type]=fn},setHeaderMenuOpen:()=>{closedMenu=true;}});
   vm.runInContext(fs.readFileSync(path.join(__dirname,'../static/pwa.js'),'utf8'),context);
   return {elements,windowEvents,click:()=>listeners.appInstallButton.click(),menuClosed:()=>closedMenu};
@@ -24,11 +24,10 @@ test('installed and standalone apps show their actual installed state',()=>{
   assert.equal(app('Android',true).elements.appInstallButton.disabled,true);
   const current=app();current.windowEvents.appinstalled();assert.equal(current.elements.appInstallButton.textContent,'앱 설치됨');assert.equal(current.elements.appInstallButton.disabled,true);
 });
-test('Samsung Internet shows Chrome instructions instead of repeating the affected install flow',async()=>{
+test('Samsung Internet uses the available browser install prompt',async()=>{
   const current=app('Android SamsungBrowser/28.0');let prompted=false;
   current.windowEvents.beforeinstallprompt({preventDefault(){},async prompt(){prompted=true;},userChoice:Promise.resolve({outcome:'accepted'})});
-  await current.click();assert.equal(prompted,false);assert.equal(current.elements.appInstallDialog.open,true);assert.equal(current.elements.appInstallCopyLink.hidden,false);
-  assert.match(current.elements.appInstallSteps.items.map(item=>item.textContent).join(' '),/최신 Chrome/);
+  await current.click();assert.equal(prompted,true);assert.equal(current.elements.appInstallDialog.open,false);
 });
 test('manifest targets the project root and references deployable PNG icons',()=>{
   const manifest=JSON.parse(fs.readFileSync(path.join(__dirname,'../static/manifest.webmanifest'),'utf8'));

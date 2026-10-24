@@ -41,7 +41,6 @@ a { color: inherit; text-decoration: none; }
 .app-install-dialog ol { padding-left: 22px; }
 .app-install-dialog li + li { margin-top: 10px; }
 .app-install-dialog button { width: 100%; margin-top: 12px; }
-.app-install-dialog button[hidden] { display: none; }
 .main-tabs { gap: 8px !important; }
 .tab-button { border: 0; border-bottom: 2px solid transparent; padding: 24px 6px 22px; background: transparent; color: #dbe7ff; font: inherit; font-weight: 800; cursor: pointer; white-space: nowrap; }
 .tab-button:hover, .tab-button.is-active { color: #fff; border-bottom-color: #75a1ff; }
