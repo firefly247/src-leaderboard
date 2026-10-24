@@ -10,6 +10,13 @@ test("member search includes every matching distinct member and keeps A/B names 
   assert.deepEqual(Array.from(app.competitionMemberNames(" 이동훈 ")),["이동훈A","이동훈B"]);
   assert.deepEqual(Array.from(app.competitionMemberNames("신규선수")),[]);
 });
+test("member suggestions match Korean syllables while the next consonant is still a final",()=>{
+  const app=client();vm.runInContext('state.members=[{memberName:"조홍관"},{memberName:"조현우"},{memberName:"김기현"}];',app);
+  for(const query of ["조","좋","조ㅎ","조홍","조홍ㄱ","조홍관"])assert.ok(Array.from(app.competitionMemberNames(query)).includes("조홍관"),query);
+  assert.deepEqual(Array.from(app.competitionMemberNames("좋")),["조현우","조홍관"]);
+  assert.deepEqual(Array.from(app.competitionMemberNames("조홍간")),[]);
+  assert.deepEqual(Array.from(app.competitionMemberNames("김기혀")),["김기현"]);
+});
 test("new member status clears for an existing name or an empty input",()=>{
   const app=client(),classes=new Set(),input={value:"새선수",classList:{toggle(name,on){if(on)classes.add(name);else classes.delete(name);}}};
   vm.runInContext('state.members=[{memberName:"이동훈B"}];',app);

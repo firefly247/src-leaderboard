@@ -320,9 +320,13 @@ function deleteSelectedBatchRows(type) { const rows=[...document.querySelectorAl
 function competitionLineupRoles(eventName) { const name=String(eventName||"").trim().toUpperCase().replace(/\s/g,"");if(["4+","4X+"].includes(name))return [...Array(4).fill("0"),"1"];if(name==="8+")return [...Array(8).fill("0"),"1"];if(name==="2X")return ["0","0"];return ["0"]; }
 let competitionTeamCounter=0;
 let competitionMemberMenu=null,competitionMemberMenuCounter=0;
+function competitionMemberSearchKey(value) {
+  const initials=[..."ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ"],vowels=[..."ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ"],finals=["ㄱ","ㄲ","ㄱㅅ","ㄴ","ㄴㅈ","ㄴㅎ","ㄷ","ㄹ","ㄹㄱ","ㄹㅁ","ㄹㅂ","ㄹㅅ","ㄹㅌ","ㄹㅍ","ㄹㅎ","ㅁ","ㅂ","ㅂㅅ","ㅅ","ㅆ","ㅇ","ㅈ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+  return [...String(value).trim().toLocaleLowerCase("ko").normalize("NFD")].map(char=>{const code=char.codePointAt(0);return initials[code-0x1100]||vowels[code-0x1161]||finals[code-0x11a8]||char;}).join("");
+}
 function competitionMemberNames(query="") {
-  const normalized=String(query).trim().toLocaleLowerCase("ko");
-  return [...new Set(state.members.map(member=>member.memberName))].filter(name=>name.toLocaleLowerCase("ko").includes(normalized)).sort((a,b)=>a.localeCompare(b,"ko"));
+  const normalized=competitionMemberSearchKey(query);
+  return [...new Set(state.members.map(member=>member.memberName))].filter(name=>competitionMemberSearchKey(name).includes(normalized)).sort((a,b)=>a.localeCompare(b,"ko"));
 }
 function updateCompetitionMemberStatus(input) {
   const name=input.value.trim(),isNew=Boolean(name)&&!state.members.some(member=>member.memberName===name);
