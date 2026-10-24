@@ -662,14 +662,16 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .reference-admin .admin-table td:last-child { white-space: nowrap; }
 .reference-admin .birth-year-table { table-layout: fixed; }
 .reference-admin .birth-year-table th:first-child { width: 36px; }
-.reference-admin .birth-year-table .birth-year-input { min-width: 0; width: 100%; }
-.reference-admin .birth-year-table .join-year-input { min-width: 0; width: 100%; appearance: textfield; -moz-appearance: textfield; }
+.reference-admin .birth-year-table .birth-year-input,
+.reference-admin .birth-year-table .join-year-input { flex: 1 1 0; min-width: 0; width: 100%; max-width: 160px; text-align: center; }
+.reference-admin .birth-year-table .join-year-input { appearance: textfield; -moz-appearance: textfield; }
 .join-year-input::-webkit-inner-spin-button, .join-year-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.birth-year-table td.is-dirty { background: #fff4ce; }
-.birth-year-table td.is-dirty input { border-color: #c08016; }
-.player-dirty-badge { display: block; margin-top: 3px; color: #946200; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.birth-year-table td.is-dirty input { border: 2px solid var(--primary); }
+.player-dirty-badge { display: block; margin-top: 3px; color: var(--primary); font-size: 10px; font-weight: 700; white-space: nowrap; }
 .player-dirty-badge[hidden] { display: none; }
-.reference-admin .birth-year-control { width: 100%; }
+.reference-admin .birth-year-control { display: flex; width: 100%; max-width: 186px; margin-inline: auto; justify-content: center; }
+.reference-admin .birth-year-stepper { flex: 0 0 22px; }
+.reference-admin .birth-year-table th:nth-child(n+3), .reference-admin .birth-year-table td:nth-child(n+3) { text-align: center; }
 .reference-admin .birth-year-stepper button { width: 22px; min-height: 16px; padding: 0; }
 .reference-admin .birth-year-table th:nth-child(2) { width: 22%; }
 
