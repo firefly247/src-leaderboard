@@ -81,7 +81,7 @@ test("대회와 성별 헤더를 병합하고 대회명을 참가자 명단에 �
   const participantCount = vm.runInContext("state.competitionLineups.get('competition-1').length", context);
   assert.equal(participantCount, 14);
   vm.runInContext("openCompetitionParticipants('competition-1')", context);
-  assert.match(elements["#dialogContent"].innerHTML, /<th>종목<\/th><th>나이대<\/th><th>팀명<\/th><th>메달<\/th><th>COX<\/th><th>CREW<\/th>/);
+  assert.match(elements["#dialogContent"].innerHTML, /<th>종목<\/th><th>나이대<\/th><th>팀명<\/th><th>결과<\/th><th>COX<\/th><th>CREW<\/th>/);
   assert.doesNotMatch(elements["#dialogContent"].innerHTML, /<th>대회<\/th>/);
   assert.match(elements["#dialogContent"].innerHTML, /<td>4X\+<\/td><td>남자 160미만<\/td><td>A팀<\/td><td class="lineup-medal"><span class="result-icon" title="동메달">🥉<\/span><\/td>/);
   assert.match(elements["#dialogContent"].innerHTML, /<td>8\+<\/td><td>남자 일반부<\/td><td>B팀<\/td><td class="lineup-medal"><span class="result-icon participation" title="참가">👥<\/span><\/td>/);

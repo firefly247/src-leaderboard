@@ -73,7 +73,7 @@ test("birth year reads and writes reject missing, invalid and expired admin toke
 test("birth years combine both member lists and privately create, update and clear years", () => {
   const { call, sheets, lock } = server();
   const list = () => JSON.parse(JSON.stringify(call("adminList", { view: "player-birth-years" }).players));
-  assert.deepEqual(list(), ["김선수", "박선수", "이선수"].map(memberName => ({ memberName, birthYear: "" })));
+  assert.deepEqual(list(), ["김선수", "박선수", "이선수"].map(memberName => ({ memberName, birthYear: "", joinYear: "" })));
   call("savePlayerBirthYear", { memberName: "김선수", birthYear: "1985" });
   call("savePlayerBirthYear", { memberName: "박선수", birthYear: "1990" });
   call("savePlayerBirthYear", { memberName: "김선수", birthYear: "1986" });
@@ -104,7 +104,7 @@ test("birth year admin view escapes names and keeps missing years empty and offe
   const context = vm.createContext({ document: { querySelector: () => container }, sessionStorage: { getItem: () => "" } });
   vm.runInContext(clientSource.slice(0, clientSource.indexOf('document.querySelectorAll(".tab-button")')), context);
   context.adminContent("player-birth-years", { players: [{ memberName: '<img src=x onerror="x">', birthYear: "1985" }] });
-  assert.match(container.innerHTML, /선수 생년 입력/);
+  assert.match(container.innerHTML, /선수 정보/);
   assert.match(container.innerHTML, /value="1985"/);
   assert.match(container.innerHTML, /type="number" min="1900"/);
   assert.match(container.innerHTML, /id="birthYearBatchForm"/);
@@ -121,7 +121,7 @@ test("birth year admin view escapes names and keeps missing years empty and offe
 });
 
 test("late admin responses cannot repopulate private data after logout", async () => {
-  const container = { innerHTML: "" };
+  const container = { innerHTML: "", classList: { toggle() {} } };
   let resolve;
   const context = vm.createContext({
     document: { querySelector: () => container, querySelectorAll: () => [] },
@@ -191,8 +191,8 @@ test("client batch save sends only selected rows and retains edits on API failur
   const button = { disabled: false, textContent: "" };
   const message = { textContent: "", classList: { remove() {}, add() {} } };
   const makeRow = (name, checked, value) => {
-    const check = { checked }, input = { value, reportValidity: () => true };
-    return { dataset: { birthYearName: name }, querySelector: selector => selector === ".birth-year-check" ? check : input };
+    const check = { checked }, input = { value, reportValidity: () => true }, joinInput = { value: "2020", reportValidity: () => true };
+    return { dataset: { birthYearName: name }, querySelector: selector => selector === ".birth-year-check" ? check : selector === ".join-year-input" ? joinInput : input };
   };
   const rows = [makeRow("김선수", true, "1985"), makeRow("박선수", false, "invalid")];
   const form = {
@@ -212,7 +212,7 @@ test("client batch save sends only selected rows and retains edits on API failur
   await context.saveSelectedBirthYears(form);
   assert.equal(sent.action, "savePlayerBirthYears");
   assert.equal(sent.adminToken, "valid");
-  assert.deepEqual(sent.payload.players, [{ memberName: "김선수", birthYear: "1985" }]);
+  assert.deepEqual(sent.payload.players, [{ memberName: "김선수", birthYear: "1985", joinYear: "2020" }]);
   assert.equal(rows[0].querySelector(".birth-year-check").checked, false);
   assert.equal(rows[1].querySelector(".birth-year-input").value, "invalid");
   rows[0].querySelector(".birth-year-check").checked = true;
@@ -222,4 +222,28 @@ test("client batch save sends only selected rows and retains edits on API failur
   assert.equal(rows[0].querySelector(".birth-year-input").value, "1985");
   assert.equal(message.textContent, "연결 실패");
   assert.equal(button.disabled, false);
+});
+
+test("joining years migrate legacy private rows, validate batches and survive birth-only updates", () => {
+  const { call, sheets } = server();
+  call("savePlayerBirthYear", { memberName: "김선수", birthYear: "1985" });
+  const sheet = sheets.get("PLAYER_BIRTH_YEARS");
+  sheet.rows[0] = ["member_name", "birth_year", "updated_at"];
+  sheet.rows[1] = ["김선수", "1985", "old-date"];
+  call("savePlayerBirthYears", { players: [{ memberName: "김선수", birthYear: "1985", joinYear: "2018" }] });
+  const read = () => call("adminList", { view: "player-birth-years" }).players.find(p => p.memberName === "김선수");
+  assert.equal(read().joinYear, "2018");
+  assert.equal(sheet.rows[0][3], "join_year");
+  call("savePlayerBirthYear", { memberName: "김선수", birthYear: "1986" });
+  assert.equal(read().joinYear, "2018");
+  const before = JSON.stringify(sheet.rows);
+  for (const joinYear of ["1899", "2027", "20.5", "abcd"]) {
+    assert.throws(() => call("savePlayerBirthYears", { players: [{ memberName: "김선수", birthYear: "1980", joinYear }] }), /가입연도/);
+    assert.equal(JSON.stringify(sheet.rows), before);
+  }
+  call("savePlayerBirthYears", { players: [{ memberName: "김선수", birthYear: "", joinYear: "2018" }] });
+  assert.equal(read().joinYear, "2018");
+  assert.equal(read().birthYear, "");
+  call("savePlayerBirthYears", { players: [{ memberName: "김선수", birthYear: "", joinYear: "" }] });
+  assert.equal(read().joinYear, "");
 });

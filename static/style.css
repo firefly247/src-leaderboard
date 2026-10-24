@@ -644,3 +644,25 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .birth-year-input::-webkit-inner-spin-button, .birth-year-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .birth-year-stepper { display: grid; gap: 2px; }
 .birth-year-stepper button { width: 28px; min-height: 22px; padding: 0; border: 1px solid var(--line); border-radius: 5px; background: #f8fafc; color: var(--text); font-size: 10px; cursor: pointer; }
+
+/* Keep dynamic PB columns within the table at every event count. */
+.registration-mode-switch[hidden] { display: none; }
+.member-summary-table th:nth-child(n), .member-summary-table td:nth-child(n) { width: auto; }
+.member-summary-table th:first-child, .member-summary-table td:first-child { width: 5%; }
+.member-summary-table th:nth-child(2), .member-summary-table td:nth-child(2) { width: 15%; }
+.member-summary-table th:last-child, .member-summary-table td:last-child { width: 8%; }
+.member-pb-grid.competition-medal-cards { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 6px; }
+.competition-medal-cards .member-pb-card { min-width: 0; padding: 12px 3px; }
+.competition-medal-cards .member-pb-card span { font-size: 10px; white-space: nowrap; }
+.matrix-year-summary { display: block; margin-top: 6px; color: var(--muted); font-size: 9px; font-weight: 400; line-height: 1.5; overflow-wrap: anywhere; }
+.reference-admin .admin-table { min-width: 0; width: 100%; }
+.reference-admin .admin-table th, .reference-admin .admin-table td { padding: 5px 6px; }
+.reference-admin .admin-table input:not([type="checkbox"]) { min-height: 32px; padding: 5px 7px; font-size: 12px; }
+.reference-admin .admin-table button { min-height: 30px; padding: 5px 7px; font-size: 11px; }
+.reference-admin .admin-table td:last-child { white-space: nowrap; }
+.reference-admin .birth-year-table { table-layout: fixed; }
+.reference-admin .birth-year-table th:first-child { width: 36px; }
+.reference-admin .birth-year-table .birth-year-input { min-width: 0; width: 100%; }
+.reference-admin .birth-year-control { width: 100%; }
+.reference-admin .birth-year-stepper button { width: 22px; min-height: 16px; padding: 0; }
+.reference-admin .birth-year-table th:nth-child(2) { width: 22%; }

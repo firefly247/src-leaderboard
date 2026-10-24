@@ -226,13 +226,13 @@ function adminList_(view) {
   return { requests: requests };
 }
 
-// Birth years are private reference data. Never write them to GitHub CSVs or request logs.
+// Player years are private reference data. Never write them to GitHub CSVs or request logs.
 function birthYearSheet_(create) {
   const ss = SpreadsheetApp.openById(prop_('REQUEST_SHEET_ID'));
   let sheet = ss.getSheetByName(BIRTH_YEAR_SHEET);
   if (!sheet && create) {
     sheet = ss.insertSheet(BIRTH_YEAR_SHEET);
-    sheet.appendRow(['member_name', 'birth_year', 'updated_at']);
+    sheet.appendRow(['member_name', 'birth_year', 'updated_at', 'join_year']);
     sheet.setFrozenRows(1);
   }
   return sheet;
@@ -240,10 +240,10 @@ function birthYearSheet_(create) {
 function playerBirthYears_() {
   const sheet = birthYearSheet_(false);
   const values = sheet ? sheet.getDataRange().getDisplayValues().slice(1) : [];
-  const years = new Map(values.filter(row => row[0]).map(row => [row[0], row[1]]));
+  const years = new Map(values.filter(row => row[0]).map(row => [row[0], { birthYear: row[1], joinYear: row[3] || '' }]));
   const names = new Set([...records_(), ...competitionRecords_()].map(row => clean_(row.member_name)).filter(Boolean));
   years.forEach((year, name) => names.add(name));
-  return [...names].sort((a, b) => a.localeCompare(b, 'ko')).map(name => ({ memberName: name, birthYear: years.get(name) || '' }));
+  return [...names].sort((a, b) => a.localeCompare(b, 'ko')).map(name => ({ memberName: name, birthYear: years.get(name)?.birthYear || '', joinYear: years.get(name)?.joinYear || '' }));
 }
 function savePlayerBirthYear_(p) {
   const result = savePlayerBirthYears_({ players: [p] });
@@ -258,7 +258,9 @@ function savePlayerBirthYears_(p) {
     if (year && (!/^\d{4}$/.test(year) || Number(year) < 1900 || Number(year) > currentYear)) {
       throw new Error(name + ': 생년은 1900년부터 올해까지의 4자리 연도로 입력해 주세요.');
     }
-    return { memberName: name, birthYear: year };
+    const joinYear = player.joinYear == null ? undefined : String(player.joinYear).trim();
+    if (joinYear && (!/^\d{4}$/.test(joinYear) || Number(joinYear) < 1900 || Number(joinYear) > currentYear)) throw new Error(name + ': 가입연도는 1900년부터 올해까지의 4자리 연도로 입력해 주세요.');
+    return { memberName: name, birthYear: year, joinYear };
   });
   if (new Set(players.map(player => player.memberName)).size !== players.length) throw new Error('중복된 선수가 있습니다.');
   const lock = LockService.getScriptLock(); lock.waitLock(30000);
@@ -269,15 +271,17 @@ function savePlayerBirthYears_(p) {
     const saved = new Map(previous.filter(row => row[0]).map(row => [row[0], row]));
     const now = new Date().toISOString();
     players.forEach(player => {
-      if (player.birthYear) saved.set(player.memberName, [player.memberName, player.birthYear, now]);
+      const joinYear = player.joinYear === undefined ? (saved.get(player.memberName)?.[3] || '') : player.joinYear;
+      if (player.birthYear || joinYear) saved.set(player.memberName, [player.memberName, player.birthYear, now, joinYear]);
       else saved.delete(player.memberName);
     });
-    const values = [...saved.values()];
+    sheet.getRange(1, 4, 1, 1).setValues([['join_year']]);
+    const values = [...saved.values()].map(row => [row[0], row[1], row[2], row[3] || '']);
     // Clear removed rows in the same write, after validating every selected player.
-    while (values.length < previous.length) values.push(['', '', '']);
+    while (values.length < previous.length) values.push(['', '', '', '']);
     if (values.length) {
       sheet.getRange(2, 1, values.length, 1).setNumberFormat('@');
-      sheet.getRange(2, 1, values.length, 3).setValues(values);
+      sheet.getRange(2, 1, values.length, 4).setValues(values);
     }
     SpreadsheetApp.flush();
     return { savedCount: players.length, players: players };
