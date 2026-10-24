@@ -4,7 +4,7 @@
   const panel=document.createElement('section');panel.className='tab-panel';panel.dataset.panel='training';
   const choices=(name,label,values)=>`<fieldset class="training-choice"><legend>${label}</legend><input type="hidden" name="${name}" value="${values[0]}"><div class="training-buttons">${values.map((v,i)=>`<button type="button" data-choice="${name}" data-value="${v}" aria-pressed="${i===0}">${v}</button>`).join('')}</div></fieldset>`;
   panel.innerHTML=`<section class="competition-hero"><div><p class="eyebrow">WEEKEND ROWING</p><h1>주말 훈련 <small>Beta</small></h1><p>참가 신청부터 크루 확인, 당일 출석까지</p></div></section><div class="training-shell">
-    <section id="trainingOpening" class="panel" hidden><h2>이번 주 훈련 개설</h2><div class="training-week-nav"><button type="button" data-action="previousWeek">← 이전 주</button><strong id="trainingWeekLabel"></strong><button type="button" data-action="nextWeek">다음 주 →</button></div><div id="trainingOpenDates" class="training-day-buttons"></div><button type="button" class="primary-button" data-action="open">선택한 날짜 개설</button><p class="form-description">개설한 날짜만 회원에게 표시됩니다. 기존 날짜의 신청과 편성은 유지됩니다.</p></section>
+    <section id="trainingOpening" class="panel" hidden><h2>이번 주 훈련 개설</h2><div class="training-week-nav"><button type="button" data-action="previousWeek">← 이전 주</button><strong id="trainingWeekLabel"></strong><button type="button" data-action="nextWeek">다음 주 →</button></div><div id="trainingOpenDates" class="training-day-buttons"></div><button type="button" class="primary-button" data-action="open" aria-describedby="trainingOpenHint">선택한 날짜 개설</button><p id="trainingOpenHint" class="form-description" role="status"></p><p class="form-description">개설한 날짜만 회원에게 표시됩니다. 기존 날짜의 신청과 편성은 유지됩니다.</p></section>
     <div class="training-date-heading"><h2>개설된 훈련</h2><button type="button" class="secondary-button" data-action="reload">새로고침</button></div><div id="trainingDates" class="training-day-buttons" aria-label="개설된 훈련 날짜"></div><p id="trainingNoDates" class="form-description">아직 개설된 훈련이 없습니다. 운영진이 개설하면 토·일 중 참가할 날짜를 고를 수 있습니다.</p>
     <div class="training-tabs" aria-label="훈련 메뉴"><button type="button" data-view="join" class="is-active">참가 신청</button><button type="button" data-view="list">참가 명단</button><button type="button" data-view="crew">크루 편성</button></div><p id="trainingMessage" role="status" aria-live="polite"></p>
     <section data-screen="join" class="panel"><h2>나의 참가 신청</h2><form id="trainingJoinForm"><fieldset id="trainingFormFields" disabled><label>이름<input name="name" maxlength="30" autocomplete="off" required placeholder="회원 이름"></label><p class="form-description" id="trainingTenure">연차는 저장된 가입연도로 자동 계산합니다.</p>
@@ -14,7 +14,7 @@
     <section data-screen="crew" hidden><div class="panel"><div class="section-heading"><h2>크루 편성</h2><span id="trainingPublished"></span></div><p id="trainingCheckSummary"></p><p id="trainingPlanNotice" class="form-description"></p><div id="trainingBoats"></div><div id="trainingWait"></div></div></section></div>`;
   document.querySelector('main').appendChild(panel);
   const el=s=>panel.querySelector(s),all=s=>panel.querySelectorAll(s),form=el('#trainingJoinForm');
-  let data=null,sessions=[],selectedDate='',view='join',busy=false,sequence=0,catalogLoaded=false;
+  let data=null,sessions=[],selectedDate='',view='join',busy=false,sequence=0,catalogLoaded=false,catalogError='';
   const flags={canCox:false,canSmallBoat:false},openSelection=new Set();
   const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(p=>[p.type,p.value]));
   const today=`${parts.year}-${parts.month}-${parts.day}`,week=new Date(today+'T00:00:00Z');
@@ -35,6 +35,7 @@
     el('#trainingOpenDates').innerHTML=days.map(date=>{const exists=sessions.some(s=>s.date===date);return `<button type="button" data-open-date="${date}" aria-pressed="${openSelection.has(date)}" ${busy||exists?'disabled':''}>${dayLabel(date)}<small>${exists?'개설됨':'개설할 날짜 선택'}</small></button>`;}).join('');
     el('#trainingDates').innerHTML=sessions.map(s=>`<button type="button" data-date="${esc(s.date)}" aria-pressed="${selectedDate===s.date}" ${busy?'disabled':''}>${esc(dayLabel(s.date))}<small>훈련 OPEN</small></button>`).join('');el('#trainingNoDates').hidden=sessions.length>0;
     all('[data-action]').forEach(b=>b.disabled=busy||(b.dataset.action==='open'&&(!catalogLoaded||!openSelection.size))||(b.dataset.action==='recommend'&&!opened));syncChoices();
+    el('#trainingOpenHint').textContent=busy?'저장 중입니다.':!catalogLoaded?(catalogError||'서버 연결을 확인하고 있습니다.') :!openSelection.size?'위의 토·일 날짜 버튼을 먼저 선택해 주세요.':'날짜 선택 완료 · 개설 버튼을 누르면 회원에게 공개됩니다.';
     const members=(data?.participants||[]).filter(m=>!isDormantMember(m.name));
     el('#trainingListCount').textContent=`참석 ${members.filter(m=>m.status==='참석').length} · 불참 ${members.filter(m=>m.status==='불참').length} · 미정 ${members.filter(m=>m.status==='미정').length}`;
     el('#trainingRoster').innerHTML=members.map(m=>`<div class="training-person"><div><strong>${esc(m.name)}</strong><small>${esc(tenureLabel(m))} · ${esc(m.arrival)} · ${esc(m.preference)}${m.canCox?' · COX 가능':''}${m.canSmallBoat?' · 더블/싱글 가능':''}</small></div><span>${esc(m.status)}</span></div>`).join('')||'<p class="form-description">아직 참가 신청이 없습니다.</p>';
@@ -46,10 +47,10 @@
   }
   async function load(quiet=false){
     if(busy)return;const current=++sequence;
-    try{if(!quiet)message('훈련 정보를 불러오는 중입니다.');const result=await api('trainingList');if(current!==sequence)return;sessions=result.sessions;catalogLoaded=true;
+    try{if(!quiet)message('훈련 정보를 불러오는 중입니다.');const result=await api('trainingList');if(current!==sequence)return;if(!Array.isArray(result.sessions))throw new Error('지원하지 않는 요청입니다.');sessions=result.sessions;catalogLoaded=true;catalogError='';
       if(!sessions.some(s=>s.date===selectedDate))selectedDate=sessions.find(s=>s.date>=today)?.date||sessions.at(-1)?.date||'';
       const date=selectedDate,training=date?(await api('trainingGet',{date})).training:null;if(current!==sequence||date!==selectedDate)return;data=training;render();if(!quiet)message('');
-    }catch(error){if(current!==sequence)return;message(/지원하지 않는 요청|관리자 인증/.test(error.message)?'주말 훈련 서버 업데이트가 필요합니다. 운영진에게 문의해 주세요.':error.message,true);}
+    }catch(error){if(current!==sequence)return;const reason=/지원하지 않는 요청|관리자 인증/.test(error.message)?'훈련 서버 업데이트가 필요합니다. 운영진이 서버를 업데이트한 후 새로고침해 주세요.':error.message;if(!catalogLoaded)catalogError='서버 연결 실패로 개설할 수 없습니다. '+reason;render();message(reason,true);}
   }
   async function mutate(action,payload={},admin=false){
     if(busy||(action!=='trainingOpen'&&!data?.opened))return;busy=true;sequence++;render();message('저장 중입니다.');
