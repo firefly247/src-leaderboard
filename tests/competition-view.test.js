@@ -276,3 +276,18 @@ test("선수 Beta는 전체 메달, 배지, 전 종목 비교를 제공한다", 
   assert.match(source, /aria-label="미획득">🔒/);
   assert.match(styles, /\.athlete-workspace \{ grid-template-columns: minmax\(0,1fr\); gap: 10px; \}/);
 });
+
+test("dormant athletes disappear while competition results and club medals remain",()=>{
+  const {context,elements}=createView();
+  vm.runInContext('state.dormantMembers=new Set(["김콕스","김크루","박크루","이크루","최크루"]);build();renderCompetitionTables();',context);
+  assert.equal(vm.runInContext('state.members.some(m=>state.dormantMembers.has(m.memberName))',context),false);
+  assert.equal(vm.runInContext('state.competitionMembers.some(m=>state.dormantMembers.has(m.memberName))',context),false);
+  assert.equal(vm.runInContext('state.clubMedals.bronze',context),1);
+  assert.equal(vm.runInContext('state.competitionRecords.length',context),14);
+  assert.match(elements['#competitionSummaryBody'].innerHTML,/🥉/);
+  vm.runInContext("openCompetitionParticipants('competition-1')",context);
+  assert.doesNotMatch(elements['#dialogContent'].innerHTML,/김콕스|김크루|박크루|이크루|최크루/);
+  assert.match(elements['#dialogContent'].innerHTML,/4X\+/);
+  vm.runInContext('state.dormantMembers.clear();build();',context);
+  assert.equal(vm.runInContext('state.members.some(m=>m.memberName==="김콕스")',context),true);
+});

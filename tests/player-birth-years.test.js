@@ -53,6 +53,9 @@ function server() {
   vm.runInContext(`
     records_=()=>[{member_name:'김선수'},{member_name:'이선수'},{member_name:'김선수'}];
     competitionRecords_=()=>[{member_name:'박선수'},{member_name:'이선수'}];
+    let dormantTestRows=[];
+    readCsv_=(path)=>{if(path!=='data/dormant_members.csv')throw new Error('Unexpected read');return dormantTestRows.map(row=>({...row}));};
+    writeCsv_=(path,headers,rows)=>{if(path!=='data/dormant_members.csv')throw new Error('Record data must not change');dormantTestRows=rows.map(row=>({...row}));};
     githubPut_=()=>{throw new Error('Private data must never be committed');};
     appendRequest_=()=>{throw new Error('Private data must never enter request history');};
   `, context);
@@ -109,7 +112,8 @@ test("birth year admin view escapes names and keeps missing years empty and offe
   assert.match(container.innerHTML, /type="number" min="1900"/);
   assert.match(container.innerHTML, /id="birthYearBatchForm"/);
   assert.match(container.innerHTML, /id="birthYearBatchSave"/);
-  assert.doesNotMatch(container.innerHTML, /type="checkbox"|birthYearSelectAll|birthYearBatchResult/);
+  assert.doesNotMatch(container.innerHTML, /birthYearSelectAll|birthYearBatchResult/);
+  assert.match(container.innerHTML, /class="player-dormant-input" type="checkbox"/);
   assert.match(container.innerHTML, />저장<\/button>/);
   assert(container.innerHTML.indexOf('id="birthYearBatchSave"')>container.innerHTML.lastIndexOf("</table>"));
   assert.doesNotMatch(container.innerHTML, /<th>관리<|birthYearForm0/);
@@ -289,4 +293,18 @@ test("edited cells and row badges reset only when values match the saved origina
   join.value = "2018";context.updatePlayerYearDirtyState(row);assert.equal(badge.hidden,true);assert(!join.classes.has("is-dirty"));
   birth.value = "1986";context.updatePlayerYearDirtyState(row);assert.equal(badge.hidden,false);assert(birth.classes.has("is-dirty"));
   row.dataset.savedBirthYear = "1986";context.updatePlayerYearDirtyState(row);assert.equal(badge.hidden,true);
+});
+
+test("dormancy saves and reactivates without overwriting years or record files",()=>{
+  const {call}=server();
+  call("savePlayerBirthYear",{memberName:"김선수",birthYear:"1985",joinYear:"2020"});
+  const save=value=>call("savePlayerBirthYears",{players:[{memberName:"김선수",isDormant:value}]});
+  assert.equal(save(true).players[0].isDormant,true);
+  let player=call("adminList",{view:"player-birth-years"}).players.find(p=>p.memberName==="김선수");
+  assert.equal(player.isDormant,true);assert.equal(player.birthYear,"1985");assert.equal(player.joinYear,"2020");
+  call("savePlayerBirthYear",{memberName:"김선수",joinYear:"2021"});
+  assert.equal(call("adminList",{view:"player-birth-years"}).players.find(p=>p.memberName==="김선수").isDormant,true);
+  assert.equal(save(false).players[0].isDormant,false);
+  assert.throws(()=>save("true"),/휴면 여부/);
+  assert.throws(()=>call("savePlayerBirthYears",{players:[{memberName:"김선수",isDormant:true}]},""),/관리자 인증/);
 });

@@ -8,7 +8,7 @@
     <div class="training-tabs" aria-label="훈련 메뉴"><button type="button" data-training-view="join" class="is-active">참가 신청</button><button type="button" data-training-view="list">참가 명단</button><button type="button" data-training-view="crew">크루 편성</button></div>
     <p id="trainingMessage" role="status" aria-live="polite"></p>
     <section data-training-screen="join" class="panel"><h2>나의 참가 신청</h2>
-    <form id="trainingJoinForm"><label>이름<input name="name" maxlength="30" list="trainingMemberNames" autocomplete="name" required placeholder="회원 이름"><datalist id="trainingMemberNames"></datalist></label>
+    <form id="trainingJoinForm"><label>이름<input name="name" maxlength="30" autocomplete="off" required placeholder="회원 이름"></label>
     <div class="form-grid"><label>참가 여부<select name="status"><option>참석</option><option>불참</option><option>미정</option></select></label><label>참가 시간<select name="arrival"><option>정시</option><option>늦참</option><option>조기 귀가</option></select></label></div>
     <div class="form-grid"><label>희망 보트<select name="preference"><option>무관</option><option>유타쿼드</option><option>더블스컬</option><option>싱글스컬</option></select></label><label>숙련도<select name="experience"><option>초급</option><option>중급</option><option>숙련</option></select></label></div>
     <label class="training-check"><input type="checkbox" name="canCox">COX 가능</label><label class="training-check"><input type="checkbox" name="canSmallBoat">클럽에서 더블·싱글 탑승 가능 확인을 받았습니다</label>
@@ -34,12 +34,11 @@
     all('[data-training-action]').forEach(b=>b.disabled=busy||!data);
     el('[data-training-action="reload"]').disabled=busy;
     form.querySelector('button').disabled=busy||!data;dateField.disabled=busy;
-    el('#trainingMemberNames').innerHTML=state.members.map(m=>`<option value="${esc(m.memberName)}"></option>`).join('');
     if(!data)return;
-    const members=data.participants,attendees=members.filter(m=>m.status==='참석');
+    const members=data.participants.filter(m=>!isDormantMember(m.name)),attendees=members.filter(m=>m.status==='참석');
     el('#trainingListCount').textContent=`참석 ${attendees.length} · 불참 ${members.filter(m=>m.status==='불참').length} · 미정 ${members.filter(m=>m.status==='미정').length}`;
     el('#trainingRoster').innerHTML=members.map(m=>`<div class="training-person"><div><strong>${esc(m.name)}</strong><small>${esc(m.arrival)} · ${esc(m.preference)} · ${esc(m.experience)}${m.canCox?' · COX 가능':''}${m.canSmallBoat?' · 더블/싱글 가능':''}</small></div><span>${esc(m.status)}</span></div>`).join('')||'<p class="form-description">아직 참가 신청이 없습니다.</p>';
-    const plan=data.plan;
+    const plan=data.plan?{...data.plan,boats:data.plan.boats.map(boat=>({...boat,seats:boat.seats.filter(m=>!isDormantMember(m.name))})),wait:data.plan.wait.filter(m=>!isDormantMember(m.name))}:null;
     el('#trainingPublished').textContent=plan?'회원 공개 중':'';
     el('#trainingPlanNotice').textContent=!plan?'운영진이 참가 명단에서 추천 조합을 누르면 편성이 공개됩니다.':plan.registrationRevision!==data.registrationRevision?'편성 후 신청 변경이 있습니다. 운영진이 참가 명단을 확인해 주세요.':admin?'배별 멤버의 출석·불참을 선택하세요. 출석 체크는 편성을 변경하지 않습니다.':'운영진이 공개한 편성 및 출석 현황입니다.';
     const seats=plan?plan.boats.flatMap(b=>b.seats):[],statuses=seats.map(m=>plan.checks[m.id]||'미확인');
@@ -47,6 +46,7 @@
     el('#trainingBoats').innerHTML=plan?plan.boats.map(b=>`<section class="training-boat"><h3>${esc(b.name)} <small>${esc(b.type)}</small></h3>${b.seats.map(m=>{const status=plan.checks[m.id]||'미확인';return `<div class="training-person"><div><strong>${esc(m.name)}</strong><small>${esc(m.seat)}</small></div>${admin?`<select data-training-check="${esc(m.id)}" aria-label="${esc(m.name)} 출석 확인" ${busy?'disabled':''}>${['미확인','출석','불참'].map(v=>`<option${v===status?' selected':''}>${v}</option>`).join('')}</select>`:`<span class="${status==='불참'?'training-absent':''}">${esc(status)}</span>`}</div>`;}).join('')}</section>`).join(''):'';
     el('#trainingWait').innerHTML=plan&&plan.wait.length?`<h3>운영진 확인 필요 · ${plan.wait.length}명</h3>${plan.wait.map(m=>`<p><strong>${esc(m.name)}</strong> · ${esc(m.reason)}</p>`).join('')}`:'';
   }
+  document.addEventListener("member-visibility-changed",()=>render());
   async function load(quiet=false){
     if(busy)return;
     const sequence=++loadSequence,date=dateField.value;

@@ -665,6 +665,9 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .reference-admin .birth-year-table .join-year-input { appearance: textfield; -moz-appearance: textfield; }
 .join-year-input::-webkit-inner-spin-button, .join-year-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .birth-year-table td.is-dirty input { border: 2px solid var(--primary); }
+.reference-admin .birth-year-table th:last-child { width: 52px; }
+.reference-admin .birth-year-table .player-dormant-input { width: 18px; min-height: 18px; height: 18px; margin: 0; accent-color: var(--primary); }
+.birth-year-table td.is-dirty .player-dormant-input { outline: 2px solid var(--primary); outline-offset: 2px; }
 .player-dirty-badge { display: block; margin-top: 3px; color: var(--primary); font-size: 10px; font-weight: 700; white-space: nowrap; }
 .player-dirty-badge[hidden] { display: none; }
 .reference-admin .birth-year-control { display: flex; width: 100%; max-width: 186px; margin-inline: auto; justify-content: center; }

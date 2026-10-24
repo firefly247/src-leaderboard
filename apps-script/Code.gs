@@ -223,7 +223,7 @@ function adminList_(view) {
   if (view === 'ergo-records') return { records: records_(), events: events_().sort(eventNameCompare_) };
   if (view === 'competition-records') return { records: competitionRecords_(), competitions: competitions_(), competitionEvents: competitionEvents_(), competitionDivisions: competitionDivisions_() };
   if (view === 'competition-dates') return { competitionDates: competitionDateCatalog_() };
-  if (view === 'player-birth-years') return { players: playerBirthYears_(), partialYearUpdates: true };
+  if (view === 'player-birth-years') return { players: playerBirthYears_(), partialYearUpdates: true, dormancyUpdates: true };
   if (view === 'events') return { events: events_().sort(eventNameCompare_) };
   if (view === 'competitions') return { competitions: competitions_().sort((a,b) => a.competition_name.localeCompare(b.competition_name, 'ko')) };
   if (view === 'competition-events') return { competitionEvents: competitionEvents_() };
@@ -244,13 +244,16 @@ function birthYearSheet_(create) {
   }
   return sheet;
 }
+function dormantMembers_() { return readCsv_('data/dormant_members.csv').map(row => clean_(row.member_name)).filter(Boolean); }
 function playerBirthYears_() {
   const sheet = birthYearSheet_(false);
   const values = sheet ? sheet.getDataRange().getDisplayValues().slice(1) : [];
   const years = new Map(values.filter(row => row[0]).map(row => [row[0], { birthYear: row[1], joinYear: row[3] || '' }]));
   const names = new Set([...records_(), ...competitionRecords_()].map(row => clean_(row.member_name)).filter(Boolean));
   years.forEach((year, name) => names.add(name));
-  return [...names].sort((a, b) => a.localeCompare(b, 'ko')).map(name => ({ memberName: name, birthYear: years.get(name)?.birthYear || '', joinYear: years.get(name)?.joinYear || '' }));
+  const dormant = new Set(dormantMembers_());
+  dormant.forEach(name => names.add(name));
+  return [...names].sort((a, b) => a.localeCompare(b, 'ko')).map(name => ({ memberName: name, birthYear: years.get(name)?.birthYear || '', joinYear: years.get(name)?.joinYear || '', ...(dormant.has(name) ? { isDormant: true } : {}) }));
 }
 function savePlayerBirthYear_(p) {
   const result = savePlayerBirthYears_({ players: [p] });
@@ -266,9 +269,10 @@ function savePlayerBirthYears_(p) {
       throw new Error(name + ': 생년은 1900년부터 올해까지의 4자리 연도로 입력해 주세요.');
     }
     const joinYear = player.joinYear == null ? undefined : String(player.joinYear).trim();
-    if (year === undefined && joinYear === undefined) throw new Error(name + ': 수정할 연도를 지정해 주세요.');
+    if (player.isDormant !== undefined && typeof player.isDormant !== 'boolean') throw new Error(name + ': 휴면 여부가 올바르지 않습니다.');
+    if (year === undefined && joinYear === undefined && player.isDormant === undefined) throw new Error(name + ': 수정할 연도를 지정해 주세요.');
     if (joinYear && (!/^\d{4}$/.test(joinYear) || Number(joinYear) < 1900 || Number(joinYear) > currentYear)) throw new Error(name + ': 가입연도는 1900년부터 올해까지의 4자리 연도로 입력해 주세요.');
-    return { memberName: name, birthYear: year, joinYear };
+    return { memberName: name, birthYear: year, joinYear, isDormant: player.isDormant };
   });
   if (new Set(players.map(player => player.memberName)).size !== players.length) throw new Error('중복된 선수가 있습니다.');
   const lock = LockService.getScriptLock(); lock.waitLock(30000);
@@ -299,6 +303,15 @@ function savePlayerBirthYears_(p) {
       if ((row[1] || '') !== (expected[1] || '') || (row[3] || '') !== (expected[3] || '')) throw new Error(player.memberName + ': 저장된 연도를 확인하지 못했습니다. 다시 조회해 주세요.');
       return { memberName: player.memberName, birthYear: row[1] || '', joinYear: row[3] || '' };
     });
+    const statusChanges = players.filter(player => player.isDormant !== undefined);
+    if (statusChanges.length) {
+      const dormant = new Set(dormantMembers_());
+      statusChanges.forEach(player => player.isDormant ? dormant.add(player.memberName) : dormant.delete(player.memberName));
+      writeCsv_('data/dormant_members.csv', ['member_name'], [...dormant].sort((a,b) => a.localeCompare(b,'ko')).map(member_name => ({ member_name })), 'Update dormant member visibility');
+      const persistedDormant = new Set(dormantMembers_());
+      confirmed.forEach(player => { player.isDormant = persistedDormant.has(player.memberName); });
+      if (statusChanges.some(player => persistedDormant.has(player.memberName) !== player.isDormant)) throw new Error('휴면 상태 저장을 확인하지 못했습니다. 다시 조회해 주세요.');
+    }
     return { savedCount: confirmed.length, players: confirmed };
   } finally { lock.releaseLock(); }
 }
