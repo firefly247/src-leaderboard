@@ -34,6 +34,16 @@ test("new member status clears for an existing name or an empty input",()=>{
 test("empty inputs keep suggestions closed",()=>{
   const app=client();app.openCompetitionMemberMenu({value:" ",disabled:false});
 });
+test("name searches do not mark unknown search text as a new athlete",()=>{
+  const app=client(),classes=new Set(),input={value:"ㅈㅎㄱ",dataset:{memberMode:"search"},classList:{toggle(name,on){if(on)classes.add(name);else classes.delete(name);}}};
+  app.updateCompetitionMemberStatus(input);assert.equal(classes.has("is-new-member"),false);
+});
+test("shared autocomplete keeps existing search callbacks and initializes only once",()=>{
+  const app=client(),listeners={},input={value:"",dataset:{memberMode:"search"},classList:{add(){},toggle(){}},removeAttribute(){},setAttribute(){},addEventListener(type,callback){(listeners[type]??=[]).push(callback);}};
+  let filtered=0;input.oninput=()=>filtered++;
+  app.setupCompetitionMemberInput(input);app.setupCompetitionMemberInput(input);
+  assert.equal(listeners.input.length,1);input.oninput();listeners.input[0]();assert.equal(filtered,1);
+});
 test("choosing a member commits the full name to that input and notifies input/change listeners",()=>{
   const app=client(),events=[],other={value:"다른선수"},input={isConnected:true,disabled:false,value:"김",focus(){},dispatchEvent(event){events.push(event.type);}};
   app.chooseCompetitionMember(input,"김선수");assert.equal(input.value,"김선수");assert.deepEqual(events,["input","change"]);assert.equal(other.value,"다른선수");

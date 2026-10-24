@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="삼성조정클럽 에르고 기록과 대회 실적 리더보드">
   <title>삼성조정클럽 명예의 전당</title>
-  <link rel="stylesheet" href="static/style.css?v=20261024-13">
+  <link rel="stylesheet" href="static/style.css?v=20261024-14">
 </head>
 <body>
   <header class="site-header">
@@ -44,18 +44,17 @@
         <section class="athlete-content">
           <div class="athlete-view-tabs" role="tablist" aria-label="선수 메뉴"><button class="is-active" type="button" role="tab" aria-selected="true" data-athlete-view="card">선수 카드</button><button type="button" role="tab" aria-selected="false" data-athlete-view="compare">기록 비교</button></div>
           <section id="athleteCardView" class="athlete-view is-active" data-athlete-view-panel="card"><div id="athleteCard"></div></section>
-          <section id="athleteCompareView" class="athlete-view" data-athlete-view-panel="compare"><div class="panel athlete-compare-panel"><div class="section-heading"><div><p class="eyebrow">ALL EVENTS</p><h2>선수 기록 비교</h2></div></div><div class="athlete-compare-selectors"><label>선수 1<select id="athletePrimarySelect" aria-label="첫 번째 선수"></select></label><span>VS</span><label>선수 2<select id="athleteSecondarySelect" aria-label="두 번째 선수"></select></label></div><div id="athleteComparison"></div></div></section>
+          <section id="athleteCompareView" class="athlete-view" data-athlete-view-panel="compare"><div class="panel athlete-compare-panel"><div class="section-heading"><div><p class="eyebrow">ALL EVENTS</p><h2>선수 기록 비교</h2></div></div><div class="athlete-compare-selectors"><label>선수 1<input id="athletePrimarySelect" maxlength="50" placeholder="선수 이름 입력" aria-label="첫 번째 선수"></label><span>VS</span><label>선수 2<input id="athleteSecondarySelect" maxlength="50" placeholder="선수 이름 입력" aria-label="두 번째 선수"></label></div><div id="athleteComparison"></div></div></section>
         </section>
       </div>
     </section>
     <section class="tab-panel" data-panel="request">
       <div class="request-switch" role="tablist" aria-label="등록할 기록 종류"><button class="is-active" type="button" data-request-view="ergo">에르고 기록</button><button type="button" data-request-view="competition">대회 기록</button></div>
       <div class="registration-mode-switch" role="tablist" aria-label="등록 방식"><button class="is-active" type="button" data-registration-mode="single">단일 기록 등록</button><button type="button" data-registration-mode="bulk">일괄 등록</button></div>
-      <datalist id="ergoMemberSuggestions"></datalist>
       <section class="panel form-panel request-view is-active" data-request-panel="ergo" data-registration-panel="single"><p class="eyebrow">ERGO RECORD</p><h1>에르고 기록 등록</h1><p class="form-description">신청 내용은 관리자 승인 후 리더보드에 반영됩니다.</p><form id="recordRequestForm">
         <label><span>날짜 <span class="required-mark">*</span></span><input name="competitionDate" type="date" required></label>
         <div class="form-grid ergo-meta-grid"><label class="ergo-swap-field"><span>종목명 <span class="required-mark">*</span></span><select id="requestEvent" class="dropdown-source" name="eventId"><option value="" selected disabled>종목 선택</option><option value="__new__">종목명 직접 입력</option></select><span class="ergo-direct-input" hidden><input id="eventNameInput" name="eventName" maxlength="50" placeholder="종목명 입력" aria-label="종목명 직접 입력" readonly required><button class="ergo-swap-return" type="button" data-swap-return="requestEvent">목록</button></span></label><label class="ergo-swap-field"><span>대회/장소</span><select id="competitionSelect" class="dropdown-source" name="existingCompetition"><option value="" disabled>대회/장소 선택</option><option value="__new__">대회/장소명 직접 입력</option></select><span class="ergo-direct-input" hidden><input id="competitionInput" name="competition" maxlength="100" placeholder="대회/장소명 입력" aria-label="대회/장소명 직접 입력" readonly required><button class="ergo-swap-return" type="button" data-swap-return="competitionSelect">목록</button></span></label></div>
-        <label><span>이름 <span class="required-mark">*</span></span><input id="memberNameInput" name="memberName" list="ergoMemberSuggestions" maxlength="50" placeholder="회원명 입력" aria-label="회원명 입력" autocomplete="off" required></label>
+        <label><span>이름 <span class="required-mark">*</span></span><input id="memberNameInput" name="memberName" maxlength="50" placeholder="회원명 입력" aria-label="회원명 입력" autocomplete="off" required></label>
         <label><span>기록 <span class="required-mark">*</span></span><div class="time-inputs"><input name="minutes" type="number" min="0" max="99" value="0" required aria-label="분"><span>분</span><input name="seconds" type="number" min="0" max="59" required aria-label="초"><span>초</span><input name="tenths" type="number" min="0" max="9" value="0" required aria-label="소수점 첫째 자리"></div></label>
         <label>메모<input name="note" maxlength="300" placeholder="선택 입력"></label><label><span>증빙사진 <span class="required-mark">*</span></span><input id="proofPhoto" name="proofPhoto" type="file" accept="image/*" required><small>업로드 후 300KB 이하로 자동 압축됩니다.</small></label><button class="primary-button" type="submit">에르고 기록 등록 요청</button><p id="recordRequestResult" class="form-result" role="status"></p>
       </form></section>
@@ -78,6 +77,6 @@
   </main>
   <dialog id="memberDialog" class="member-dialog" aria-labelledby="dialogMemberName"><div class="dialog-header"><div><p class="eyebrow">MEMBER RECORDS</p><h2 id="dialogMemberName"></h2></div><button id="dialogCloseButton" class="dialog-close" type="button" aria-label="팝업 닫기">×</button></div><div id="dialogContent"></div></dialog><dialog id="photoDialog" class="photo-dialog"><button class="dialog-close" type="button" data-close-photo aria-label="팝업 닫기">×</button><img id="proofPhotoImage" alt="기록 증빙사진"></dialog>
   <dialog id="batchProgressDialog" class="batch-progress-dialog" aria-labelledby="batchProgressTitle"><div class="batch-progress-icon" aria-hidden="true"><span></span></div><p class="eyebrow">RECORD REQUEST</p><h2 id="batchProgressTitle">기록 요청 진행 중</h2><p id="batchProgressMessage" class="batch-progress-message" aria-live="polite"></p><div class="batch-progress-track" aria-hidden="true"><span id="batchProgressBar"></span></div><strong id="batchProgressCount" class="batch-progress-count"></strong><button id="batchProgressConfirm" class="primary-button" type="button" hidden>확인</button></dialog>
-  <footer>© <span id="currentYear"></span> 삼성조정클럽</footer><script src="static/athlete-analysis.js?v=20261016-03"></script><script src="static/leaderboard.js?v=20261024-13"></script>
+  <footer>© <span id="currentYear"></span> 삼성조정클럽</footer><script src="static/athlete-analysis.js?v=20261016-03"></script><script src="static/leaderboard.js?v=20261024-14"></script>
 </body>
 </html>

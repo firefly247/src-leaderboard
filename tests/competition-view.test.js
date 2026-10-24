@@ -213,9 +213,9 @@ test("에르고 등록은 종목과 장소를 한 행에 두고 직접 입력 �
   assert.match(source, /setSwapSelectValue\("#competitionSelect","#competitionInput",DEFAULT_ERGO_PLACE\)/);
   assert.match(source, /bindSwapSelect\("#requestEvent","#eventNameInput"/);
   assert.match(source, /bindSwapSelect\("#bulkRequestEvent","#bulkEventNameInput"/);
-  assert.match(html, /id="memberNameInput"[^>]*list="ergoMemberSuggestions"[^>]*autocomplete="off"/);
-  assert.match(html, /<datalist id="ergoMemberSuggestions"><\/datalist>/);
-  assert.match(source, /class="batch-member-input ergo-member-input" list="ergoMemberSuggestions"/);
+  assert.match(html, /id="memberNameInput"[^>]*autocomplete="off"/);
+  assert.doesNotMatch(html, /ergoMemberSuggestions/);
+  assert.match(source, /class="batch-member-input ergo-member-input"/);
   assert.doesNotMatch(source, /batchMemberOptions|bindBatchMember|batch-member-select/);
 });
 
