@@ -679,6 +679,8 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .competition-team-field .inline-dropdown,.competition-team-field .dropdown-trigger { width: 100%; min-width: 0; }
 .form-panel .competition-person .competition-person-input { width: 100%; min-width: 0; padding: 7px 8px; font-size: 12px; }
 .competition-member-menu { line-height: 1.4; }
+.competition-member-status { display: block; margin-top: 4px; color: #996000; font-size: 11px; font-weight: 700; }
+.competition-member-status[hidden] { display: none; }
 @container (max-width: 899px) {
   .competition-team-grid-headings { display: none; }
   .competition-team { grid-template-columns: repeat(4,minmax(0,1fr)); grid-template-areas: "title title title remove" "event division name medal" "cox crew crew crew"; gap: 12px 8px; padding: 12px; align-items: start; }

@@ -324,6 +324,10 @@ function competitionMemberNames(query="") {
   const normalized=String(query).trim().toLocaleLowerCase("ko");
   return [...new Set(state.members.map(member=>member.memberName))].filter(name=>name.toLocaleLowerCase("ko").includes(normalized)).sort((a,b)=>a.localeCompare(b,"ko"));
 }
+function updateCompetitionMemberStatus(input) {
+  const name=input.value.trim(),isNew=Boolean(name)&&!state.members.some(member=>member.memberName===name),status=input.parentElement.querySelector(".competition-member-status");
+  status.hidden=!isNew;status.textContent=isNew?"신규 선수":"";
+}
 function closeCompetitionMemberMenu() {
   if(!competitionMemberMenu)return;
   competitionMemberMenu.input.setAttribute("aria-expanded","false");competitionMemberMenu.input.removeAttribute("aria-controls");competitionMemberMenu.input.removeAttribute("aria-activedescendant");competitionMemberMenu.element.remove();competitionMemberMenu=null;
@@ -333,31 +337,31 @@ function chooseCompetitionMember(input,name) {
   input.value=name;input.focus({preventScroll:true});input.dispatchEvent(new Event("input",{bubbles:true}));input.dispatchEvent(new Event("change",{bubbles:true}));closeCompetitionMemberMenu();
 }
 function openCompetitionMemberMenu(input,query=input.value) {
-  closeCompetitionMemberMenu();closeAllDropdowns();if(input.disabled)return;
+  closeCompetitionMemberMenu();closeAllDropdowns();if(input.disabled||!String(query).trim())return;
   const names=competitionMemberNames(query),menu=document.createElement("div"),id=`competition-member-menu-${++competitionMemberMenuCounter}`;
   menu.id=id;menu.className="competition-member-menu dropdown-menu is-floating";menu.setAttribute("role","listbox");menu.setAttribute("aria-label","회원 이름 선택");
   menu.innerHTML=names.map((name,index)=>`<button class="dropdown-option" type="button" role="option" aria-selected="false" id="${id}-${index}" data-member-option="${index}">${esc(name)}</button>`).join("")||'<span class="dropdown-empty">목록에 없는 이름도 직접 입력할 수 있습니다.</span>';
   menu.onmousedown=event=>event.preventDefault();menu.onclick=event=>{const option=event.target.closest("[data-member-option]");if(option)chooseCompetitionMember(input,names[Number(option.dataset.memberOption)]);};
-  document.body.appendChild(menu);const rect=input.getBoundingClientRect(),width=Math.min(Math.max(rect.width,180),window.innerWidth-16),below=window.innerHeight-rect.bottom-12,above=rect.top-12,upward=below<180&&above>below,maxHeight=Math.max(80,Math.min(260,upward?above:below));
-  menu.style.width=`${width}px`;menu.style.left=`${Math.max(8,Math.min(rect.left,window.innerWidth-width-8))}px`;menu.style.maxHeight=`${maxHeight}px`;menu.style.top=`${upward?Math.max(8,rect.top-Math.min(menu.scrollHeight,maxHeight)-6):rect.bottom+6}px`;
+  document.body.appendChild(menu);const rect=input.getBoundingClientRect(),width=Math.min(Math.max(rect.width,180),window.innerWidth-16),maxHeight=Math.max(40,Math.min(260,window.innerHeight-rect.bottom-12));
+  menu.style.width=`${width}px`;menu.style.left=`${Math.max(8,Math.min(rect.left,window.innerWidth-width-8))}px`;menu.style.maxHeight=`${maxHeight}px`;menu.style.top=`${rect.bottom+6}px`;
   input.setAttribute("aria-expanded","true");input.setAttribute("aria-controls",id);competitionMemberMenu={input,element:menu,names,activeIndex:-1};
 }
 function setupCompetitionMemberInput(input) {
   input.setAttribute("role","combobox");input.setAttribute("aria-autocomplete","list");input.setAttribute("aria-expanded","false");input.setAttribute("autocomplete","off");
-  input.onfocus=()=>openCompetitionMemberMenu(input,"");input.onclick=()=>{if(competitionMemberMenu?.input!==input)openCompetitionMemberMenu(input,"");};input.oninput=()=>openCompetitionMemberMenu(input);
+  input.onfocus=()=>openCompetitionMemberMenu(input);input.onclick=()=>{if(competitionMemberMenu?.input!==input)openCompetitionMemberMenu(input);};input.oninput=()=>{updateCompetitionMemberStatus(input);openCompetitionMemberMenu(input);};
   input.onkeydown=event=>{
     if(event.isComposing)return;
     if(["Escape","Tab"].includes(event.key)){closeCompetitionMemberMenu();return;}
     if(!["ArrowDown","ArrowUp","Enter"].includes(event.key))return;
     if(event.key==="Enter"&&competitionMemberMenu?.input!==input)return;
     event.preventDefault();if(competitionMemberMenu?.input!==input)openCompetitionMemberMenu(input);
-    const menu=competitionMemberMenu;if(!menu.names.length){if(event.key==="Enter")closeCompetitionMemberMenu();return;}
+    const menu=competitionMemberMenu;if(!menu)return;if(!menu.names.length){if(event.key==="Enter")closeCompetitionMemberMenu();return;}
     if(event.key==="Enter"){chooseCompetitionMember(input,menu.names[Math.max(0,menu.activeIndex)]);return;}
     menu.activeIndex=(menu.activeIndex+(event.key==="ArrowDown"?1:menu.activeIndex<0?0:-1)+menu.names.length)%menu.names.length;
     menu.element.querySelectorAll("[data-member-option]").forEach((option,index)=>{const active=index===menu.activeIndex;option.classList.toggle("is-selected",active);option.setAttribute("aria-selected",String(active));if(active){input.setAttribute("aria-activedescendant",option.id);option.scrollIntoView({block:"nearest"});}});
   };
 }
-function addCompetitionParticipantRow(team,role,index) { const row=document.createElement("label"),roleName=role==="1"?"COX":"CREW";row.className=`competition-person competition-person-${roleName.toLowerCase()}`;row.dataset.batchRow="competition";row.innerHTML=`<span class="sr-only">${roleName} ${index} 이름</span><input class="batch-member-input competition-person-input" maxlength="50" placeholder="${roleName} ${index}" aria-label="${roleName} ${index} 이름"><input class="batch-role-select" type="hidden" value="${role}">`;team.querySelector(role==="1"?".competition-team-cox-inputs":".competition-team-crew-inputs").appendChild(row);setupCompetitionMemberInput(row.querySelector(".competition-person-input"));return row; }
+function addCompetitionParticipantRow(team,role,index) { const row=document.createElement("label"),roleName=role==="1"?"COX":"CREW";row.className=`competition-person competition-person-${roleName.toLowerCase()}`;row.dataset.batchRow="competition";row.innerHTML=`<span class="sr-only">${roleName} ${index} 이름</span><input class="batch-member-input competition-person-input" maxlength="50" placeholder="${roleName} ${index}" aria-label="${roleName} ${index} 이름"><span class="competition-member-status" role="status" hidden></span><input class="batch-role-select" type="hidden" value="${role}">`;team.querySelector(role==="1"?".competition-team-cox-inputs":".competition-team-crew-inputs").appendChild(row);setupCompetitionMemberInput(row.querySelector(".competition-person-input"));return row; }
 function resetCompetitionTeamLineup(team) { closeCompetitionMemberMenu();const roles=competitionLineupRoles(team.querySelector(".competition-team-event-input").value),coxContainer=team.querySelector(".competition-team-cox-inputs"),crewContainer=team.querySelector(".competition-team-crew-inputs");delete team.dataset.lineupGroupId;coxContainer.innerHTML="";crewContainer.innerHTML="";let crewIndex=roles.filter(role=>role!=="1").length,coxIndex=0;roles.forEach(role=>addCompetitionParticipantRow(team,role,role==="1"?++coxIndex:crewIndex--));team.querySelector(".competition-team-cox-group").classList.toggle("is-empty",coxIndex===0); }
 function competitionCatalogForType(type) { return {events:state.competitionEvents.filter(e=>catalogCompetitionType(e.competition_event_id)===type),divisions:state.competitionDivisions.filter(d=>competitionDivisionType(d)===type&&d.competition_division_id!=="division-indoor-unspecified")}; }
 function competitionTeamNames() { return [...new Set(state.competitionRecords.map(r=>String(r.note||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ko")); }

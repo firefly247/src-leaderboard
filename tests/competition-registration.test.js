@@ -2,13 +2,23 @@
 const assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path"),test=require("node:test"),vm=require("node:vm");
 function client() {
   const source=fs.readFileSync(path.join(__dirname,"../static/leaderboard.js"),"utf8");
-  const context=vm.createContext({document:{querySelector:()=>({})},sessionStorage:{getItem:()=>""},Event:class {constructor(type){this.type=type;}}});
+  const context=vm.createContext({document:{querySelector:()=>({}),querySelectorAll:()=>[]},sessionStorage:{getItem:()=>""},Event:class {constructor(type){this.type=type;}}});
   vm.runInContext(source.slice(0,source.indexOf('document.querySelectorAll(".tab-button")')),context);return context;
 }
 test("member search includes every matching distinct member and keeps A/B names distinct",()=>{
   const app=client();vm.runInContext('state.members=[{memberName:"이동훈B"},{memberName:"김선수"},{memberName:"이동훈A"},{memberName:"이동훈B"}];',app);
   assert.deepEqual(Array.from(app.competitionMemberNames(" 이동훈 ")),["이동훈A","이동훈B"]);
   assert.deepEqual(Array.from(app.competitionMemberNames("신규선수")),[]);
+});
+test("new member status clears for an existing name or an empty input",()=>{
+  const app=client(),status={},input={value:"새선수",parentElement:{querySelector:()=>status}};
+  vm.runInContext('state.members=[{memberName:"이동훈B"}];',app);
+  app.updateCompetitionMemberStatus(input);assert.equal(status.hidden,false);assert.equal(status.textContent,"신규 선수");
+  input.value=" 이동훈B ";app.updateCompetitionMemberStatus(input);assert.equal(status.hidden,true);
+  input.value=" ";app.updateCompetitionMemberStatus(input);assert.equal(status.hidden,true);
+});
+test("empty inputs keep suggestions closed",()=>{
+  const app=client();app.openCompetitionMemberMenu({value:" ",disabled:false});
 });
 test("choosing a member commits the full name to that input and notifies input/change listeners",()=>{
   const app=client(),events=[],other={value:"다른선수"},input={isConnected:true,disabled:false,value:"김",focus(){},dispatchEvent(event){events.push(event.type);}};
