@@ -287,7 +287,13 @@ function savePlayerBirthYears_(p) {
       sheet.getRange(2, 1, values.length, 4).setValues(values);
     }
     SpreadsheetApp.flush();
-    return { savedCount: players.length, players: players };
+    const persisted = new Map(sheet.getDataRange().getDisplayValues().slice(1).filter(row => row[0]).map(row => [row[0], row]));
+    const confirmed = players.map(player => {
+      const row = persisted.get(player.memberName) || [], expected = saved.get(player.memberName) || [];
+      if ((row[1] || '') !== (expected[1] || '') || (row[3] || '') !== (expected[3] || '')) throw new Error(player.memberName + ': 저장된 연도를 확인하지 못했습니다. 다시 조회해 주세요.');
+      return { memberName: player.memberName, birthYear: row[1] || '', joinYear: row[3] || '' };
+    });
+    return { savedCount: confirmed.length, players: confirmed };
   } finally { lock.releaseLock(); }
 }
 function processRequest_(p) {
