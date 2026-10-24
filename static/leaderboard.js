@@ -161,7 +161,7 @@ function result(selector,message,bad=false) { const e=$(selector);e.textContent=
 
 function playerJoinYearSummaryHtml(players) {
   const groups=new Map();players.forEach(player=>{const year=String(player.joinYear||"");if(!groups.has(year))groups.set(year,[]);groups.get(year).push(player.memberName);});
-  const years=[...groups.keys()].sort((a,b)=>a===""?1:b===""?-1:Number(b)-Number(a)),height=Math.max(0,...[...groups.values()].map(names=>names.length));
+  const years=[...groups.keys()].sort((a,b)=>a===""?1:b===""?-1:Number(a)-Number(b)),height=Math.max(0,...[...groups.values()].map(names=>names.length));
   groups.forEach(names=>names.sort((a,b)=>a.localeCompare(b,"ko")));
   return `<p class="player-summary-total">총 ${players.length}명</p><div class="table-wrap"><table class="player-join-table"><thead><tr>${years.map(year=>`<th>${year?esc(year)+"년":"미입력"}<small>${groups.get(year).length}명</small></th>`).join("")}</tr></thead><tbody>${Array.from({length:height},(_,index)=>`<tr>${years.map(year=>`<td>${esc(groups.get(year)[index]||"")}</td>`).join("")}</tr>`).join("")||'<tr><td class="empty-cell">등록된 선수가 없습니다.</td></tr>'}</tbody></table></div>`;
 }

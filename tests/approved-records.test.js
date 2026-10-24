@@ -50,7 +50,7 @@ test("GitHub write refuses a changed snapshot instead of overwriting concurrent 
 });
 test("player summary uses stored joining years with separate missing column and escaped names",()=>{
   const context=vm.createContext({document:{querySelector:()=>({})},sessionStorage:{getItem:()=>""}});vm.runInContext(client.slice(0,client.indexOf('document.querySelectorAll(".tab-button")')),context);
-  const html=context.playerJoinYearSummaryHtml([{memberName:"김선수",joinYear:"2020"},{memberName:"<img>",joinYear:"2026"},{memberName:"미입력",joinYear:""}]);assert(html.indexOf("2026년")<html.indexOf("2020년"));assert.match(html,/미입력/);assert.match(html,/총 3명/);assert.doesNotMatch(html,/<img>/);assert.match(html,/&lt;img&gt;/);
+  const html=context.playerJoinYearSummaryHtml([{memberName:"김선수",joinYear:"2020"},{memberName:"<img>",joinYear:"2026"},{memberName:"미입력",joinYear:""}]);assert(html.indexOf("2020년")<html.indexOf("2026년"));assert.match(html,/미입력/);assert.match(html,/총 3명/);assert.doesNotMatch(html,/<img>/);assert.match(html,/&lt;img&gt;/);
 });
 test("an old API response reports deployment needed instead of showing a false empty record list",()=>{
   const container={innerHTML:""},context=vm.createContext({document:{querySelector:()=>container},sessionStorage:{getItem:()=>""}});
