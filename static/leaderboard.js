@@ -417,7 +417,15 @@ function finishBatchProgress(completed,total,error,onConfirm) { const dialog=$("
 function clearCompletedBatchRows(type,rows,completed,allComplete) { const container=$("#"+type+"BatchRows");if(allComplete){const rowCount=Math.max(1,rows.length);container.innerHTML="";for(let i=0;i<rowCount;i++)addBatchRow(type);return;}rows.slice(0,completed).forEach(row=>row.remove());if(!container.querySelector(".batch-row"))addBatchRow(type);renumberBatchRows(type); }
 
 $("#currentYear").textContent=new Date().getFullYear();
-document.querySelectorAll(".tab-button").forEach(button=>button.onclick=()=>{document.querySelectorAll(".tab-button").forEach(x=>x.classList.toggle("is-active",x===button));document.querySelectorAll(".tab-panel").forEach(x=>x.classList.toggle("is-active",x.dataset.panel===button.dataset.tab));history.replaceState(null,"","#"+button.dataset.tab);if(button.dataset.tab==="admin"&&state.adminToken)loadAdmin("add");});
+document.querySelectorAll(".tab-button").forEach(button=>button.onclick=()=>{setHeaderMenuOpen(false);document.querySelectorAll(".tab-button").forEach(x=>x.classList.toggle("is-active",x===button));document.querySelectorAll(".tab-panel").forEach(x=>x.classList.toggle("is-active",x.dataset.panel===button.dataset.tab));history.replaceState(null,"","#"+button.dataset.tab);if(button.dataset.tab==="admin"&&state.adminToken)loadAdmin("add");});
+
+function setHeaderMenuOpen(open,restoreFocus=false) {
+  const toggle=$("#headerMenuToggle");$("#mainNavigation").hidden=!open;toggle.setAttribute("aria-expanded",String(open));toggle.setAttribute("aria-label",open?"메뉴 닫기":"메뉴 열기");if(restoreFocus)toggle.focus();
+}
+$("#headerMenuToggle").onclick=()=>setHeaderMenuOpen($("#mainNavigation").hidden);
+document.addEventListener("click",event=>{if(!event.target.closest(".site-header"))setHeaderMenuOpen(false);});
+document.addEventListener("keydown",event=>{if(event.key==="Escape"&&!$("#mainNavigation").hidden)setHeaderMenuOpen(false,true);});
+$(".brand").onclick=event=>{event.preventDefault();document.querySelector('.tab-button[data-tab="ergo"]').click();};
 let activeRequestView="ergo",activeRegistrationMode="single";
 function showRequestPanel() { if(activeRequestView==="competition")activeRegistrationMode="bulk";document.querySelector(".registration-mode-switch").hidden=activeRequestView==="competition";document.querySelectorAll("[data-request-view]").forEach(button=>button.classList.toggle("is-active",button.dataset.requestView===activeRequestView));document.querySelectorAll("[data-registration-mode]").forEach(button=>button.classList.toggle("is-active",button.dataset.registrationMode===activeRegistrationMode));document.querySelectorAll("[data-request-panel]").forEach(panel=>panel.classList.toggle("is-active",panel.dataset.requestPanel===activeRequestView&&panel.dataset.registrationPanel===activeRegistrationMode));closeAllDropdowns(); }
 document.querySelectorAll("[data-request-view]").forEach(button=>button.onclick=()=>{activeRequestView=button.dataset.requestView;activeRegistrationMode=activeRequestView==="competition"?"bulk":"single";showRequestPanel();});

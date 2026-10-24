@@ -4,14 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="삼성조정클럽 에르고 기록과 대회 실적 리더보드">
-  <title>삼성조정클럽 명예의 전당</title>
+  <title>삼성조정클럽 리더보드</title>
   <link rel="stylesheet" href="static/training.css?v=20261024-01">
-  <link rel="stylesheet" href="static/style.css?v=20261024-15">
+  <link rel="stylesheet" href="static/style.css?v=20261024-16">
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="#ergo" aria-label="리더보드 홈">삼성조정클럽 명예의 전당</a>
-    <nav class="main-tabs" aria-label="주요 메뉴">
+    <a class="brand" href="#ergo" aria-label="삼성조정클럽 리더보드 홈"><span>삼성조정클럽</span><span>리더보드</span></a>
+    <button id="headerMenuToggle" class="header-menu-toggle" type="button" aria-label="메뉴 열기" aria-expanded="false" aria-controls="mainNavigation"><span></span><span></span><span></span></button>
+    <nav id="mainNavigation" class="main-tabs" aria-label="주요 메뉴" hidden>
       <button id="adminLogout" class="header-logout-button" type="button" hidden>로그아웃</button>
       <button class="tab-button is-active" data-tab="ergo" type="button">에르고</button>
       <button class="tab-button" data-tab="competition" type="button">대회</button>
@@ -19,7 +20,7 @@
       <button class="tab-button" data-tab="training" type="button">주말 훈련(Beta)</button>
       <button class="tab-button" data-tab="request" type="button">기록 등록</button>
       <button class="tab-button" data-tab="admin" type="button">관리자</button>
-      <button id="refreshButton" class="refresh-button" type="button" aria-label="최신 데이터 새로고침"><span aria-hidden="true">↻</span></button>
+      <button id="refreshButton" class="refresh-button" type="button" aria-label="최신 데이터 새로고침"><span aria-hidden="true">↻</span> 새로고침</button>
     </nav>
   </header>
   <main class="page-shell">
@@ -79,6 +80,6 @@
   </main>
   <dialog id="memberDialog" class="member-dialog" aria-labelledby="dialogMemberName"><div class="dialog-header"><div><p class="eyebrow">MEMBER RECORDS</p><h2 id="dialogMemberName"></h2></div><button id="dialogCloseButton" class="dialog-close" type="button" aria-label="팝업 닫기">×</button></div><div id="dialogContent"></div></dialog><dialog id="photoDialog" class="photo-dialog"><button class="dialog-close" type="button" data-close-photo aria-label="팝업 닫기">×</button><img id="proofPhotoImage" alt="기록 증빙사진"></dialog>
   <dialog id="batchProgressDialog" class="batch-progress-dialog" aria-labelledby="batchProgressTitle"><div class="batch-progress-icon" aria-hidden="true"><span></span></div><p class="eyebrow">RECORD REQUEST</p><h2 id="batchProgressTitle">기록 요청 진행 중</h2><p id="batchProgressMessage" class="batch-progress-message" aria-live="polite"></p><div class="batch-progress-track" aria-hidden="true"><span id="batchProgressBar"></span></div><strong id="batchProgressCount" class="batch-progress-count"></strong><button id="batchProgressConfirm" class="primary-button" type="button" hidden>확인</button></dialog>
-  <footer>© <span id="currentYear"></span> 삼성조정클럽</footer><script src="static/athlete-analysis.js?v=20261016-03"></script><script src="static/leaderboard.js?v=20261024-15"></script><script src="static/training.js?v=20261024-15"></script>
+  <footer>© <span id="currentYear"></span> 삼성조정클럽</footer><script src="static/athlete-analysis.js?v=20261016-03"></script><script src="static/leaderboard.js?v=20261024-16"></script><script src="static/training.js?v=20261024-16"></script>
 </body>
 </html>
