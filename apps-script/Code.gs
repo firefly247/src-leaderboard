@@ -26,8 +26,10 @@ function dispatch_(action, p, token) {
   if (action === 'requestDelete') return requestDelete_(p);
   if (action === 'pendingDeleteRecords') return pendingDeleteRecords_();
   if (action === 'trainingGet') return trainingGet_(p);
+  if (action === 'trainingList') return trainingList_();
   if (action === 'trainingJoin') return trainingJoin_(p);
   requireAdmin_(token);
+  if (action === 'trainingOpen') return trainingOpen_(p);
   if (action === 'trainingRecommend') return trainingRecommend_(p);
   if (action === 'trainingCheck') return trainingCheck_(p);
   if (action === 'adminList') return adminList_(p.view);

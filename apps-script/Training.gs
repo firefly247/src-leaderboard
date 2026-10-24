@@ -15,7 +15,7 @@ function trainingSheet_() {
 function trainingRead_(sheet,date) {
   const rows = sheet.getDataRange().getDisplayValues();
   for (let i=1;i<rows.length;i++) if(rows[i][0]===date) return {row:i+1, session:JSON.parse(rows[i][1])};
-  return {row:sheet.getLastRow()+1, session:{date,revision:0,registrationRevision:0,participants:[],plan:null}};
+  return {row:sheet.getLastRow()+1, session:{date,opened:false,revision:0,registrationRevision:0,participants:[],plan:null}};
 }
 function trainingWrite_(sheet,entry) {
   const json=JSON.stringify(entry.session);
@@ -24,9 +24,35 @@ function trainingWrite_(sheet,entry) {
   SpreadsheetApp.flush();
 }
 function trainingPublic_(s) {
-  return {training:{date:s.date,revision:s.revision,registrationRevision:s.registrationRevision,
-    participants:s.participants.map(p=>({id:p.id,name:p.name,status:p.status,arrival:p.arrival,preference:p.preference,canCox:p.canCox,canSmallBoat:p.canSmallBoat,experience:p.experience})),plan:s.plan}};
+  return {training:{date:s.date,opened:s.opened===true,revision:s.revision,registrationRevision:s.registrationRevision,
+    participants:s.opened?trainingTenures_(s.participants,s.date).map(p=>({id:p.id,name:p.name,status:p.status,arrival:p.arrival,preference:p.preference,canCox:p.canCox,canSmallBoat:p.canSmallBoat,tenure:p.tenure})):[],plan:s.opened?s.plan:null}};
 }
+/** Derive seniority from the private joining-year column; never return birth/joining years. */
+function trainingTenures_(participants,date) {
+  const sheet=birthYearSheet_(false),rows=sheet?sheet.getDataRange().getDisplayValues().slice(1):[];
+  const years=new Map(rows.map(row=>[String(row[0]).trim(),String(row[3]||'').trim()]));
+  const trainingYear=Number(date.slice(0,4));
+  return participants.map(p=>{const year=years.get(p.name);return {...p,tenure:year&&/^\d{4}$/.test(year)&&Number(year)>=1900&&Number(year)<=trainingYear?trainingYear-Number(year)+1:null};});
+}
+function trainingListFromSheet_(sheet) {
+  return {sessions:sheet.getDataRange().getDisplayValues().slice(1).filter(row=>row[1]).map(row=>JSON.parse(row[1])).filter(s=>s.opened===true).map(s=>({date:s.date,openedAt:s.openedAt})).sort((a,b)=>a.date.localeCompare(b.date)).slice(-40)};
+}
+function trainingList_() {
+  const lock=LockService.getScriptLock();lock.waitLock(30000);
+  try{return trainingListFromSheet_(trainingSheet_());}finally{lock.releaseLock();}
+}
+function trainingOpen_(p) {
+  if(!Array.isArray(p.dates)||p.dates.length<1||p.dates.length>2)throw new Error('개설할 토·일 날짜를 선택해 주세요.');
+  const dates=[...new Set(p.dates.map(trainingDate_))].sort();
+  if(dates.length===2&&new Date(dates[1]+'T00:00:00Z')-new Date(dates[0]+'T00:00:00Z')!==86400000)throw new Error('같은 주의 토·일을 선택해 주세요.');
+  const lock=LockService.getScriptLock();lock.waitLock(30000);
+  try{
+    const sheet=trainingSheet_();
+    dates.forEach(date=>{const entry=trainingRead_(sheet,date);if(entry.session.opened)return;entry.session.opened=true;entry.session.openedAt=new Date().toISOString();entry.session.revision++;trainingWrite_(sheet,entry);});
+    return trainingListFromSheet_(sheet);
+  }finally{lock.releaseLock();}
+}
+function trainingRequireOpen_(s) {if(s.opened!==true)throw new Error('운영진이 아직 개설하지 않은 훈련입니다.');}
 function trainingLocked_(p,fn) {
   const date=trainingDate_(p.date), lock=LockService.getScriptLock();lock.waitLock(30000);
   try { const sheet=trainingSheet_(),entry=trainingRead_(sheet,date);const result=fn(entry.session);if(result!==false)trainingWrite_(sheet,entry);return trainingPublic_(entry.session); }
@@ -37,13 +63,15 @@ function trainingJoin_(p) {
   const name=String(p.name||'').trim(),key=String(p.editKey||'');
   if(!name||name.length>30||/[\x00-\x1f<>]/.test(name))throw new Error('이름을 30자 이내로 입력해 주세요.');
   if(!/^[a-zA-Z0-9-]{32,80}$/.test(key))throw new Error('신청 수정키가 올바르지 않습니다. 다시 신청해 주세요.');
-  if(!['참석','불참','미정'].includes(p.status)||!['정시','늦참','조기 귀가'].includes(p.arrival)||!['무관','유타쿼드','더블스컬','싱글스컬'].includes(p.preference)||!['초급','중급','숙련'].includes(p.experience))throw new Error('참가 신청 항목을 확인해 주세요.');
+  if(!['참석','불참','미정'].includes(p.status)||!['정시','늦참','조기 귀가'].includes(p.arrival)||!['무관','유타쿼드','더블스컬','싱글스컬'].includes(p.preference))throw new Error('참가 신청 항목을 확인해 주세요.');
   const digest=Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,key,Utilities.Charset.UTF_8));
   return trainingLocked_(p,s=>{
+    trainingRequireOpen_(s);
     let member=s.participants.find(m=>m.name===name);
     if(member&&member.editHash!==digest)throw new Error('이미 신청된 이름입니다. 처음 신청한 브라우저에서 수정하거나 운영진에게 문의해 주세요.');
     if(!member){if(s.participants.length>=60)throw new Error('신청 인원이 최대 60명입니다.');member={id:Utilities.getUuid(),name,editHash:digest};s.participants.push(member);}
-    Object.assign(member,{status:p.status,arrival:p.arrival,preference:p.preference,experience:p.experience,canCox:p.canCox===true,canSmallBoat:p.canSmallBoat===true});
+    Object.assign(member,{status:p.status,arrival:p.arrival,preference:p.preference,canCox:p.canCox===true,canSmallBoat:p.canSmallBoat===true});
+    delete member.experience;
     s.revision++;s.registrationRevision++;
   });
 }
@@ -63,7 +91,7 @@ function trainingBuildPlan_(participants) {
     const takeSmall=preference=>{small.sort((a,b)=>Number(b.preference===preference)-Number(a.preference===preference)||a.name.localeCompare(b.name,'ko'));const p=small.shift();usedIds.add(p.id);if(p.preference===preference)preferenceScore++;return p;};
     if(single){const p=takeSmall('싱글스컬');boats.push({name:'싱글스컬',type:'1X',seats:[{seat:'1번',id:p.id,name:p.name}]});}
     for(let i=0;i<d;i++){const seats=[];for(let j=0;j<2;j++){const p=takeSmall('더블스컬');seats.push({seat:(j+1)+'번',id:p.id,name:p.name});}boats.push({name:'더블스컬 '+String.fromCharCode(65+i),type:'2X',seats});}
-    const remaining=people.filter(p=>!usedIds.has(p.id)).sort((a,b)=>['숙련','중급','초급'].indexOf(a.experience)-['숙련','중급','초급'].indexOf(b.experience)||a.name.localeCompare(b.name,'ko'));
+    const remaining=people.filter(p=>!usedIds.has(p.id)).sort((a,b)=>(b.tenure||0)-(a.tenure||0)||a.name.localeCompare(b.name,'ko'));
     for(let seat=1;seat<=4;seat++)for(let i=0;i<q;i++){const p=remaining.shift();boats[i].seats.push({seat:seat+'번',id:p.id,name:p.name});usedIds.add(p.id);if(p.preference==='유타쿼드')preferenceScore++;}
     const score=seated*1000+preferenceScore*10+q;
     if(!best||score>best.score)best={score,boats,wait:participants.filter(p=>p.status==='참석'&&!usedIds.has(p.id)).map(p=>({id:p.id,name:p.name,reason:p.arrival!=='정시'?'참가 시간 확인 필요':'좌석 또는 탑승 가능 조건 확인 필요'}))};
@@ -72,8 +100,9 @@ function trainingBuildPlan_(participants) {
 }
 function trainingRecommend_(p) {
   return trainingLocked_(p,s=>{
+    trainingRequireOpen_(s);
     trainingExpected_(s,p);
-    const built=trainingBuildPlan_(s.participants),oldChecks=s.plan?s.plan.checks:{};
+    const built=trainingBuildPlan_(trainingTenures_(s.participants,s.date)),oldChecks=s.plan?s.plan.checks:{};
     const checks={};built.boats.forEach(b=>b.seats.forEach(m=>{checks[m.id]=oldChecks[m.id]||'미확인';}));
     s.plan={boats:built.boats,wait:built.wait,checks,registrationRevision:s.registrationRevision,publishedAt:new Date().toISOString()};s.revision++;
   });
@@ -81,6 +110,7 @@ function trainingRecommend_(p) {
 function trainingCheck_(p) {
   if(!['미확인','출석','불참'].includes(p.status))throw new Error('출석 상태를 확인해 주세요.');
   return trainingLocked_(p,s=>{
+    trainingRequireOpen_(s);
     trainingExpected_(s,p);
     if(!s.plan||!s.plan.boats.some(b=>b.seats.some(m=>m.id===p.id)))throw new Error('편성된 멤버를 찾을 수 없습니다.');
     s.plan.checks[p.id]=p.status;s.revision++;
