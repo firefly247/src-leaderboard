@@ -183,7 +183,7 @@ test("회원별 PB 이름과 삭제요청 버튼이 상세 동작을 제공한�
   assert.match(styles, /\.member-history-table \.delete-request-button,[^{]+\{ min-height: 28px; padding: 3px 7px;/);
 });
 
-test("대회 일괄 등록은 팀당 한 행과 직접 입력 회원 자동완성을 지원한다", () => {
+test("대회 일괄 등록은 반응형 팀 입력과 회원 검색 선택을 지원한다", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
   const source = fs.readFileSync(path.join(__dirname, "..", "static", "leaderboard.js"), "utf8");
   const styles = fs.readFileSync(path.join(__dirname, "..", "static", "style.css"), "utf8");
@@ -191,16 +191,13 @@ test("대회 일괄 등록은 팀당 한 행과 직접 입력 회원 자동완�
   assert.match(source, /competition-team-name-select/);
   assert.match(source, /<option value="__new__">새 팀명 입력<\/option>/);
   assert.match(html, /competition-team-grid-headings[^>]*>.*종목.*나이대.*팀명.*메달.*COX.*CREW/);
-  assert.match(html, /<datalist id="competitionMemberSuggestions"><\/datalist>/);
-  assert.match(source, /list="competitionMemberSuggestions"/);
+  assert.match(source, /function setupCompetitionMemberInput\(input\)/);
+  assert.doesNotMatch(source, /list="competitionMemberSuggestions"/);
   assert.match(source, /class="batch-member-input competition-person-input"/);
   assert.doesNotMatch(source, /competition-team-summary|CREW \$\{crewIndex\}명/);
   assert.match(source, /rows=\[\.\.\.team\.querySelectorAll\("\.competition-person"\)\]/);
   assert.match(source, /lineupGroupId,note:teamName,memberName/);
   assert.match(styles, /\.competition-team-grid-headings,\.competition-team \{[^}]*grid-template-columns:/);
-  assert.match(styles, /\.competition-team-grid-headings,\.competition-team \{[^}]*grid-template-columns: 48px repeat\(5,110px\) 450px 52px;[^}]*align-items: center;/);
-  assert.match(styles, /\.competition-team-field \.dropdown-trigger,\.form-panel \.competition-person-input \{[^}]*width: 110px;[^}]*min-height: 38px;[^}]*border-radius: 8px;/);
-  assert.match(styles, /\.competition-team-crew-inputs \{ grid-template-columns: repeat\(4,110px\);/);
   assert.match(source, /wrapper\.closest\("\.competition-team-table-wrap"\)/);
   assert.match(source, /menu\.classList\.add\("is-floating"\);document\.body\.appendChild\(menu\)/);
   assert.match(styles, /\.dropdown-menu\.is-floating \{[^}]*position: fixed;[^}]*z-index: 1000;/);
