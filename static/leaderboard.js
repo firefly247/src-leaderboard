@@ -325,8 +325,9 @@ function competitionMemberSearchKey(value) {
   return [...String(value).trim().toLocaleLowerCase("ko").normalize("NFD")].map(char=>{const code=char.codePointAt(0);return initials[code-0x1100]||vowels[code-0x1161]||finals[code-0x11a8]||char;}).join("");
 }
 function competitionMemberNames(query="") {
-  const normalized=competitionMemberSearchKey(query);
-  return [...new Set(state.members.map(member=>member.memberName))].filter(name=>competitionMemberSearchKey(name).includes(normalized)).sort((a,b)=>a.localeCompare(b,"ko"));
+  const normalized=competitionMemberSearchKey(query),initialsOnly=/^[ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ]+$/.test(normalized);
+  const nameInitials=name=>[...name].map(char=>{const code=char.codePointAt(0)-0xac00;return code>=0&&code<11172?"ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ"[Math.floor(code/588)]:char;}).join("");
+  return [...new Set(state.members.map(member=>member.memberName))].filter(name=>initialsOnly?nameInitials(name).includes(normalized):competitionMemberSearchKey(name).includes(normalized)).sort((a,b)=>a.localeCompare(b,"ko"));
 }
 function updateCompetitionMemberStatus(input) {
   const name=input.value.trim(),isNew=Boolean(name)&&!state.members.some(member=>member.memberName===name);

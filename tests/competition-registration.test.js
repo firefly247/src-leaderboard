@@ -17,6 +17,13 @@ test("member suggestions match Korean syllables while the next consonant is stil
   assert.deepEqual(Array.from(app.competitionMemberNames("조홍간")),[]);
   assert.deepEqual(Array.from(app.competitionMemberNames("김기혀")),["김기현"]);
 });
+test("member suggestions match initial consonants without matching finals",()=>{
+  const app=client();vm.runInContext('state.members=[{memberName:"조홍관"},{memberName:"김기현"},{memberName:"이동훈A"},{memberName:"이동훈B"}];',app);
+  for(const query of ["ㅈ","ㅈㅎ","ㅈㅎㄱ","ᄌᄒᄀ"])assert.deepEqual(Array.from(app.competitionMemberNames(query)),["조홍관"]);
+  assert.deepEqual(Array.from(app.competitionMemberNames("ㄱㄱㅎ")),["김기현"]);
+  assert.deepEqual(Array.from(app.competitionMemberNames("ㅇㄷㅎ")),["이동훈A","이동훈B"]);
+  assert.deepEqual(Array.from(app.competitionMemberNames("ㅁ")),[]);
+});
 test("new member status clears for an existing name or an empty input",()=>{
   const app=client(),classes=new Set(),input={value:"새선수",classList:{toggle(name,on){if(on)classes.add(name);else classes.delete(name);}}};
   vm.runInContext('state.members=[{memberName:"이동훈B"}];',app);
