@@ -637,7 +637,6 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .birth-year-result { display: block; margin: 0 0 14px; font-size: 12px; white-space: normal; }
 
 .birth-year-search { margin: 18px 0 24px; }
-.birth-year-table .birth-year-check, #birthYearSelectAll { width: 18px; min-width: 18px; height: 18px; min-height: 18px; padding: 0; accent-color: var(--primary); cursor: pointer; }
 
 .birth-year-control { display: inline-flex; align-items: center; gap: 4px; }
 .birth-year-input { appearance: textfield; -moz-appearance: textfield; }
@@ -661,7 +660,7 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .reference-admin .admin-table button { min-height: 30px; padding: 5px 7px; font-size: 11px; }
 .reference-admin .admin-table td:last-child { white-space: nowrap; }
 .reference-admin .birth-year-table { table-layout: fixed; }
-.reference-admin .birth-year-table th:first-child { width: 36px; }
+.reference-admin .birth-year-table th:first-child { width: 22%; }
 .reference-admin .birth-year-table .birth-year-input,
 .reference-admin .birth-year-table .join-year-input { flex: 1 1 0; min-width: 0; width: 100%; max-width: 160px; text-align: center; }
 .reference-admin .birth-year-table .join-year-input { appearance: textfield; -moz-appearance: textfield; }
@@ -671,9 +670,11 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .player-dirty-badge[hidden] { display: none; }
 .reference-admin .birth-year-control { display: flex; width: 100%; max-width: 186px; margin-inline: auto; justify-content: center; }
 .reference-admin .birth-year-stepper { flex: 0 0 22px; }
-.reference-admin .birth-year-table th:nth-child(n+3), .reference-admin .birth-year-table td:nth-child(n+3) { text-align: center; }
+.reference-admin .birth-year-table th:nth-child(n+2), .reference-admin .birth-year-table td:nth-child(n+2) { text-align: center; }
 .reference-admin .birth-year-stepper button { width: 22px; min-height: 16px; padding: 0; }
-.reference-admin .birth-year-table th:nth-child(2) { width: 22%; }
+.player-year-save-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; }
+.player-year-save-footer span { color: var(--muted); font-size: 12px; }
+.player-year-save-footer button { min-width: 100px; }
 
 .competition-team-grid-headings,.competition-team {
   grid-template-columns: 30px var(--team-event-width,95px) var(--team-division-width,135px) var(--team-name-width,95px) var(--team-medal-width,85px) 54px 228px 36px;

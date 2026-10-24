@@ -219,7 +219,7 @@ function adminList_(view) {
   if (view === 'ergo-records') return { records: records_(), events: events_().sort(eventNameCompare_) };
   if (view === 'competition-records') return { records: competitionRecords_(), competitions: competitions_(), competitionEvents: competitionEvents_(), competitionDivisions: competitionDivisions_() };
   if (view === 'competition-dates') return { competitionDates: competitionDateCatalog_() };
-  if (view === 'player-birth-years') return { players: playerBirthYears_() };
+  if (view === 'player-birth-years') return { players: playerBirthYears_(), partialYearUpdates: true };
   if (view === 'events') return { events: events_().sort(eventNameCompare_) };
   if (view === 'competitions') return { competitions: competitions_().sort((a,b) => a.competition_name.localeCompare(b.competition_name, 'ko')) };
   if (view === 'competition-events') return { competitionEvents: competitionEvents_() };
@@ -257,11 +257,12 @@ function savePlayerBirthYears_(p) {
   const currentYear = Number(Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy'));
   const players = p.players.map(player => {
     if (!player || typeof player !== 'object') throw new Error('선수 정보가 올바르지 않습니다.');
-    const name = clean_(player.memberName), year = player.birthYear == null ? '' : String(player.birthYear).trim();
+    const name = clean_(player.memberName), year = player.birthYear == null ? undefined : String(player.birthYear).trim();
     if (year && (!/^\d{4}$/.test(year) || Number(year) < 1900 || Number(year) > currentYear)) {
       throw new Error(name + ': 생년은 1900년부터 올해까지의 4자리 연도로 입력해 주세요.');
     }
     const joinYear = player.joinYear == null ? undefined : String(player.joinYear).trim();
+    if (year === undefined && joinYear === undefined) throw new Error(name + ': 수정할 연도를 지정해 주세요.');
     if (joinYear && (!/^\d{4}$/.test(joinYear) || Number(joinYear) < 1900 || Number(joinYear) > currentYear)) throw new Error(name + ': 가입연도는 1900년부터 올해까지의 4자리 연도로 입력해 주세요.');
     return { memberName: name, birthYear: year, joinYear };
   });
@@ -274,8 +275,9 @@ function savePlayerBirthYears_(p) {
     const saved = new Map(previous.filter(row => row[0]).map(row => [row[0], row]));
     const now = new Date().toISOString();
     players.forEach(player => {
+      const birthYear = player.birthYear === undefined ? (saved.get(player.memberName)?.[1] || '') : player.birthYear;
       const joinYear = player.joinYear === undefined ? (saved.get(player.memberName)?.[3] || '') : player.joinYear;
-      if (player.birthYear || joinYear) saved.set(player.memberName, [player.memberName, player.birthYear, now, joinYear]);
+      if (birthYear || joinYear) saved.set(player.memberName, [player.memberName, birthYear, now, joinYear]);
       else saved.delete(player.memberName);
     });
     sheet.getRange(1, 4, 1, 1).setValues([['join_year']]);

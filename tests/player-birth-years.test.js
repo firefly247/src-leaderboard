@@ -109,7 +109,9 @@ test("birth year admin view escapes names and keeps missing years empty and offe
   assert.match(container.innerHTML, /type="number" min="1900"/);
   assert.match(container.innerHTML, /id="birthYearBatchForm"/);
   assert.match(container.innerHTML, /id="birthYearBatchSave"/);
-  assert.match(container.innerHTML, /class="birth-year-check"/);
+  assert.doesNotMatch(container.innerHTML, /type="checkbox"|birthYearSelectAll|birthYearBatchResult/);
+  assert.match(container.innerHTML, />저장<\/button>/);
+  assert(container.innerHTML.indexOf('id="birthYearBatchSave"')>container.innerHTML.lastIndexOf("</table>"));
   assert.doesNotMatch(container.innerHTML, /<th>관리<|birthYearForm0/);
   assert.doesNotMatch(container.innerHTML, /<img/);
   assert.match(container.innerHTML, /&lt;img/);
@@ -211,52 +213,25 @@ test("joining year arrows initialize a blank field at 2026 and preserve entered 
   assert.equal(input.value,"2018");
 });
 
-test("client batch save sends only selected rows and retains edits on API failure", async () => {
-  const button = { disabled: false, textContent: "" };
-  const message = { textContent: "", classList: { remove() {}, add() {} } };
-  const makeRow = (name, checked, value) => {
-    const check = { checked }, input = { value, reportValidity: () => true }, joinInput = { value: "2020", reportValidity: () => true };
-    return { dataset: { birthYearName: name }, querySelector: selector => selector === ".birth-year-check" ? check : selector === ".join-year-input" ? joinInput : input };
-  };
-  const rows = [makeRow("김선수", true, "1985"), makeRow("박선수", false, "invalid")];
-  const form = {
-    isConnected: false,
-    querySelectorAll: selector => selector === "input,button" ? [button] : rows,
-    querySelector: selector => selector === "#birthYearBatchSave" ? button : message,
-  };
-  let sent;
-  const context = vm.createContext({
-    document: { querySelector: () => ({}) }, sessionStorage: { getItem: () => "valid" },
-    fetch: async (url, options) => {
-      sent = JSON.parse(options.body);
-      return { ok: true, json: async () => ({ ok: true, savedCount: 1, players: sent.payload.players.map(player => ({ ...player, joinYear: player.joinYear ?? "2020" })) }) };
-    },
-  });
-  vm.runInContext(clientSource.slice(0, clientSource.indexOf('document.querySelectorAll(".tab-button")')), context);
-  await context.saveSelectedBirthYears(form);
-  assert.equal(sent.action, "savePlayerBirthYears");
-  assert.equal(sent.adminToken, "valid");
-  assert.deepEqual(sent.payload.players, [{ memberName: "김선수", birthYear: "1985", joinYear: "2020" }]);
-  assert.equal(rows[0].querySelector(".birth-year-check").checked, false);
-  assert.equal(rows[1].querySelector(".birth-year-input").value, "invalid");
-  rows[0].dataset.savedJoinYear = "2020";
-  rows[0].querySelector(".birth-year-check").checked = true;
-  await context.saveSelectedBirthYears(form);
-  assert.deepEqual(sent.payload.players, [{ memberName: "김선수", birthYear: "1985" }]);
-  rows[0].querySelector(".birth-year-check").checked = true;
-  rows[0].querySelector(".join-year-input").value = "2019";
-  context.fetch = async () => ({ ok: true, json: async () => ({ ok: true, savedCount: 1, players: [{ memberName: "김선수", birthYear: "1985" }] }) });
-  await context.saveSelectedBirthYears(form);
-  assert.equal(rows[0].querySelector(".birth-year-check").checked, true);
-  assert.equal(rows[0].querySelector(".join-year-input").value, "2019");
-  assert.match(message.textContent, /저장되지 않았습니다/);
-  rows[0].querySelector(".birth-year-check").checked = true;
-  context.fetch = async () => { throw new Error("연결 실패"); };
-  await context.saveSelectedBirthYears(form);
-  assert.equal(rows[0].querySelector(".birth-year-check").checked, true);
-  assert.equal(rows[0].querySelector(".birth-year-input").value, "1985");
-  assert.equal(message.textContent, "연결 실패");
-  assert.equal(button.disabled, false);
+test("save sends only changed fields and rows, includes hidden edits, and confirms through a popup", async () => {
+  const button={disabled:false,textContent:""},popups=[],sent=[];
+  const makeRow=(name,birth,join)=>{const input={value:birth,reportValidity:()=>true},joinInput={value:join,reportValidity:()=>true};return {dataset:{birthYearName:name,savedBirthYear:birth,savedJoinYear:join},querySelector:selector=>selector===".join-year-input"?joinInput:input};};
+  const rows=[makeRow("김선수","1985","2020"),makeRow("박선수","1990","2018"),makeRow("이선수","1992","")];
+  rows[0].querySelector(".join-year-input").value="2021";rows[1].querySelector(".birth-year-input").value="1991";rows[1].hidden=true;
+  const form={dataset:{partialYearUpdates:"true"},isConnected:false,querySelectorAll:selector=>selector==="input,button"?[button]:rows,querySelector:()=>button};
+  const context=vm.createContext({document:{querySelector:()=>({})},sessionStorage:{getItem:()=>"valid"},alert:message=>popups.push(message),fetch:async(url,options)=>{
+    const request=JSON.parse(options.body);sent.push(request);return {ok:true,json:async()=>({ok:true,savedCount:2,players:[{memberName:"김선수",birthYear:"1985",joinYear:"2021"},{memberName:"박선수",birthYear:"1991",joinYear:"2018"}]})};
+  }});
+  vm.runInContext(clientSource.slice(0,clientSource.indexOf('document.querySelectorAll(".tab-button")')),context);
+  await context.saveChangedPlayerYears(form);
+  assert.deepEqual(sent[0].payload.players,[{memberName:"김선수",joinYear:"2021"},{memberName:"박선수",birthYear:"1991"}]);
+  assert.equal(popups[0],"2명의 선수 정보를 저장하고 확인했습니다.");assert.equal(button.textContent,"저장");assert.equal(rows[0].dataset.savedJoinYear,"2021");
+  await context.saveChangedPlayerYears(form);assert.equal(sent.length,1,"unchanged rows must not be saved again");
+  rows[0].querySelector(".join-year-input").value="2019";
+  context.fetch=async()=>({ok:true,json:async()=>({ok:true,savedCount:1,players:[{memberName:"김선수",birthYear:"1985"}]})});
+  await context.saveChangedPlayerYears(form);assert.match(popups.at(-1),/저장되지 않았습니다/);assert.equal(rows[0].dataset.savedJoinYear,"2021");assert.equal(rows[0].querySelector(".join-year-input").value,"2019");
+  context.fetch=async()=>{throw new Error("연결 실패");};await context.saveChangedPlayerYears(form);assert.equal(popups.at(-1),"연결 실패");assert.equal(button.disabled,false);
+  form.dataset.partialYearUpdates="false";context.fetch=()=>{throw new Error("must not contact outdated save API");};await context.saveChangedPlayerYears(form);assert.match(popups.at(-1),/최신 버전/);
 });
 
 test("joining years migrate legacy private rows, validate batches and survive birth-only updates", () => {
@@ -281,6 +256,22 @@ test("joining years migrate legacy private rows, validate batches and survive bi
   assert.equal(read().birthYear, "");
   call("savePlayerBirthYears", { players: [{ memberName: "김선수", birthYear: "", joinYear: "" }] });
   assert.equal(read().joinYear, "");
+});
+
+test("year patches preserve omitted years and other players while allowing explicit clears", () => {
+  const { call } = server();
+  call("savePlayerBirthYears", { players: [{ memberName: "김선수", birthYear: "1985", joinYear: "2018" }, { memberName: "박선수", birthYear: "1990", joinYear: "2020" }] });
+  call("savePlayerBirthYears", { players: [{ memberName: "김선수", joinYear: "2019" }] });
+  let list = call("adminList", { view: "player-birth-years" });
+  assert.equal(list.partialYearUpdates,true);
+  assert.equal(list.players.find(p=>p.memberName==="김선수").birthYear,"1985");
+  assert.equal(list.players.find(p=>p.memberName==="박선수").joinYear,"2020");
+  call("savePlayerBirthYears", { players: [{ memberName: "김선수", birthYear: "1986" }] });
+  call("savePlayerBirthYears", { players: [{ memberName: "김선수", joinYear: "" }] });
+  list = call("adminList", { view: "player-birth-years" });
+  assert.equal(list.players.find(p=>p.memberName==="김선수").birthYear,"1986");
+  assert.equal(list.players.find(p=>p.memberName==="김선수").joinYear,"");
+  assert.throws(()=>call("savePlayerBirthYears", { players: [{ memberName: "김선수" }] }),/수정할 연도/);
 });
 
 test("edited cells and row badges reset only when values match the saved originals", () => {
