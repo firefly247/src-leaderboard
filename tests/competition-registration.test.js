@@ -11,11 +11,11 @@ test("member search includes every matching distinct member and keeps A/B names 
   assert.deepEqual(Array.from(app.competitionMemberNames("신규선수")),[]);
 });
 test("new member status clears for an existing name or an empty input",()=>{
-  const app=client(),status={},input={value:"새선수",parentElement:{querySelector:()=>status}};
+  const app=client(),classes=new Set(),input={value:"새선수",classList:{toggle(name,on){if(on)classes.add(name);else classes.delete(name);}}};
   vm.runInContext('state.members=[{memberName:"이동훈B"}];',app);
-  app.updateCompetitionMemberStatus(input);assert.equal(status.hidden,false);assert.equal(status.textContent,"신규 선수");
-  input.value=" 이동훈B ";app.updateCompetitionMemberStatus(input);assert.equal(status.hidden,true);
-  input.value=" ";app.updateCompetitionMemberStatus(input);assert.equal(status.hidden,true);
+  app.updateCompetitionMemberStatus(input);assert.equal(classes.has("is-new-member"),true);
+  input.value=" 이동훈B ";app.updateCompetitionMemberStatus(input);assert.equal(classes.has("is-new-member"),false);
+  input.value=" ";app.updateCompetitionMemberStatus(input);assert.equal(classes.has("is-new-member"),false);
 });
 test("empty inputs keep suggestions closed",()=>{
   const app=client();app.openCompetitionMemberMenu({value:" ",disabled:false});

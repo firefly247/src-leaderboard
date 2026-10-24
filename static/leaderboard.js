@@ -325,8 +325,8 @@ function competitionMemberNames(query="") {
   return [...new Set(state.members.map(member=>member.memberName))].filter(name=>name.toLocaleLowerCase("ko").includes(normalized)).sort((a,b)=>a.localeCompare(b,"ko"));
 }
 function updateCompetitionMemberStatus(input) {
-  const name=input.value.trim(),isNew=Boolean(name)&&!state.members.some(member=>member.memberName===name),status=input.parentElement.querySelector(".competition-member-status");
-  status.hidden=!isNew;status.textContent=isNew?"신규 선수":"";
+  const name=input.value.trim(),isNew=Boolean(name)&&!state.members.some(member=>member.memberName===name);
+  input.classList.toggle("is-new-member",isNew);
 }
 function closeCompetitionMemberMenu() {
   if(!competitionMemberMenu)return;
@@ -361,7 +361,7 @@ function setupCompetitionMemberInput(input) {
     menu.element.querySelectorAll("[data-member-option]").forEach((option,index)=>{const active=index===menu.activeIndex;option.classList.toggle("is-selected",active);option.setAttribute("aria-selected",String(active));if(active){input.setAttribute("aria-activedescendant",option.id);option.scrollIntoView({block:"nearest"});}});
   };
 }
-function addCompetitionParticipantRow(team,role,index) { const row=document.createElement("label"),roleName=role==="1"?"COX":"CREW";row.className=`competition-person competition-person-${roleName.toLowerCase()}`;row.dataset.batchRow="competition";row.innerHTML=`<span class="sr-only">${roleName} ${index} 이름</span><input class="batch-member-input competition-person-input" maxlength="50" placeholder="${roleName} ${index}" aria-label="${roleName} ${index} 이름"><span class="competition-member-status" role="status" hidden></span><input class="batch-role-select" type="hidden" value="${role}">`;team.querySelector(role==="1"?".competition-team-cox-inputs":".competition-team-crew-inputs").appendChild(row);setupCompetitionMemberInput(row.querySelector(".competition-person-input"));return row; }
+function addCompetitionParticipantRow(team,role,index) { const row=document.createElement("label"),roleName=role==="1"?"COX":"CREW";row.className=`competition-person competition-person-${roleName.toLowerCase()}`;row.dataset.batchRow="competition";row.innerHTML=`<span class="sr-only">${roleName} ${index} 이름</span><input class="batch-member-input competition-person-input" maxlength="50" placeholder="${roleName} ${index}" aria-label="${roleName} ${index} 이름"><input class="batch-role-select" type="hidden" value="${role}">`;team.querySelector(role==="1"?".competition-team-cox-inputs":".competition-team-crew-inputs").appendChild(row);setupCompetitionMemberInput(row.querySelector(".competition-person-input"));return row; }
 function resetCompetitionTeamLineup(team) { closeCompetitionMemberMenu();const roles=competitionLineupRoles(team.querySelector(".competition-team-event-input").value),coxContainer=team.querySelector(".competition-team-cox-inputs"),crewContainer=team.querySelector(".competition-team-crew-inputs");delete team.dataset.lineupGroupId;coxContainer.innerHTML="";crewContainer.innerHTML="";let crewIndex=roles.filter(role=>role!=="1").length,coxIndex=0;roles.forEach(role=>addCompetitionParticipantRow(team,role,role==="1"?++coxIndex:crewIndex--));team.querySelector(".competition-team-cox-group").classList.toggle("is-empty",coxIndex===0); }
 function competitionCatalogForType(type) { return {events:state.competitionEvents.filter(e=>catalogCompetitionType(e.competition_event_id)===type),divisions:state.competitionDivisions.filter(d=>competitionDivisionType(d)===type&&d.competition_division_id!=="division-indoor-unspecified")}; }
 function competitionTeamNames() { return [...new Set(state.competitionRecords.map(r=>String(r.note||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ko")); }
