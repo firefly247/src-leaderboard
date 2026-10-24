@@ -27,6 +27,7 @@ function dispatch_(action, p, token) {
   if (action === 'pendingDeleteRecords') return pendingDeleteRecords_();
   requireAdmin_(token);
   if (action === 'adminList') return adminList_(p.view);
+  if (action === 'saveApprovedRecord') return saveApprovedRecord_(p);
   if (action === 'saveCompetitionDates') return saveCompetitionDates_(p);
   if (action === 'updateCompetitionRequests') return updateCompetitionRequests_(p);
   if (action === 'savePlayerBirthYear') return savePlayerBirthYear_(p);
@@ -215,6 +216,8 @@ function eventNameCompare_(a, b) {
 }
 
 function adminList_(view) {
+  if (view === 'ergo-records') return { records: records_(), events: events_().sort(eventNameCompare_) };
+  if (view === 'competition-records') return { records: competitionRecords_(), competitions: competitions_(), competitionEvents: competitionEvents_(), competitionDivisions: competitionDivisions_() };
   if (view === 'competition-dates') return { competitionDates: competitionDateCatalog_() };
   if (view === 'player-birth-years') return { players: playerBirthYears_() };
   if (view === 'events') return { events: events_().sort(eventNameCompare_) };
@@ -547,6 +550,59 @@ function manageCompetitionDivision_(p) {
   } finally { lock.releaseLock(); }
 }
 
+function approvedTeamKey_(row) {
+  return row.lineup_group_id || [row.year,row.competition_id,row.competition_event_id,row.competition_division_id,row.gold > 0 ? 'gold' : row.silver > 0 ? 'silver' : row.bronze > 0 ? 'bronze' : 'participation',row.note || ''].join('\0');
+}
+function sameApprovedRecord_(a, b, columns) {
+  return b && typeof b === 'object' && columns.every(key => String(a[key] || '') === String(b[key] || ''));
+}
+function saveApprovedRecord_(p) {
+  if (!['ergo','competition'].includes(p.kind)) throw new Error('기록 종류를 확인해 주세요.');
+  if (!p.changes || typeof p.changes !== 'object' || Array.isArray(p.changes)) throw new Error('수정 내용을 확인해 주세요.');
+  const competition = p.kind === 'competition', path = competition ? 'data/competition_records.csv' : 'data/records.csv';
+  const columns = competition ? COMPETITION_RECORD_COLUMNS : RECORD_COLUMNS;
+  const allowed = competition ? ['member_name','competition_id','competition_event_id','competition_division_id','year','competition_type','is_cox','gold','silver','bronze','note'] : ['member_name','event_id','time_display','competition','competition_date','note'];
+  if (!Object.keys(p.changes).length || Object.keys(p.changes).some(key => !allowed.includes(key))) throw new Error('수정할 수 없는 항목입니다.');
+  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    const snapshot = githubGet_(path), rows = parseCsvObjects_(snapshot.content);
+    const row = rows.find(record => record.record_id === p.recordId);
+    if (!row || !sameApprovedRecord_(row, p.expectedRecord, columns)) throw new Error('기록이 변경되었거나 삭제되었습니다. 새로 조회한 뒤 수정해 주세요.');
+    const next = Object.assign({}, row);
+    Object.keys(p.changes).forEach(key => { next[key] = String(p.changes[key] == null ? '' : p.changes[key]).trim(); });
+    if (!next.member_name || next.member_name.length > 50 || next.note.length > 300) throw new Error('이름은 1~50자, 메모·팀명은 300자 이하여야 합니다.');
+    let team = [row];
+    if (competition) {
+      const race = competitions_().find(item => item.competition_id === next.competition_id);
+      const event = competitionEvents_().find(item => item.competition_event_id === next.competition_event_id);
+      const division = competitionDivisions_().find(item => item.competition_division_id === next.competition_division_id);
+      if (!race || !event || !division) throw new Error('기준정보에 등록된 대회, 종목, 나이대를 선택해 주세요.');
+      next.competition_name = race.competition_name;
+      next.competition_event_name = event.competition_event_name;
+      next.competition_division_name = division.competition_division_name;
+      if (!['0','1'].includes(next.is_cox) || !/^\d{4}$/.test(next.year) || !['gold','silver','bronze'].every(key => /^\d{1,2}$/.test(next[key]))) throw new Error('연도, 역할, 메달 수를 확인해 주세요.');
+      validateCompetitionAdd_({ memberName: next.member_name, competitionId: next.competition_id, competitionEventId: next.competition_event_id, competitionDivisionId: next.competition_division_id, year: Number(next.year), competitionType: next.competition_type, gold: Number(next.gold), silver: Number(next.silver), bronze: Number(next.bronze) });
+      if (p.applyToTeam === true) {
+        team = rows.filter(record => approvedTeamKey_(record) === approvedTeamKey_(row));
+        const expected = p.expectedTeamRecords;
+        if (!Array.isArray(expected) || expected.length !== team.length || new Set(expected.map(record => record.record_id)).size !== team.length || team.some(record => !sameApprovedRecord_(record, expected.find(item => item.record_id === record.record_id), columns))) throw new Error('팀 기록이 변경되었습니다. 새로 조회한 뒤 수정해 주세요.');
+        // Only shared race fields propagate; each athlete keeps their name and role.
+        const shared = ['competition_id','competition_name','competition_event_id','competition_event_name','competition_division_id','competition_division_name','year','competition_type','gold','silver','bronze','note'];
+        team.forEach(record => shared.forEach(key => { record[key] = next[key]; }));
+      }
+    } else {
+      const event = events_().find(item => item.event_id === next.event_id), timeMs = parseTimeMs_(next.time_display);
+      const date = new Date(next.competition_date + 'T00:00:00Z');
+      if (!event || !timeMs || !/^\d{4}-\d{2}-\d{2}$/.test(next.competition_date) || Number.isNaN(date.getTime()) || date.toISOString().slice(0,10) !== next.competition_date || next.competition.length > 100) throw new Error('종목, 기록, 날짜, 대회/장소를 확인해 주세요.');
+      next.event_name = event.event_name;
+      next.time_ms = String(timeMs);
+      next.time_display = formatTime_(timeMs);
+    }
+    Object.assign(row, next);
+    writeCsv_(path, columns, rows, 'Edit approved ' + p.kind + ' record ' + row.record_id + (team.length > 1 ? ' and team (' + team.length + ')' : ''), snapshot.sha);
+    return { updatedCount: team.length };
+  } finally { lock.releaseLock(); }
+}
 function records_() { return readCsv_('data/records.csv'); }
 function events_() { return readCsv_('data/events.csv'); }
 function competitionDates_() { return readCsv_('data/competition_dates.csv'); }
@@ -597,15 +653,15 @@ function competitions_() { return readCsv_('data/competitions.csv'); }
 function competitionEvents_() { return readCsv_('data/competition_events.csv'); }
 function competitionDivisions_() { return readCsv_('data/competition_divisions.csv'); }
 function competitionRecords_() { return readCsv_('data/competition_records.csv'); }
-function readCsv_(path) {
-  const text = githubGet_(path).content;
+function readCsv_(path) { return parseCsvObjects_(githubGet_(path).content); }
+function parseCsvObjects_(text) {
   const rows = Utilities.parseCsv(text);
   const headers = rows.shift();
   return rows.filter(r => r.some(Boolean)).map(r => Object.fromEntries(headers.map((h,i) => [h, r[i] || ''])));
 }
-function writeCsv_(path, headers, rows, message) {
+function writeCsv_(path, headers, rows, message, expectedSha) {
   const content = [headers.join(',')].concat(rows.map(r => headers.map(h => csvValue_(r[h])).join(','))).join('\n') + '\n';
-  githubPut_(path, content, message);
+  githubPut_(path, content, message, expectedSha);
 }
 function csvValue_(value) { const text = String(value == null ? '' : value); return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text; }
 function githubGet_(path) {
@@ -615,8 +671,9 @@ function githubGet_(path) {
   const body = JSON.parse(response.getContentText());
   return { sha: body.sha, content: Utilities.newBlob(Utilities.base64Decode(body.content.replace(/\n/g,''))).getDataAsString('UTF-8') };
 }
-function githubPut_(path, content, message) {
+function githubPut_(path, content, message, expectedSha) {
   const current = githubGet_(path);
+  if (expectedSha && current.sha !== expectedSha) throw new Error('기록이 변경되었습니다. 새로 조회한 뒤 수정해 주세요.');
   const response = UrlFetchApp.fetch(githubUrl_(path), { method: 'put', contentType: 'application/json', headers: githubHeaders_(), payload: JSON.stringify({ message: message, content: Utilities.base64Encode(content, Utilities.Charset.UTF_8), sha: current.sha, branch: properties_().getProperty('GITHUB_BRANCH') || 'main' }), muteHttpExceptions: true });
   if (response.getResponseCode() < 200 || response.getResponseCode() > 299) throw new Error('GitHub 커밋에 실패했습니다: ' + response.getContentText());
 }
