@@ -7,6 +7,11 @@
 .training-day-buttons small { display:block; margin-top:4px; font-size:12px; }
 .training-shell .training-buttons { display:flex; gap:8px; flex-wrap:wrap; }
 .training-shell button[data-choice],.training-shell button[data-flag],.training-shell button[data-date],.training-shell button[data-open-date],.training-shell button[data-check],.training-week-nav button { min-height:44px; padding:10px 14px; border:1px solid #cbd5e1; border-radius:10px; background:#fff; color:#243b58; font:inherit; cursor:pointer; }
+.training-shell button[data-participation-date],.training-shell button[data-participation-status],.training-shell button[data-qualification] { min-height:44px; padding:10px 14px; border:1px solid #cbd5e1; border-radius:10px; background:#fff; color:#243b58; font:inherit; cursor:pointer; }
+.training-shell textarea { width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:10px; font:inherit; font-size:16px; background:#fff; color:#15253d; resize:vertical; }
+.training-comment { white-space:pre-wrap; overflow-wrap:anywhere; }
+.training-qualifications { margin-top:10px; }
+.training-shell .training-qualifications button { font-size:12px; }
 .training-shell button[aria-pressed="true"]:not([data-view]) { background:#e8f0ff; border-color:#1557c8; color:#124cae; box-shadow:inset 0 0 0 1px #1557c8; }
 .training-shell button:disabled { opacity:.5; cursor:default; }
 .training-shell fieldset { border:0; padding:0; margin:0; min-width:0; }

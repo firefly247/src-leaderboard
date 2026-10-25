@@ -27,14 +27,14 @@ test('admin authorization, revision conflicts, and attendance-only updates',()=>
   assert.equal(t.plan.checks['id-1'],'불참');assert.equal(JSON.stringify(t.plan.boats),boats);assert.equal(s.call('trainingGet').training.plan.checks['id-1'],'불참');
   assert.throws(()=>s.call('trainingCheck',{id:'unknown',status:'출석',revision:t.revision},'valid'),/편성된 멤버/);
 });
-test('fleet capacity, cox and small boat eligibility, late arrivals',()=>{
+test('fleet capacity and qualifications without a removed arrival-time restriction',()=>{
   const s=server(),p=Array.from({length:32},(_,i)=>({id:`p${i}`,name:`선수${i}`,status:'참석',arrival:'정시',preference:'무관',experience:'중급',canCox:i<4,canSmallBoat:true}));
   const result=s.build(p),seats=result.boats.flatMap(b=>b.seats);assert.equal(seats.length,25);assert.equal(new Set(seats.map(m=>m.id)).size,25);assert.equal(result.wait.length,7);
   assert.equal(result.boats.filter(b=>b.type==='4X+').length,4);assert.equal(result.boats.filter(b=>b.type==='2X').length,2);assert.equal(result.boats.filter(b=>b.type==='1X').length,1);
   result.boats.filter(b=>b.type==='4X+').forEach(b=>assert.ok(p.find(m=>m.id===b.seats[0].id).canCox));
   p.forEach(m=>{m.canCox=false;m.canSmallBoat=false;});assert.equal(s.build(p).boats.length,0);
   p[0].canCox=true;const beginners=s.build(p);assert.equal(beginners.boats.length,1);assert.equal(beginners.boats[0].seats.length,5);
-  p[0].arrival='늦참';assert.equal(s.build(p).boats.length,0);assert.equal(s.build(p).wait.length,32);
+  p[0].arrival='늦참';assert.equal(s.build(p).boats.length,1);assert.equal(s.build(p).wait.length,27);
 });
 test('registration changes preserve published plan and flag a stale snapshot; dates are isolated',()=>{
   const s=server();s.call('trainingJoin',entry('김선수',{canSmallBoat:true}));let t=s.call('trainingRecommend',{revision:2},'valid').training;const plan=JSON.stringify(t.plan);
@@ -78,4 +78,42 @@ test('training UI uses buttons throughout and displays only opened dates',()=>{
   const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8');
   assert.ok(!source.includes('<select'));assert.ok(!source.includes('type="date"'));assert.ok(!source.includes('name="experience"'));
   assert.match(source,/data-open-date/);assert.match(source,/api\('trainingList'\)/);assert.match(source,/data-check=/);assert.match(source,/aria-pressed/);
+});
+test('weekly answers support both dates, single date, absence and tentative with comments',()=>{
+  const s=server();s.call('trainingOpen',{dates:['2026-10-25']},'valid');
+  const apply=(status,dates,comment='전달 내용\n두 번째 줄')=>s.call('trainingWeekJoin',{...entry('김선수'),week:'2026-10-24',status,dates,comment}).trainings;
+  let result=apply('참석',['2026-10-24','2026-10-25']);assert.deepEqual(result.map(t=>t.participants[0].status),['참석','참석']);assert.equal(result[1].participants[0].comment,'전달 내용\n두 번째 줄');
+  result=apply('참석',['2026-10-24']);assert.deepEqual(result.map(t=>t.participants[0].status),['참석','불참']);
+  result=apply('불참',[]);assert.deepEqual(result.map(t=>t.participants[0].status),['불참','불참']);
+  result=apply('미정',[],'');assert.deepEqual(result.map(t=>t.participants[0].status),['미정','미정']);assert.equal(result[0].participants[0].comment,'');
+  assert.equal(result[0].participants[0].arrival,undefined);assert.equal(result[0].participants[0].preference,undefined);
+});
+test('weekly validation and edit-key conflicts leave both days unchanged',()=>{
+  const s=server(),base={...entry('김선수'),week:'2026-10-24',dates:['2026-10-24'],comment:'처음'};
+  assert.throws(()=>s.call('trainingWeekJoin',{...base,dates:['2026-10-25']}),/개설하지 않은/);
+  s.call('trainingOpen',{dates:['2026-10-25']},'valid');s.call('trainingWeekJoin',base);
+  const before=()=>JSON.stringify(s.call('trainingGet').training)+JSON.stringify(s.call('trainingGet',{date:'2026-10-25'}).training),saved=before();
+  for(const patch of [{comment:'x'.repeat(1001)},{status:'참석',dates:[]},{status:'불참',dates:['2026-10-24']},{dates:['2026-10-31']},{week:'2026-10-25'},{editKey:'b'.repeat(32)}]){assert.throws(()=>s.call('trainingWeekJoin',{...base,...patch}));assert.equal(before(),saved);}
+  assert.throws(()=>s.call('trainingWeekJoin',{...base,comment:42}),/코멘트/);
+});
+test('operators can manage boarding qualifications removed from the simplified signup',()=>{
+  const s=server();s.call('trainingWeekJoin',{...entry('김선수'),week:'2026-10-24',dates:['2026-10-24'],comment:'<script>표시할 텍스트</script>'});
+  let t=s.call('trainingGet').training;const p={id:t.participants[0].id,field:'canCox',value:true,revision:t.revision};
+  assert.throws(()=>s.call('trainingQualifications',p),/관리자 인증/);
+  t=s.call('trainingQualifications',p,'valid').training;assert.equal(t.participants[0].canCox,true);
+  t=s.call('trainingWeekJoin',{...entry('김선수'),canCox:undefined,week:'2026-10-24',dates:['2026-10-24'],comment:'수정'}).trainings[0];assert.equal(t.participants[0].canCox,true);
+});
+test('signup is name, opened weekend dates/absence/tentative and comment, without removed fields',()=>{
+  const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8');
+  for(const text of ['trainingTenure','자동 계산합니다','참가 시간','희망 보트','data-flag','data-choice'])assert.ok(!source.includes(text),text);
+  assert.match(source,/name="comment"/);assert.match(source,/data-participation-date/);assert.match(source,/data-participation-status/);assert.match(source,/esc\(m.comment\)/);
+  assert.ok(source.indexOf('이름<input')<source.indexOf('<legend>참가 여부'));assert.ok(source.indexOf('<legend>참가 여부')<source.indexOf('name="comment"'));
+});
+test('typing or blurring a name preserves date button nodes so the first date click is not lost',()=>{
+  const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8'),fn=source.match(/function syncChoices\(\)\{[\s\S]*?\n  \}/)[0];let buttons=[];
+  const container={set innerHTML(html){buttons=[...html.matchAll(/data-participation-(date|status)="([^"]+)"/g)].map(([,kind,value])=>({dataset:kind==='date'?{participationDate:value}:{participationStatus:value},setAttribute(k,v){this[k]=v;}}));}};
+  const hint={},submit={},form={elements:{name:{value:''}},querySelector:()=>submit};
+  const context=vm.createContext({form,busy:false,draftStatus:'',draftDates:new Set(),participationKey:null,signupSessions:()=>[{date:'2026-10-24'},{date:'2026-10-25'}],dayLabel:v=>v,esc:v=>v,el:s=>s==='#trainingParticipation'?container:hint,all:s=>buttons.filter(b=>s.includes('date')?b.dataset.participationDate:b.dataset.participationStatus)});
+  vm.runInContext(fn,context);context.syncChoices();const first=buttons[0];form.elements.name.value='김선수';context.syncChoices();assert.equal(buttons[0],first);
+  context.draftStatus='참석';context.draftDates.add('2026-10-24');context.syncChoices();assert.equal(buttons[0],first);assert.equal(first['aria-pressed'],'true');assert.equal(submit.disabled,false);
 });
