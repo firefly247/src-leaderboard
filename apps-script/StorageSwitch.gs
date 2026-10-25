@@ -18,14 +18,39 @@ function storageDispatch_(action,p,token) {
   try {
     var provider=storageProvider_();
     if(action==='storageSource')return {provider:provider,version:1};
-    if(provider==='supabase')StorageContext_=Object.assign(storageRead_(),{dirty:false,sheets:{}});
+    if(provider==='supabase'){StorageContext_=Object.assign(storageRead_(),{dirty:false,sheets:{}});StorageContext_.originalTables=JSON.parse(JSON.stringify(StorageContext_.tables));}
     var result=action==='publicData'?storagePublicData_():dispatchCore_(action,p,token);
-    if(StorageContext_&&StorageContext_.dirty)storageCommit_(StorageContext_.revision,StorageContext_.tables);
+    if(StorageContext_&&StorageContext_.dirty)storageCommit_(StorageContext_.revision,StorageContext_.tables,StorageContext_.originalTables);
     return result;
   } finally {StorageContext_=null;lock.releaseLock();}
 }
-function storageRead_(){return supabaseRequest_('rpc/club_store_read','post',{});}
-function storageCommit_(revision,tables){storageValidate_(tables);return supabaseRequest_('rpc/club_store_commit','post',{p_expected_revision:revision,p_tables:tables});}
+function storageRead_(){var snapshot=supabaseRequest_('rpc/club_store_read','post',{});snapshot.tables.request_log=snapshot.tables.request_log.map(storageUnpackRequest_);return snapshot;}
+function storageCommit_(revision,tables,before){storageValidate_(tables);if(!before)before=storageRead_().tables;return supabaseRequest_('rpc/club_store_commit','post',{p_expected_revision:revision,p_changes:storageChanges_(before,tables)});}
+function storageRequestSummary_(source,type){
+  var race=type==='competition_add',kind=source.competitionType==='indoor'?'실내대회':source.competitionType==='beach'?'비치대회':'수상대회';
+  return {member_name:String(source.memberName||''),event_id:String(race?source.competitionId||'':source.eventId||''),event_name:String(race?source.competitionName||'':source.eventName||''),
+    time_display:race?kind+((source.isCox===true||String(source.isCox)==='1')?' · COX':'')+' · '+source.competitionEventName+' · '+source.competitionDivisionName+' · 금 '+Number(source.gold||0)+' · 은 '+Number(source.silver||0)+' · 동 '+Number(source.bronze||0):String(source.timeDisplay||''),
+    competition_date:race?String(Number(source.year)):String(source.competitionDate||''),competition:race?'대회':String(source.competition||''),note:String(source.note||''),proof_photo_url:String(source.proof_photo_url||''),delete_reason:String(source.reason||'')};
+}
+function storagePackRequest_(row){
+  var source=JSON.parse(row.source_json),summary=storageRequestSummary_(source,row.request_type),extra={};
+  if(Object.prototype.hasOwnProperty.call(source,'__club_summary'))throw new Error('예약된 신청 필드가 있습니다.');
+  Object.keys(summary).forEach(function(k){if(String(row[k]||'')!==summary[k])extra[k]=String(row[k]||'');});
+  if(Object.keys(extra).length)source.__club_summary=extra;
+  var packed={};['request_id','request_type','requested_at','source_json','status','processed_at','result','record_id'].forEach(function(k){packed[k]=k==='source_json'?JSON.stringify(source):row[k];});return packed;
+}
+function storageUnpackRequest_(row){
+  var source=JSON.parse(row.source_json),extra=source.__club_summary||{};delete source.__club_summary;
+  return Object.assign({},row,storageRequestSummary_(source,row.request_type),extra,{source_json:JSON.stringify(source)});
+}
+function storageChanges_(before,after){
+  var changes={};Object.keys(StorageLayout).forEach(function(name){var spec=StorageLayout[name],key=function(r){return JSON.stringify(spec.key.map(function(k){return r[k];}));},pack=function(r){return name==='request_log'?storagePackRequest_(r):r;};
+    var previous=new Map(before[name].map(function(r){return [key(r),pack(r)];})),next=new Map(after[name].map(function(r){return [key(r),pack(r)];})),upsert=[],remove=[];
+    next.forEach(function(r,k){if(!previous.has(k)||JSON.stringify(storageNormal_(previous.get(k)))!==JSON.stringify(storageNormal_(r)))upsert.push(r);});
+    previous.forEach(function(r,k){if(!next.has(k)){var id={};spec.key.forEach(function(c){id[c]=r[c];});remove.push(id);}});
+    if(upsert.length||remove.length)changes[name]={upsert:upsert,remove:remove};
+  });return changes;
+}
 function storageNormal_(value){
   if(Array.isArray(value))return value.map(storageNormal_);
   if(value&&typeof value==='object')return Object.keys(value).sort().reduce(function(o,k){o[k]=storageNormal_(value[k]);return o;},{});
@@ -78,7 +103,7 @@ function storageMigrate_(activate){
   try{
     if(storageProvider_()!=='sheets-and-csv')throw new Error('이미 Supabase가 운영 저장소입니다. 원본으로 덮어쓸 수 없습니다.');
     if(activate===true)storageRequireFrontend_();
-    var source=storageLegacySnapshot_(),before=storageRead_(),written=storageCommit_(before.revision,source.tables),verified=storageRead_();
+    var source=storageLegacySnapshot_(),before=storageRead_(),written=storageCommit_(before.revision,source.tables,before.tables),verified=storageRead_();
     if(written.revision!==verified.revision||storageDigest_(verified.tables)!==source.digest)throw new Error('이전 데이터 대조에 실패했습니다. 기존 DB를 유지합니다.');
     var current=storageLegacySnapshot_();if(current.digest!==source.digest)throw new Error('원본이 변경되어 전환하지 않았습니다. 다시 실행해 주세요.');
     var report={copiedAt:new Date().toISOString(),sourceCommit:source.sourceCommit,revision:verified.revision,digest:source.digest,verified:true,counts:written.counts,activeStorage:'sheets-and-csv'};
@@ -89,8 +114,8 @@ function storageMigrate_(activate){
 }
 function storageRequireFrontend_(){
   var base='https://firefly247.github.io/src-leaderboard/',index=UrlFetchApp.fetch(base+'?_storage_check='+Date.now(),{muteHttpExceptions:true});
-  if(index.getResponseCode()!==200||!index.getContentText().includes('leaderboard.js?v=20261026-01'))throw new Error('저장소 전환을 지원하는 화면이 아직 배포되지 않았습니다.');
-  var script=UrlFetchApp.fetch(base+'static/leaderboard.js?v=20261026-01&_storage_check='+Date.now(),{muteHttpExceptions:true});
+  if(index.getResponseCode()!==200||!index.getContentText().includes('leaderboard.js?v=20261026-02'))throw new Error('저장소 전환을 지원하는 화면이 아직 배포되지 않았습니다.');
+  var script=UrlFetchApp.fetch(base+'static/leaderboard.js?v=20261026-02&_storage_check='+Date.now(),{muteHttpExceptions:true});
   if(script.getResponseCode()!==200||!script.getContentText().includes('async function loadRecordFiles()')||!script.getContentText().includes('api("storageSource")'))throw new Error('화면 저장소 연결 코드를 확인하지 못했습니다.');
 }
 /** Safe to rerun while the existing DB remains active. Does NOT switch production. */

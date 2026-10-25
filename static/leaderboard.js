@@ -166,7 +166,28 @@ function memberNameMatches(name,query) {
   return initialsOnly?nameInitials(name).includes(normalized):competitionMemberSearchKey(name).includes(normalized);
 }
 async function api(action,payload={},admin=false) { const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action,payload,adminToken:admin?state.adminToken:""})}),data=await res.json();if(!res.ok||!data.ok)throw new Error(data.message||"요청에 실패했습니다.");return data; }
-async function compress(file) { if(!file)return null;if(file.size>10*1024*1024)throw new Error("증빙사진은 원본 파일 기준 10MB 이하여야 합니다.");const image=await createImageBitmap(file);let scale=Math.min(1,1600/Math.max(image.width,image.height)),quality=.82,blob;do{const c=document.createElement("canvas");c.width=Math.round(image.width*scale);c.height=Math.round(image.height*scale);c.getContext("2d").drawImage(image,0,0,c.width,c.height);blob=await new Promise(r=>c.toBlob(r,"image/jpeg",quality));scale*=.8;quality=Math.max(.45,quality-.08);}while(blob&&blob.size>307200&&scale>.1);if(!blob||blob.size>307200)throw new Error("사진을 300KB 이하로 압축하지 못했습니다.");const base64=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(",")[1]);r.onerror=no;r.readAsDataURL(blob);});return {name:file.name.replace(/\.[^.]+$/,"")+".jpg",mimeType:"image/jpeg",base64}; }
+async function compress(file) {
+  if(!file)return null;
+  if(file.size>10*1024*1024)throw new Error("증빙사진은 원본 파일 기준 10MB 이하여야 합니다.");
+  const image=await createImageBitmap(file),limit=150*1024;
+  let scale=Math.min(1,1600/Math.max(image.width,image.height)),blob=null;
+  try {
+    // Try quality adjustments before sacrificing the size of the lettering.
+    for(let pass=0;pass<12;pass++) {
+      const c=document.createElement("canvas");c.width=Math.max(1,Math.round(image.width*scale));c.height=Math.max(1,Math.round(image.height*scale));c.getContext("2d").drawImage(image,0,0,c.width,c.height);
+      for(const quality of [.82,.74,.66,.58,.50,.42]) {
+        blob=await new Promise(r=>c.toBlob(r,"image/jpeg",quality));
+        if(!blob)throw new Error("사진을 처리하지 못했습니다.");
+        if(blob.size<=limit)break;
+      }
+      if(blob.size<=limit)break;
+      scale*=.8;
+    }
+    if(!blob||blob.size>limit)throw new Error("사진을 150KB 이하로 압축하지 못했습니다.");
+    const base64=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(",")[1]);r.onerror=no;r.readAsDataURL(blob);});
+    return {name:file.name.replace(/\.[^.]+$/,"")+".jpg",mimeType:"image/jpeg",base64};
+  } finally { if(image.close)image.close(); }
+}
 async function fetchWithTimeout(url) { const controller=new AbortController(),timeout=window.setTimeout(()=>controller.abort(),12000);try{return await fetch(url,{cache:"no-store",signal:controller.signal});}finally{window.clearTimeout(timeout);} }
 async function latestRevision() { try{const r=await fetchWithTimeout(`${GITHUB_COMMIT_URL}?_=${Date.now()}`),d=await r.json();return /^[a-f0-9]{40}$/i.test(d.sha||"")?d.sha:"main";}catch{return "main";} }
 async function fetchCsv(name,revision) { const local=["localhost","127.0.0.1"].includes(location.hostname),url=local?`data/${name}?_=${Date.now()}`:`https://raw.githubusercontent.com/firefly247/src-leaderboard/${revision}/data/${name}?_=${Date.now()}`,r=await fetchWithTimeout(url);if(!r.ok)throw new Error(`${name} 파일을 불러오지 못했습니다.`);return r.text(); }

@@ -234,8 +234,11 @@ function requestSource_(payload, photoUrl) {
 function savePhotoToGitHub_(requestId, photo) {
   if (!photo.base64 || photo.mimeType !== 'image/jpeg') throw new Error('증빙사진 형식이 올바르지 않습니다.');
   const bytes = Utilities.base64Decode(photo.base64);
-  if (bytes.length > 307200) throw new Error('증빙사진은 300KB 이하여야 합니다.');
-  const path = 'data/proofs/' + requestId + '.jpg';
+  if (bytes.length > 153600) throw new Error('증빙사진은 150KB 이하여야 합니다.');
+  const existing = proofFindIdentical_(bytes);
+  if (existing) return githubRawUrl_(existing);
+  const hash = proofHash_(bytes);
+  const path = 'data/proofs/sha256-' + hash + '.jpg';
   githubPutBase64_(path, photo.base64, 'Store proof photo for request ' + requestId);
   return githubRawUrl_(path);
 }

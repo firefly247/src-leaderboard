@@ -5,12 +5,22 @@ function fixture(provider='sheets-and-csv'){
  const ctx={properties_:()=>({getProperty:k=>props[k],setProperty:(k,v)=>props[k]=v}),LockService:{getScriptLock:()=>({waitLock:()=>{locks.held++;locks.acquired++;},releaseLock:()=>{locks.held--;}})},Utilities:{DigestAlgorithm:{SHA_256:'SHA256'},Charset:{UTF_8:'UTF8'},computeDigest:(_,s)=>[...crypto.createHash('sha256').update(s).digest()]},csvValue_:v=>/[",\n\r]/.test(String(v))?'"'+String(v).replace(/"/g,'""')+'"':String(v??''),parseCsvObjects_:()=>[],console};
  vm.createContext(ctx);for(const file of ['StorageLayout.gs','StorageSwitch.gs'])vm.runInContext(fs.readFileSync('apps-script/'+file,'utf8'),ctx);
  const blank=()=>Object.fromEntries(Object.keys(ctx.StorageLayout).map(n=>[n,[]]));snapshot={revision:0,tables:blank()};
- ctx.supabaseRequest_=(path,method,p)=>{calls.push(path);if(path==='rpc/club_store_read')return clone(snapshot);assert.equal(path,'rpc/club_store_commit');if(p.p_expected_revision!==snapshot.revision)throw new Error('conflict');snapshot={revision:snapshot.revision+1,tables:clone(p.p_tables)};return {revision:snapshot.revision,counts:Object.fromEntries(Object.entries(snapshot.tables).map(([k,v])=>[k,v.length]))};};
+ ctx.supabaseRequest_=(path,method,p)=>{calls.push(path);if(path==='rpc/club_store_read')return clone(snapshot);assert.equal(path,'rpc/club_store_commit');if(p.p_expected_revision!==snapshot.revision)throw new Error('conflict');const tables=clone(snapshot.tables);for(const [name,change] of Object.entries(p.p_changes)){const key=r=>JSON.stringify(ctx.StorageLayout[name].key.map(k=>r[k]));const rows=new Map(tables[name].map(r=>[key(r),r]));change.remove.forEach(r=>rows.delete(key(r)));change.upsert.forEach(r=>rows.set(key(r),clone(r)));tables[name]=[...rows.values()];}snapshot={revision:snapshot.revision+(Object.keys(p.p_changes).length?1:0),tables};return {revision:snapshot.revision,counts:Object.fromEntries(Object.entries(snapshot.tables).map(([k,v])=>[k,v.length]))};};
  return {ctx,props,calls,locks,blank,get snapshot(){return snapshot;},set snapshot(v){snapshot=v;}};
 }
 test('Legacy dispatch stays on existing storage and nested locks release only at the boundary',()=>{
  const f=fixture();f.ctx.dispatchCore_=()=>{const lock=f.ctx.storageLock_();lock.waitLock(1);assert.equal(f.locks.held,1);lock.releaseLock();assert.equal(f.locks.held,1);return {okay:true};};
  assert.equal(f.ctx.storageDispatch_('trainingGet',{},'').okay,true);assert.equal(f.locks.held,0);assert.equal(f.locks.acquired,1);assert.deepEqual(f.calls,[]);
+});
+test('Delta payload contains only changed rows and targeted primary-key removals',()=>{
+ const f=fixture(),before=f.blank();before.events=[{event_id:'a',event_name:'A'},{event_id:'b',event_name:'B'}];const next=clone(before);next.events=[{event_id:'a',event_name:'Changed'}];
+ const changes=clone(f.ctx.storageChanges_(before,next));assert.deepEqual(changes,{events:{upsert:[{event_id:'a',event_name:'Changed'}],remove:[{event_id:'b'}]}});assert.deepEqual(clone(f.ctx.storageChanges_(next,next)),{});
+});
+test('Compact requests keep one application payload and round-trip differing resolved summaries',()=>{
+ const f=fixture(),spec=f.ctx.StorageLayout.request_log,source={memberName:'김선수',eventId:'e1',eventName:'2000m',timeDisplay:'7:30.0',competitionDate:'2026-10-24',competition:'클럽',note:'',proof_photo_url:'proof.jpg'};
+ const row=Object.fromEntries(spec.columns.map(c=>[c,'']));Object.assign(row,{request_id:'r1',request_type:'add',source_json:JSON.stringify(source)},clone(f.ctx.storageRequestSummary_(source,'add')));
+ const packed=clone(f.ctx.storagePackRequest_(row));assert.equal(Object.keys(packed).length,8);assert.equal(packed.member_name,undefined);assert.equal(JSON.parse(packed.source_json).__club_summary,undefined);assert.deepEqual(clone(f.ctx.storageUnpackRequest_(packed)),row);
+ row.event_name='공식 종목명';const adjusted=f.ctx.storagePackRequest_(row);assert.deepEqual(clone(f.ctx.storageUnpackRequest_(adjusted)),row);assert.equal(JSON.parse(adjusted.source_json).__club_summary.event_name,'공식 종목명');
 });
 test('Supabase actions commit once and an action failure persists nothing; no silent legacy fallback',()=>{
  const f=fixture('supabase');f.ctx.dispatchCore_=()=>{const sheet=f.ctx.storageSheet_('PLAYER_BIRTH_YEARS');sheet.appendRow(['김선수','1980','','2023']);sheet.getRange(2,4).setValue('2024');return {okay:true};};

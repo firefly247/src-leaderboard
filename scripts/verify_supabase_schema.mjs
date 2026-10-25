@@ -35,14 +35,19 @@ try {
   await db.exec('set role service_role;');
   const snapshot=(await db.query('select public.club_store_read() as snapshot')).rows[0].snapshot;
   assert.equal(snapshot.revision,0);assert.equal(Object.keys(snapshot.tables).length,12);
-  const copied=(await db.query('select public.club_store_commit($1,$2) as result',[0,snapshot.tables])).rows[0].result;
+  const unchanged=(await db.query('select record_id,ctid::text as location from public.club_records order by record_id limit 1')).rows[0];
+  const firstEvent=snapshot.tables.events[0];
+  const delta={events:{upsert:[{...firstEvent,event_name:firstEvent.event_name+' 수정'}],remove:[]}};
+  const copied=(await db.query('select public.club_store_commit($1,$2) as result',[0,delta])).rows[0].result;
   assert.equal(copied.revision,1);
-  await assert.rejects(()=>db.query('select public.club_store_commit($1,$2)',[0,snapshot.tables]),/storage_revision_conflict/);
-  const broken=structuredClone(snapshot.tables);broken.competition_lineups=[{id:'duplicate',session_json:{}},{id:'duplicate',session_json:{}}];broken.events=[];
-  await assert.rejects(()=>db.query('select public.club_store_commit($1,$2)',[1,broken]),/duplicate/);
+  assert.deepEqual((await db.query('select record_id,ctid::text as location from public.club_records order by record_id limit 1')).rows[0],unchanged);
+  const beforeFailure=(await db.query('select public.club_store_read() as snapshot')).rows[0].snapshot;
+  await assert.rejects(()=>db.query('select public.club_store_commit($1,$2)',[0,delta]),/storage_revision_conflict/);
+  const broken={events:{upsert:[],remove:[firstEvent]},competition_lineups:{upsert:[{id:'duplicate',session_json:{}},{id:'duplicate',session_json:{}}],remove:[]}};
+  await assert.rejects(()=>db.query('select public.club_store_commit($1,$2)',[1,broken]),/duplicate|second time/);
   const retained=(await db.query('select public.club_store_read() as snapshot')).rows[0].snapshot;
-  assert.equal(retained.revision,1);assert.deepEqual(retained.tables,snapshot.tables);
-  await assert.rejects(()=>db.query('select public.club_store_commit($1,$2)',[1,{records:[]}]),/invalid_snapshot/);
+  assert.equal(retained.revision,1);assert.deepEqual(retained.tables,beforeFailure.tables);
+  await assert.rejects(()=>db.query('select public.club_store_commit($1,$2)',[1,{records:[]}]),/invalid_dataset/);
   console.log('PostgreSQL verified: 12 tables, RLS/grants, server probe, repeated CSV import (448 records), Korean JSON round trip.');
-  console.log('Storage RPC verified: role isolation, whole-database atomic commit, stale revision rejection and rollback after late-table failure.');
+  console.log('Storage RPC verified: row-delta writes preserve untouched rows, role isolation, atomic multi-table changes, stale revision rejection and rollback.');
 } finally { await db.close(); }
