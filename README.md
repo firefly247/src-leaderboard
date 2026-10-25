@@ -16,6 +16,8 @@ GitHub Pages의 공개 UI, 저장소의 CSV를 최종 승인 기록 저장소, G
 
 ## Apps Script 배포
 
+카카오 회원 로그인 설정은 [카카오 로그인 안내](docs/kakao-login.md)를 참고하세요. 카카오 앱 키를 등록하기 전까지 로그인 버튼은 준비 중으로 표시됩니다.
+
 1. 새 Apps Script 프로젝트를 만들고 apps-script/Code.gs를 붙여 넣습니다.
 2. 비공개 Google Spreadsheet를 하나 만들고 해당 ID를 준비합니다. 이 스프레드시트는 요청·처리 이력 및 관리자 전용 기준정보를 저장하며 공개 기록 저장소가 아닙니다. 증빙사진은 저장소의 data/proofs/ 폴더에 저장됩니다.
 3. 프로젝트 설정의 Script Properties에 다음 값을 등록합니다.

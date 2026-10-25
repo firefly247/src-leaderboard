@@ -20,6 +20,11 @@ function doPost(e) {
 }
 
 function dispatch_(action, p, token) {
+  if (action === 'kakaoAuthConfig') return kakaoAuthConfig_();
+  if (action === 'kakaoLoginStart') return kakaoLoginStart_(p);
+  if (action === 'kakaoLoginComplete') return kakaoLoginComplete_(p);
+  if (action === 'kakaoSession') return kakaoSession_(p);
+  if (action === 'kakaoLogout') return kakaoLogout_(p);
   if (action === 'adminLogin') return login_(p.password);
   if (action === 'requestAdd') return requestAdd_(p);
   if (action === 'requestCompetitionAdd') return requestCompetitionAdd_(p);

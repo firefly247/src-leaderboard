@@ -1,0 +1,12 @@
+.member-auth { display:flex; flex-wrap:wrap; align-items:center; gap:8px; width:100%; padding:10px 0; }
+.member-auth .kakao-login { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:10px 16px; border:0; border-radius:8px; background:#fee500; color:rgba(0,0,0,.85); font:inherit; font-weight:600; cursor:pointer; }
+.kakao-login svg { width:20px; height:20px; fill:#000; }
+.member-auth .kakao-login:disabled { opacity:.55; cursor:default; }
+.member-auth [hidden] { display:none; }
+.member-auth-status { font-size:13px; color:#d4dcea; overflow-wrap:anywhere; }
+.member-auth button:focus-visible { outline:3px solid #7ebaff; outline-offset:3px; }
+.kakao-callback { margin:0; padding:24px; min-height:100vh; box-sizing:border-box; display:grid; place-items:center; background:#f4f6fa; color:#172338; font-family:system-ui,sans-serif; }
+.kakao-callback main { width:min(100%,400px); box-sizing:border-box; padding:24px; border-radius:16px; background:white; }
+.kakao-callback h1 { font-size:22px; }
+.kakao-callback p { line-height:1.6; }
+.kakao-callback a { display:inline-block; padding:12px 0; color:#234e8e; }
