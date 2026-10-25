@@ -4,6 +4,8 @@ GitHub Pages의 공개 UI, 저장소의 CSV를 최종 승인 기록 저장소, G
 
 ## 구조
 
+Supabase는 기존 저장소를 유지한 상태로 연결을 준비했습니다. 테이블 생성 SQL과 서버 설정은 [Supabase 연결 준비](supabase/README.md)를 참고하세요. 아직 데이터 이전이나 저장 경로 전환은 하지 않았습니다.
+
 - data/records.csv: 승인된 기록의 최종 저장소입니다. 기존 이름·종목·기록·대회·날짜·메모 구조를 유지하고 정확한 삭제를 위한 record_id를 추가했습니다.
 - data/events.csv: event_id, event_name으로 관리되는 동적 종목 목록입니다. 기본값은 500m, 1000m, 2000m입니다.
 - data/competitions.csv: 관리자가 추가·수정·삭제하는 조정대회 목록입니다.

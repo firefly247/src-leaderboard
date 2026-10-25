@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "20261025130000",
+  "csv": {
+    "events": ["event_id"],
+    "records": ["record_id"],
+    "competitions": ["competition_id"],
+    "competition_dates": ["competition_id", "year"],
+    "competition_events": ["competition_event_id"],
+    "competition_divisions": ["competition_division_id"],
+    "competition_records": ["record_id"],
+    "dormant_members": ["member_name"]
+  },
+  "sheets": {
+    "PLAYER_BIRTH_YEARS": {"table": "player_birth_years", "columns": ["member_name", "birth_year", "updated_at", "join_year"], "key": ["member_name"]},
+    "WEEKEND_TRAINING": {"table": "weekend_training", "columns": ["date", "session_json"], "key": ["date"]},
+    "COMPETITION_LINEUPS": {"table": "competition_lineups", "columns": ["id", "session_json"], "key": ["id"]},
+    "REQUEST_LOG": {"table": "request_log", "columns": ["request_id", "request_type", "requested_at", "source_json", "status", "processed_at", "result", "record_id", "member_name", "event_id", "event_name", "time_display", "competition_date", "competition", "note", "proof_photo_url", "delete_reason"], "key": ["request_id"]}
+  }
+}

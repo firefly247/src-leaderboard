@@ -38,6 +38,8 @@ function dispatch_(action, p, token) {
   if (action === 'raceLineupList') return raceLineupList_();
   if (action === 'raceLineupGet') return raceLineupGet_(p);
   requireAdmin_(token);
+  if (action === 'supabaseConnectionStatus') return supabaseConnectionStatus_();
+  if (action === 'databaseStorageStats') return databaseStorageStats_();
   if (action === 'raceLineupAdminData') return raceLineupAdminData_();
   if (action === 'raceLineupGetAdmin') return raceLineupGetAdmin_(p);
   if (action === 'raceLineupCreate') return raceLineupCreate_(p);

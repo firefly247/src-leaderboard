@@ -3,6 +3,10 @@ __pycache__/
 .venv/
 venv/
 .env
+.env.*
+!.env.example
+.local/
+supabase/.temp/
 service-account*.json
 .pytest_cache/
 .DS_Store

@@ -1,0 +1,21 @@
+{
+  "measuredAt": "2026-10-25T13:13:33.950Z",
+  "units": "bytes (decimal KB/MB in summaries)",
+  "csv": {"files": 8, "rows": 505, "bytes": 80618},
+  "photos": {"files": 63, "bytes": 10053075},
+  "spreadsheet": {
+    "basis": "UTF-8 JSON of displayed used cells, including headers; not Google Sheets physical file size",
+    "sheets": [
+      {"name": "COMPETITION_LINEUPS", "rows": 1, "columns": 2, "utf8JsonBytes": 3388},
+      {"name": "WEEKEND_TRAINING", "rows": 2, "columns": 2, "utf8JsonBytes": 5478},
+      {"name": "PLAYER_BIRTH_YEARS", "rows": 56, "columns": 4, "utf8JsonBytes": 3030},
+      {"name": "REQUEST_LOG", "rows": 374, "columns": 17, "utf8JsonBytes": 279169},
+      {"name": "시트1", "rows": 0, "columns": 0, "utf8JsonBytes": 2}
+    ],
+    "totalUtf8JsonBytes": 291067
+  },
+  "structuredDataBytes": 371685,
+  "structuredDataAndPhotosBytes": 10424760,
+  "excluded": ["application code", "Git history", "database system catalogs and indexes", "Google Sheets physical storage overhead", "2-byte .gitkeep placeholder"],
+  "supabaseCloud": "No project created or data uploaded"
+}
