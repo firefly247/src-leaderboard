@@ -1,6 +1,10 @@
 # Supabase 연결 준비
 
-**현재 상태: 스키마와 서버 연결 코드를 준비했습니다. 클라우드 프로젝트는 아직 없으며, 실제 연결·데이터 이전·저장 경로 변경은 수행하지 않았습니다.**
+**현재 상태: 스키마와 서버 연결 코드를 준비했고, 사용자가 클라우드 프로젝트를 생성했습니다. 관리 화면 로그인 전이므로 테이블 적용·실제 연결·데이터 이전·저장 경로 변경은 아직 수행하지 않았습니다.**
+
+프로젝트 주소: `https://rssdactzolryhfyfinon.supabase.co`
+
+관리 화면: https://supabase.com/dashboard/project/rssdactzolryhfyfinon
 
 현재 사이트는 Google Sheets와 GitHub CSV를 계속 사용합니다. Supabase 설정값을 등록해도 자동 전환하거나 이중 저장하지 않습니다. 카카오 로그인도 기존 구현을 유지합니다.
 
@@ -14,14 +18,14 @@
 
 ## 프로젝트 생성 후 연결 절차
 
-1. Supabase에서 클럽용 프로젝트를 생성합니다. 지역은 이용자와 가까운 곳을 선택합니다. DB 비밀번호는 본인이 설정·보관합니다.
+1. 위의 기존 프로젝트 관리 화면에 로그인합니다. 새 프로젝트를 만들 필요는 없습니다. DB 비밀번호는 본인이 보관합니다.
 2. SQL Editor에서 마이그레이션 SQL을 실행합니다. 빈 프로젝트에 한 번만 적용합니다. CLI를 사용하는 경우 기존 프로젝트와 migration 이력을 확인한 후 `supabase link` → `supabase db push`로 적용합니다. 운영 프로젝트를 `db reset --linked`로 초기화하지 않습니다.
 3. 프로젝트의 Data API가 활성화되어 있는지 확인합니다. 이 구성은 기본 `public` 스키마의 `club_*` 테이블을 사용합니다. 브라우저에 데이터 읽기 권한은 주지 않습니다.
 4. Apps Script **프로젝트 설정 → 스크립트 속성**에 다음 두 값을 입력합니다.
 
    | 속성 | 값 |
    | --- | --- |
-   | `SUPABASE_URL` | `https://<20자리 프로젝트 참조>.supabase.co` |
+   | `SUPABASE_URL` | `https://rssdactzolryhfyfinon.supabase.co` |
    | `SUPABASE_SECRET_KEY` | 서버 전용 `sb_secret_...` 키 |
 
    Secret key는 채팅·GitHub·프런트엔드에 넣지 않습니다. Publishable key는 이 서버 전용 구성에 사용하지 않습니다. 사용자 지정 도메인은 현재 허용하지 않습니다.
