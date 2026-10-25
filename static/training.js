@@ -22,13 +22,14 @@
   const signupSessions=()=>sessions.filter(s=>s.date===signupWeek||s.date===signupSunday);
   const weekDates=()=>[week.toISOString().slice(0,10),new Date(week.getTime()+86400000).toISOString().slice(0,10)];
   const dayLabel=date=>`${Number(date.slice(5,7))}/${Number(date.slice(8,10))}(${new Date(date+'T00:00:00Z').getUTCDay()===6?'토':'일'})`;
-  function trainingRosterHtml(members,admin,busy){
+  function trainingRosterHtml(members,trainingDate){
     if(!members.length)return '<p class="form-description">아직 참가 신청이 없습니다.</p>';
+    const trainingYear=Number(String(trainingDate).slice(0,4));
     const groups=new Map();members.forEach(m=>{const key=Number.isInteger(m.tenure)&&m.tenure>0?m.tenure:null;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(m);});
     const tenures=[...groups.keys()].sort((a,b)=>a===null?1:b===null?-1:b-a),height=Math.max(...[...groups.values()].map(group=>group.length));groups.forEach(group=>group.sort((a,b)=>a.name.localeCompare(b.name,'ko')));
     const statusClass=status=>status==='참석'?'training-status-attending':status==='불참'?'training-status-absent':'training-status-tentative';
-    const cell=m=>!m?'':`<div class="training-roster-entry"><strong class="${statusClass(m.status)}" aria-label="${esc(m.name)}, ${esc(m.status)}">${esc(m.name)}</strong>${m.comment?`<p class="training-comment">${esc(m.comment)}</p>`:''}${admin?`<details class="training-roster-conditions"><summary>탑승 조건</summary><div class="training-buttons training-qualifications">${[['canCox','COX 가능'],['canSmallBoat','더블·싱글 가능']].map(([field,label])=>`<button type="button" data-qualification="${field}" data-member-id="${esc(m.id)}" data-value="${!m[field]}" aria-pressed="${!!m[field]}" ${busy?'disabled':''}>${label}</button>`).join('')}</div></details>`:''}</div>`;
-    return `<p class="player-summary-total">총 ${members.length}명</p><div class="table-wrap"><table class="player-join-table training-roster-table" aria-label="연차별 참가 명단"><thead><tr>${tenures.map(tenure=>`<th scope="col">${tenure===null?'미입력':tenure+'년차'}<small>${groups.get(tenure).length}명</small></th>`).join('')}</tr></thead><tbody>${Array.from({length:height},(_,i)=>`<tr>${tenures.map(tenure=>`<td>${cell(groups.get(tenure)[i])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    const cell=m=>!m?'':`<div class="training-roster-entry"><strong class="${statusClass(m.status)}" aria-label="${esc(m.name)}, ${esc(m.status)}">${esc(m.name)}</strong>${m.comment?`<p class="training-comment">${esc(m.comment)}</p>`:''}</div>`;
+    return `<p class="player-summary-total">총 ${members.length}명</p><div class="table-wrap"><table class="player-join-table training-roster-table" aria-label="연차별 참가 명단"><thead><tr>${tenures.map(tenure=>`<th scope="col">${tenure===null?'미입력':(trainingYear-tenure+1)+' ('+tenure+'년차)'}<small>${groups.get(tenure).length}명</small></th>`).join('')}</tr></thead><tbody>${Array.from({length:height},(_,i)=>`<tr>${tenures.map(tenure=>`<td>${cell(groups.get(tenure)[i])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   }
   function message(text,error=false){el('#trainingMessage').textContent=text;el('#trainingMessage').classList.toggle('is-error',error);}
   function setView(v){view=v;const dates=el('#trainingBrowseDates');dates.hidden=v==='join';if(v==='list'||v==='crew')el(`[data-screen="${v}"] .panel`).prepend(dates);all('[data-screen]').forEach(e=>e.hidden=e.dataset.screen!==v);all('[data-view]').forEach(e=>{e.classList.toggle('is-active',e.dataset.view===v);e.setAttribute('aria-pressed',String(e.dataset.view===v));});}
@@ -51,7 +52,7 @@
     el('#trainingOpenHint').textContent=busy?'저장 중입니다.':!catalogLoaded?(catalogError||'서버 연결을 확인하고 있습니다.') :!openSelection.size?'위의 토·일 날짜 버튼을 먼저 선택해 주세요.':'날짜 선택 완료 · 개설 버튼을 누르면 회원에게 공개됩니다.';
     const members=(data?.participants||[]).filter(m=>!isDormantMember(m.name));
     el('#trainingListCount').innerHTML=`<span class="training-status-attending">참석 ${members.filter(m=>m.status==='참석').length}</span> · <span class="training-status-absent">불참 ${members.filter(m=>m.status==='불참').length}</span> · <span class="training-status-tentative">미정 ${members.filter(m=>m.status==='미정').length}</span>`;
-    el('#trainingRoster').innerHTML=trainingRosterHtml(members,admin,busy);
+    el('#trainingRoster').innerHTML=trainingRosterHtml(members,data?.date||selectedDate);
     const plan=data?.plan?{...data.plan,boats:data.plan.boats.map(b=>({...b,seats:b.seats.filter(m=>!isDormantMember(m.name))})),wait:data.plan.wait.filter(m=>!isDormantMember(m.name))}:null;
     el('#trainingPublished').textContent=plan?'회원 공개 중':'';el('#trainingPlanNotice').textContent=!plan?'운영진이 참가 명단에서 추천 조합을 누르면 편성이 공개됩니다.':plan.registrationRevision!==data.registrationRevision?'편성 후 신청 변경이 있습니다. 운영진이 참가 명단을 확인해 주세요.':admin?'배별로 출석·불참 버튼을 누르세요. 출석 체크는 편성을 변경하지 않습니다.':'운영진이 공개한 편성 및 출석 현황입니다.';
     const seats=plan?plan.boats.flatMap(b=>b.seats):[],statuses=seats.map(m=>plan.checks[m.id]||'미확인');el('#trainingCheckSummary').textContent=plan?`편성 ${seats.length}명 · 출석 ${statuses.filter(s=>s==='출석').length} · 불참 ${statuses.filter(s=>s==='불참').length} · 미확인 ${statuses.filter(s=>s==='미확인').length}`:'';
@@ -80,7 +81,6 @@
     if(b.dataset.view){setView(b.dataset.view);render();return;}
     if(b.dataset.participationDate){if(draftStatus!=='참석')draftDates.clear();if(draftDates.has(b.dataset.participationDate))draftDates.delete(b.dataset.participationDate);else draftDates.add(b.dataset.participationDate);draftStatus=draftDates.size?'참석':'';syncChoices();return;}
     if(b.dataset.participationStatus){draftDates.clear();draftStatus=draftStatus===b.dataset.participationStatus?'':b.dataset.participationStatus;syncChoices();return;}
-    if(b.dataset.qualification&&state.adminToken){mutate('trainingQualifications',{id:b.dataset.memberId,field:b.dataset.qualification,value:b.dataset.value==='true'},true);return;}
     if(b.dataset.date){selectedDate=b.dataset.date;data=null;render();load();return;}
     if(b.dataset.openDate){if(openSelection.has(b.dataset.openDate))openSelection.delete(b.dataset.openDate);else openSelection.add(b.dataset.openDate);render();return;}
     if(b.dataset.check&&state.adminToken){mutate('trainingCheck',{id:b.dataset.check,status:b.dataset.value},true);return;}

@@ -132,15 +132,17 @@ test('signup labels omit the removed title, disclosures, save wording and traini
   assert.match(source,/type="submit" class="primary-button">참가 신청<\/button>/);
 });
 test('participation roster follows seniority columns, alphabetized names, counts and status colors',()=>{
-  const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8'),fn=source.match(/function trainingRosterHtml\(members,admin,busy\)\{[\s\S]*?\n  \}/)[0];
+  const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8'),fn=source.match(/function trainingRosterHtml\(members,trainingDate\)\{[\s\S]*?\n  \}/)[0];
   const context=vm.createContext({esc:v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))});vm.runInContext(fn,context);
   const members=[{id:'a',name:'박선수',tenure:7,status:'미정',comment:'확인 중'},{id:'b',name:'김선수',tenure:7,status:'참석'},{id:'c',name:'이선수',tenure:1,status:'불참'},{id:'d',name:'<미등록>',tenure:null,status:'미정',comment:'<script>내용</script>'}];
-  const html=context.trainingRosterHtml(members,false,false);
+  const html=context.trainingRosterHtml(members,'2026-10-24');
   assert.match(html,/player-join-table training-roster-table/);assert.ok(html.indexOf('7년차')<html.indexOf('1년차'));assert.ok(html.indexOf('1년차')<html.indexOf('미입력'));
-  assert.match(html,/7년차<small>2명/);assert.match(html,/총 4명/);assert.ok(html.indexOf('김선수')<html.indexOf('박선수'));
+  assert.match(html,/2020 \(7년차\)<small>2명/);assert.match(html,/2026 \(1년차\)/);assert.match(html,/총 4명/);assert.ok(html.indexOf('김선수')<html.indexOf('박선수'));
   assert.match(html,/class="training-status-attending" aria-label="김선수, 참석"/);assert.match(html,/class="training-status-absent" aria-label="이선수, 불참"/);assert.match(html,/class="training-status-tentative" aria-label="박선수, 미정"/);
   assert.ok(!html.includes('<script>'));assert.match(html,/&lt;script&gt;내용/);assert.ok(!html.includes('data-qualification='));
-  const admin=context.trainingRosterHtml(members,true,true);assert.match(admin,/<details class="training-roster-conditions">/);assert.match(admin,/data-qualification="canCox"[^>]*disabled/);
-  assert.match(context.trainingRosterHtml([],false,false),/아직 참가 신청이 없습니다/);
+  assert.doesNotMatch(html,/탑승 조건|data-qualification|<details/);
+  assert.match(context.trainingRosterHtml([{name:'사년차',tenure:4,status:'참석'}],'2026-10-24'),/2023 \(4년차\)/);
+  assert.match(context.trainingRosterHtml([{name:'사년차',tenure:4,status:'참석'}],'2027-10-24'),/2024 \(4년차\)/);
+  assert.match(context.trainingRosterHtml([],'2026-10-24'),/아직 참가 신청이 없습니다/);
   const css=fs.readFileSync(`${__dirname}/../static/training.css`,'utf8');for(const [status,color] of [['attending','#000'],['absent','#dc2626'],['tentative','#6b7280']])assert.ok(css.includes(`.training-status-${status} { color:${color}; }`));
 });
