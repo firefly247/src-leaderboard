@@ -5,6 +5,7 @@ function server(open=true){
   const spreadsheet={getSheetByName:n=>sheets.get(n),insertSheet(n){const rows=[];const sheet={rows,appendRow:r=>rows.push(r),setFrozenRows(){},getLastRow:()=>rows.length,getDataRange:()=>({getDisplayValues:()=>rows.map(r=>r.map(String))}),getRange(row,col){return {setNumberFormat(){return this;},setValues(values){assert.ok(held);values.forEach((r,i)=>{rows[row-1+i]||=[];r.forEach((v,j)=>rows[row-1+i][col-1+j]=v);});return this;}};}};sheets.set(n,sheet);return sheet;}};
   const context=vm.createContext({Date,Set,PropertiesService:{getScriptProperties:()=>({getProperty:()=> 'private-sheet'})},SpreadsheetApp:{openById:()=>spreadsheet,flush(){assert.ok(held);}},LockService:{getScriptLock:()=>({waitLock(){held=true;},releaseLock(){held=false;}})},CacheService:{getScriptCache:()=>({get:k=>k==='admin:valid'?'1':null})},Utilities:{getUuid:()=>`id-${++id}`,base64Encode:v=>Buffer.from(v).toString('base64'),computeDigest:(_,s)=>crypto.createHash('sha256').update(s).digest(),DigestAlgorithm:{SHA_256:'sha'},Charset:{UTF_8:'utf8'}}});
   for(const file of ['Code.gs','Training.gs'])vm.runInContext(fs.readFileSync(`${__dirname}/../apps-script/${file}`,'utf8'),context);
+  context.playerBirthYears_=()=>{const sheet=sheets.get('PLAYER_BIRTH_YEARS');return sheet?sheet.rows.slice(1).map(row=>({memberName:row[0],birthYear:row[1],joinYear:row[3]})):[];};
   const call=(a,p={},token='')=>JSON.parse(JSON.stringify(context.dispatch_(a,{date:'2026-10-24',...p},token)));
   if(open)call('trainingOpen',{dates:['2026-10-24']},'valid');
   return {call,build:p=>JSON.parse(JSON.stringify(context.trainingBuildPlan_(p))),sheets,setYears(rows){const sheet=spreadsheet.getSheetByName('PLAYER_BIRTH_YEARS')||spreadsheet.insertSheet('PLAYER_BIRTH_YEARS');sheet.rows.splice(0,sheet.rows.length,['name','birth','updated','join'],...rows.map(([name,year])=>[name,'1985','',year]));}};
@@ -77,7 +78,7 @@ test('quad distribution uses numeric seniority rather than a submitted skill lab
 test('training UI uses buttons throughout and displays only opened dates',()=>{
   const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8');
   assert.ok(!source.includes('<select'));assert.ok(!source.includes('type="date"'));assert.ok(!source.includes('name="experience"'));
-  assert.match(source,/data-open-date/);assert.match(source,/api\('trainingList'\)/);assert.match(source,/data-check=/);assert.match(source,/aria-pressed/);
+  assert.match(source,/data-open-date/);assert.match(source,/api\('trainingRoster'\)/);assert.match(source,/data-check=/);assert.match(source,/aria-pressed/);
 });
 test('weekly answers support both dates, single date, absence and tentative with comments',()=>{
   const s=server();s.call('trainingOpen',{dates:['2026-10-25']},'valid');
@@ -122,7 +123,7 @@ test('typing or blurring a name preserves date button nodes so the first date cl
 });
 test('signup completion opens one popup after success and none after a failed save',async()=>{
   const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8'),fn=source.match(/async function mutate\(action,payload=\{\},admin=false\)\{[\s\S]*?\n  \}/)[0],popups=[],messages=[];
-  const context=vm.createContext({busy:false,sequence:0,data:{opened:true,revision:1},selectedDate:'2026-10-24',signupSessions:()=>[{date:'2026-10-24'}],render(){},message:t=>messages.push(t),api:async()=>({trainings:[{date:'2026-10-24',revision:2}]}),alert:t=>popups.push(t)});
+  const context=vm.createContext({busy:false,sequence:0,rosterData:[],data:{opened:true,revision:1},selectedDate:'2026-10-24',signupSessions:()=>[{date:'2026-10-24'}],render(){},message:t=>messages.push(t),api:async()=>({trainings:[{date:'2026-10-24',revision:2}]}),alert:t=>popups.push(t)});
   vm.runInContext(fn,context);await context.mutate('trainingWeekJoin',{});assert.deepEqual(popups,['참가 신청이 완료되었습니다.']);assert.equal(context.busy,false);assert.equal(messages.at(-1),'');
   context.api=async()=>{throw new Error('저장 실패');};await context.mutate('trainingWeekJoin',{});assert.equal(popups.length,1);assert.equal(messages.at(-1),'저장 실패');assert.equal(context.busy,false);
 });
@@ -132,7 +133,7 @@ test('signup labels omit the removed title, disclosures, save wording and traini
   assert.match(source,/type="submit" class="primary-button">참가 신청<\/button>/);
 });
 test('participation roster follows seniority columns, alphabetized names, counts and status colors',()=>{
-  const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8'),fn=source.match(/function trainingRosterHtml\(members,trainingDate\)\{[\s\S]*?\n  \}/)[0];
+  const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8'),fn=source.match(/function trainingRosterHtml\(members,trainingDate,presetColumns=\[\]\)\{[\s\S]*?\n  \}/)[0];
   const context=vm.createContext({esc:v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))});vm.runInContext(fn,context);
   const members=[{id:'a',name:'박선수',tenure:7,status:'미정',comment:'확인 중'},{id:'b',name:'김선수',tenure:7,status:'참석'},{id:'c',name:'이선수',tenure:1,status:'불참'},{id:'d',name:'<미등록>',tenure:null,status:'미정',comment:'<script>내용</script>'}];
   const html=context.trainingRosterHtml(members,'2026-10-24');
@@ -145,4 +146,20 @@ test('participation roster follows seniority columns, alphabetized names, counts
   assert.match(context.trainingRosterHtml([{name:'사년차',tenure:4,status:'참석'}],'2027-10-24'),/2024 \(4년차\)/);
   assert.match(context.trainingRosterHtml([],'2026-10-24'),/아직 참가 신청이 없습니다/);
   const css=fs.readFileSync(`${__dirname}/../static/training.css`,'utf8');for(const [status,color] of [['attending','#000'],['absent','#dc2626'],['tentative','#6b7280']])assert.ok(css.includes(`.training-status-${status} { color:${color}; }`));
+});
+test('public roster snapshot includes preset player-info columns and only opened sanitized sessions',()=>{
+  const s=server();s.setYears([['김선수','2023'],['등록만된회원','2020'],['다른연차','2024'],['미입력','']]);
+  s.call('trainingJoin',entry('김선수'));const result=s.call('trainingRoster');assert.deepEqual(result.rosterColumns,[2020,2023,2024,null]);assert.equal(result.trainings.length,1);assert.equal(result.trainings[0].date,'2026-10-24');
+  assert.ok(!JSON.stringify(result).includes('1985'));assert.ok(!JSON.stringify(result).includes('editHash'));assert.ok(!JSON.stringify(result).includes('등록만된회원'));assert.ok(!JSON.stringify(result).includes('aaaa'));
+});
+test('roster stacks date tables and one deduplicated absence table with identical preset columns',()=>{
+  const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8'),context=vm.createContext({esc:v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),dayLabel:d=>d==='2026-10-24'?'10/24(토)':'10/25(일)'});
+  for(const name of ['trainingRosterHtml','trainingRosterWeek','trainingRosterPeople','trainingRosterSectionsHtml'])vm.runInContext(source.match(new RegExp('function '+name+'\\([^\\n]*\\)\\{[\\s\\S]*?\\n  \\}'))[0],context);
+  const person=(name,status,tenure=4)=>({name,status,tenure});const trainings=[{date:'2026-10-24',opened:true,participants:[person('토참석','참석'),person('양일참석','참석',7),person('불참회원','불참'),person('미정회원','미정')]},{date:'2026-10-25',opened:true,participants:[person('토참석','불참'),person('양일참석','참석',7),person('불참회원','불참'),person('미정회원','미정')]}];
+  const html=context.trainingRosterSectionsHtml(trainings,[2020,2023,2024,null],false,false);
+  assert.ok(html.indexOf('<h3>10/24(토)</h3>')<html.indexOf('<h3>10/25(일)</h3>'));assert.ok(html.indexOf('<h3>10/25(일)</h3>')<html.indexOf('<h3>불참/미정</h3>'));
+  assert.equal((html.match(/training-roster-table/g)||[]).length,3);assert.equal((html.match(/>토참석<\/strong>/g)||[]).length,1);assert.equal((html.match(/>양일참석<\/strong>/g)||[]).length,2);assert.equal((html.match(/>불참회원<\/strong>/g)||[]).length,1);
+  assert.equal((html.match(/2024 \(3년차\)<small>0명/g)||[]).length,3);assert.equal((html.match(/--training-roster-columns:4/g)||[]).length,3);
+  assert.ok(!html.includes('data-recommend-date'));const admin=context.trainingRosterSectionsHtml(trainings,[2020,2023],true,false);assert.match(admin,/data-recommend-date="2026-10-24"/);assert.match(admin,/data-recommend-date="2026-10-25"/);
+  assert.equal(context.trainingRosterWeek([...trainings,{date:'2026-10-31',opened:true,participants:[]}],'2026-10-25').length,2);
 });

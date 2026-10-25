@@ -27,6 +27,7 @@ function dispatch_(action, p, token) {
   if (action === 'pendingDeleteRecords') return pendingDeleteRecords_();
   if (action === 'trainingGet') return trainingGet_(p);
   if (action === 'trainingList') return trainingList_();
+  if (action === 'trainingRoster') return trainingRoster_();
   if (action === 'trainingJoin') return trainingJoin_(p);
   if (action === 'trainingWeekJoin') return trainingWeekJoin_(p);
   requireAdmin_(token);

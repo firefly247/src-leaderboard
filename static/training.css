@@ -2,7 +2,11 @@
 .training-shell .training-status-attending { color:#000; }
 .training-shell .training-status-absent { color:#dc2626; }
 .training-shell .training-status-tentative { color:#6b7280; }
+.training-shell .training-roster-table { table-layout:fixed; width:100%; min-width:calc(var(--training-roster-columns,1) * 110px); }
 .training-shell .training-roster-table td { vertical-align:top; }
+.training-roster-section { margin-top:24px; padding-top:18px; border-top:1px solid #e2e8f0; }
+.training-roster-section h3 { margin:0 0 10px; }
+.training-roster-section .primary-button { margin-top:12px; }
 .training-roster-entry { max-width:170px; margin:auto; }
 .training-roster-entry .training-comment { white-space:pre-wrap; font-size:12px; text-align:left; }
 .training-date-heading,.training-week-nav { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:14px; }

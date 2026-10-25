@@ -41,6 +41,16 @@ function trainingList_() {
   const lock=LockService.getScriptLock();lock.waitLock(30000);
   try{return trainingListFromSheet_(trainingSheet_());}finally{lock.releaseLock();}
 }
+/** Reuse the player-info column catalog without publishing the private player profiles. */
+function trainingRoster_() {
+  const players=playerBirthYears_(),columns=[...new Set(players.map(p=>/^\d{4}$/.test(String(p.joinYear||''))?Number(p.joinYear):null))].sort((a,b)=>a===null?1:b===null?-1:a-b);
+  const lock=LockService.getScriptLock();lock.waitLock(30000);
+  try{
+    const sheet=trainingSheet_(),catalog=trainingListFromSheet_(sheet),dates=new Set(catalog.sessions.map(s=>s.date));
+    const trainings=sheet.getDataRange().getDisplayValues().slice(1).filter(row=>dates.has(row[0])).map(row=>trainingPublic_(JSON.parse(row[1])).training).sort((a,b)=>a.date.localeCompare(b.date));
+    return {...catalog,rosterColumns:columns,trainings};
+  }finally{lock.releaseLock();}
+}
 function trainingOpen_(p) {
   if(!Array.isArray(p.dates)||p.dates.length<1||p.dates.length>2)throw new Error('개설할 토·일 날짜를 선택해 주세요.');
   const dates=[...new Set(p.dates.map(trainingDate_))].sort();
