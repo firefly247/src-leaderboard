@@ -2,7 +2,6 @@
 .training-shell .training-status-attending { color:#000; }
 .training-shell .training-status-absent { color:#dc2626; }
 .training-shell .training-status-tentative { color:#6b7280; }
-.training-shell .training-roster-table { table-layout:fixed; width:100%; min-width:calc(var(--training-roster-columns,1) * 110px); }
 .training-shell .training-roster-table td { vertical-align:top; }
 .training-roster-section { margin-top:24px; padding-top:18px; border-top:1px solid #e2e8f0; }
 .training-roster-section h3 { margin:0 0 10px; }

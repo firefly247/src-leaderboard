@@ -132,18 +132,18 @@ test('signup labels omit the removed title, disclosures, save wording and traini
   for(const text of ['나의 참가 신청','신청 이름','참가 신청 저장','${esc(dayLabel(s.date))} 훈련'])assert.ok(!source.includes(text),text);
   assert.match(source,/type="submit" class="primary-button">참가 신청<\/button>/);
 });
-test('participation roster follows seniority columns, alphabetized names, counts and status colors',()=>{
+test('participation roster follows player-info year columns, alphabetized names, counts and status colors',()=>{
   const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8'),fn=source.match(/function trainingRosterHtml\(members,trainingDate,presetColumns=\[\]\)\{[\s\S]*?\n  \}/)[0];
   const context=vm.createContext({esc:v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))});vm.runInContext(fn,context);
   const members=[{id:'a',name:'박선수',tenure:7,status:'미정',comment:'확인 중'},{id:'b',name:'김선수',tenure:7,status:'참석'},{id:'c',name:'이선수',tenure:1,status:'불참'},{id:'d',name:'<미등록>',tenure:null,status:'미정',comment:'<script>내용</script>'}];
   const html=context.trainingRosterHtml(members,'2026-10-24');
-  assert.match(html,/player-join-table training-roster-table/);assert.ok(html.indexOf('7년차')<html.indexOf('1년차'));assert.ok(html.indexOf('1년차')<html.indexOf('미입력'));
-  assert.match(html,/2020 \(7년차\)<small>2명/);assert.match(html,/2026 \(1년차\)/);assert.match(html,/총 4명/);assert.ok(html.indexOf('김선수')<html.indexOf('박선수'));
+  assert.match(html,/player-join-table training-roster-table/);assert.ok(html.indexOf('2020년')<html.indexOf('2026년'));assert.ok(html.indexOf('2026년')<html.indexOf('미입력'));
+  assert.match(html,/2020년<small>2명/);assert.match(html,/2026년/);assert.match(html,/총 4명/);assert.ok(html.indexOf('김선수')<html.indexOf('박선수'));
   assert.match(html,/class="training-status-attending" aria-label="김선수, 참석"/);assert.match(html,/class="training-status-absent" aria-label="이선수, 불참"/);assert.match(html,/class="training-status-tentative" aria-label="박선수, 미정"/);
   assert.ok(!html.includes('<script>'));assert.match(html,/&lt;script&gt;내용/);assert.ok(!html.includes('data-qualification='));
   assert.doesNotMatch(html,/탑승 조건|data-qualification|<details/);
-  assert.match(context.trainingRosterHtml([{name:'사년차',tenure:4,status:'참석'}],'2026-10-24'),/2023 \(4년차\)/);
-  assert.match(context.trainingRosterHtml([{name:'사년차',tenure:4,status:'참석'}],'2027-10-24'),/2024 \(4년차\)/);
+  assert.match(context.trainingRosterHtml([{name:'사년차',tenure:4,status:'참석'}],'2026-10-24'),/2023년/);
+  assert.match(context.trainingRosterHtml([{name:'사년차',tenure:4,status:'참석'}],'2027-10-24'),/2024년/);
   assert.match(context.trainingRosterHtml([],'2026-10-24'),/아직 참가 신청이 없습니다/);
   const css=fs.readFileSync(`${__dirname}/../static/training.css`,'utf8');for(const [status,color] of [['attending','#000'],['absent','#dc2626'],['tentative','#6b7280']])assert.ok(css.includes(`.training-status-${status} { color:${color}; }`));
 });
@@ -158,8 +158,8 @@ test('roster stacks date tables and one deduplicated absence table with identica
   const person=(name,status,tenure=4)=>({name,status,tenure});const trainings=[{date:'2026-10-24',opened:true,participants:[person('토참석','참석'),person('양일참석','참석',7),person('불참회원','불참'),person('미정회원','미정')]},{date:'2026-10-25',opened:true,participants:[person('토참석','불참'),person('양일참석','참석',7),person('불참회원','불참'),person('미정회원','미정')]}];
   const html=context.trainingRosterSectionsHtml(trainings,[2020,2023,2024,null],false,false);
   assert.ok(html.indexOf('<h3>10/24(토)</h3>')<html.indexOf('<h3>10/25(일)</h3>'));assert.ok(html.indexOf('<h3>10/25(일)</h3>')<html.indexOf('<h3>불참/미정</h3>'));
-  assert.equal((html.match(/training-roster-table/g)||[]).length,3);assert.equal((html.match(/>토참석<\/strong>/g)||[]).length,1);assert.equal((html.match(/>양일참석<\/strong>/g)||[]).length,2);assert.equal((html.match(/>불참회원<\/strong>/g)||[]).length,1);
-  assert.equal((html.match(/2024 \(3년차\)<small>0명/g)||[]).length,3);assert.equal((html.match(/--training-roster-columns:4/g)||[]).length,3);
+  assert.equal((html.match(/training-roster-table/g)||[]).length,3);assert.equal((html.match(/>토참석<\/span>/g)||[]).length,1);assert.equal((html.match(/>양일참석<\/span>/g)||[]).length,2);assert.equal((html.match(/>불참회원<\/span>/g)||[]).length,1);
+  assert.equal((html.match(/2024년<small>0명/g)||[]).length,3);assert.doesNotMatch(html,/년차|<strong|--training-roster-columns/);
   assert.ok(!html.includes('data-recommend-date'));const admin=context.trainingRosterSectionsHtml(trainings,[2020,2023],true,false);assert.match(admin,/data-recommend-date="2026-10-24"/);assert.match(admin,/data-recommend-date="2026-10-25"/);
   assert.equal(context.trainingRosterWeek([...trainings,{date:'2026-10-31',opened:true,participants:[]}],'2026-10-25').length,2);
 });
