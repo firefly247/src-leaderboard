@@ -31,7 +31,7 @@
     return `<p class="player-summary-total">총 ${members.length}명</p><div class="table-wrap"><table class="player-join-table training-roster-table" aria-label="연차별 참가 명단"><thead><tr>${tenures.map(tenure=>`<th scope="col">${tenure===null?'미입력':tenure+'년차'}<small>${groups.get(tenure).length}명</small></th>`).join('')}</tr></thead><tbody>${Array.from({length:height},(_,i)=>`<tr>${tenures.map(tenure=>`<td>${cell(groups.get(tenure)[i])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   }
   function message(text,error=false){el('#trainingMessage').textContent=text;el('#trainingMessage').classList.toggle('is-error',error);}
-  function setView(v){view=v;el('#trainingBrowseDates').hidden=v==='join';all('[data-screen]').forEach(e=>e.hidden=e.dataset.screen!==v);all('[data-view]').forEach(e=>{e.classList.toggle('is-active',e.dataset.view===v);e.setAttribute('aria-pressed',String(e.dataset.view===v));});}
+  function setView(v){view=v;const dates=el('#trainingBrowseDates');dates.hidden=v==='join';if(v==='list'||v==='crew')el(`[data-screen="${v}"] .panel`).prepend(dates);all('[data-screen]').forEach(e=>e.hidden=e.dataset.screen!==v);all('[data-view]').forEach(e=>{e.classList.toggle('is-active',e.dataset.view===v);e.setAttribute('aria-pressed',String(e.dataset.view===v));});}
   function syncChoices(){
     const key=signupSessions().map(s=>s.date).join(',');
     if(participationKey!==key){el('#trainingParticipation').innerHTML=signupSessions().map(s=>`<button type="button" data-participation-date="${esc(s.date)}" aria-pressed="false">${esc(dayLabel(s.date))}</button>`).join('')+['불참','미정'].map(v=>`<button type="button" data-participation-status="${v}" aria-pressed="false">${v}</button>`).join('');participationKey=key;}
