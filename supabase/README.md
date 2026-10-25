@@ -1,16 +1,16 @@
 # Supabase 연결 준비
 
-데이터 복사와 향후 운영 DB 전환 절차는 [저장소 전환 안내](STORAGE-SWITCH.md)를 따릅니다. 실제 전환은 사용자의 별도 지시가 있을 때만 실행합니다.
+데이터 복사와 향후 운영 DB 전환 절차는 [저장소 전환 안내](STORAGE-SWITCH.md)를 따릅니다. 사용자의 전환 지시에 따라 2026-10-26에 활성화했습니다.
 
 행 단위 저장, 신청 이력 8컬럼 구성, 사진 150KB 상한 및 내용 중복 제거는 [용량 최적화 안내](OPTIMIZATION.md)를 참고하세요. 현재 전환용 SQL은 이 최적화 구성을 사용합니다.
 
-**현재 상태: 2026-10-26에 서버 연결, 업무 테이블 12개 및 버전 메타 테이블 1개, 행 단위 저장 함수 적용을 완료했습니다. 기존 데이터 938행의 Supabase 복사 및 원본 대조도 통과했습니다. 운영 사이트는 Google Sheets/GitHub CSV를 계속 사용하며, 별도 전환 지시 전에는 Supabase로 바뀌지 않습니다.**
+**현재 상태: 2026-10-26 08:48 KST에 운영 DB를 Supabase로 전환했습니다. 업무 데이터 938행의 원본 대조를 통과한 뒤 활성화했습니다. 기존 사진 54개는 해상도와 URL을 유지하면서 모두 150KiB 이하로 압축했으며, 압축본도 Supabase 비공개 버킷에 복사·검증했습니다. 기존 Google Sheets/GitHub CSV는 전환 시점 원본으로 보존합니다.**
 
 프로젝트 주소: `https://rssdactzolryhfyfinon.supabase.co`
 
 관리 화면: https://supabase.com/dashboard/project/rssdactzolryhfyfinon
 
-현재 사이트는 Google Sheets와 GitHub CSV를 계속 사용합니다. Supabase 설정값을 등록해도 자동 전환하거나 이중 저장하지 않습니다. 카카오 로그인도 기존 구현을 유지합니다.
+현재 사이트의 업무 데이터 읽기/쓰기는 Supabase를 사용합니다. 기존 Sheets/CSV에 이중 저장하지 않습니다. 증빙사진은 압축된 GitHub 파일의 기존 주소로 제공하며, Supabase의 비공개 버킷에도 이전 시점 복사본이 있습니다. 카카오 로그인은 기존 구현을 유지합니다.
 
 ## 준비된 항목
 
