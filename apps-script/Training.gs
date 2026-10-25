@@ -188,9 +188,35 @@ function trainingDraftEdit_(p) {
     trainingDraftWait_(s);draft.registrationRevision=s.registrationRevision;s.revision++;
   },true);
 }
+/** Validate a whole UI draft; never trust client names, seat counts or waiting lists. */
+function trainingValidateDraft_(input,s) {
+  if(!input||!Array.isArray(input.boats)||input.boats.length>7)throw new Error('편성 초안을 확인해 주세요.');
+  const used=new Set(),names=new Set(),people=new Map(s.participants.filter(m=>m.status==='참석').map(m=>[m.id,m]));
+  const boats=input.boats.map(b=>{
+    const limit=b.type==='4X+'?4:b.type==='2X'?2:b.type==='1X'?1:0;
+    const template=Array.from({length:limit},(_,i)=>trainingBoat_(b.type,i)).find(v=>v.name===b.name);
+    if(!template||names.has(b.name)||!Array.isArray(b.seats)||b.seats.length!==template.seats.length)throw new Error('배 종류와 좌석 수를 확인해 주세요.');
+    names.add(b.name);
+    template.seats=template.seats.map((seat,i)=>{
+      const m=b.seats[i];if(!m||m.seat!==seat.seat||typeof m.id!=='string')throw new Error('좌석 정보를 확인해 주세요.');
+      if(!m.id)return seat;
+      const person=people.get(m.id);if(!person)throw new Error('참가 여부가 변경되었습니다. 최신 명단을 반영해 주세요.');
+      if(used.has(m.id))throw new Error('같은 멤버를 중복 배정할 수 없습니다.');used.add(m.id);
+      return {...seat,id:person.id,name:person.name,locked:m.locked===true,changed:m.changed===true};
+    });return template;
+  });
+  return {boats,wait:s.participants.filter(m=>m.status==='참석'&&!used.has(m.id)).map(m=>({id:m.id,name:m.name,reason:'배정 대기'})),registrationRevision:s.registrationRevision};
+}
+function trainingDraftSave_(p) {
+  return trainingLocked_(p,s=>{
+    trainingRequireOpen_(s);trainingExpected_(s,p);
+    s.draft=trainingValidateDraft_(p.draft,s);s.revision++;
+  },true);
+}
 function trainingPublish_(p) {
   return trainingLocked_(p,s=>{
     trainingRequireOpen_(s);trainingExpected_(s,p);
+    if(p.draft)s.draft=trainingValidateDraft_(p.draft,s);
     if(!s.draft||!s.draft.boats.length)throw new Error('배별 조합을 먼저 만들어 주세요.');
     const seats=s.draft.boats.flatMap(b=>b.seats),ids=seats.map(m=>m.id);
     if(ids.some(id=>!id)||new Set(ids).size!==ids.length)throw new Error('모든 좌석에 서로 다른 멤버를 배정해 주세요.');

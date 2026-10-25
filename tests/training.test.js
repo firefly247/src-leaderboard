@@ -11,6 +11,23 @@ function server(open=true){
   return {call,build:p=>JSON.parse(JSON.stringify(context.trainingBuildPlan_(p))),sheets,setYears(rows){const sheet=spreadsheet.getSheetByName('PLAYER_BIRTH_YEARS')||spreadsheet.insertSheet('PLAYER_BIRTH_YEARS');sheet.rows.splice(0,sheet.rows.length,['name','birth','updated','join'],...rows.map(([name,year])=>[name,'1985','',year]));}};
 }
 const entry=(name,extra={})=>({name,editKey:'a'.repeat(32),status:'참석',arrival:'정시',preference:'무관',experience:'초급',canCox:false,canSmallBoat:false,...extra});
+test('whole draft saves validate shape and identity, stay private and publish atomically',()=>{
+  const s=server();['가','나','다'].forEach(name=>s.call('trainingJoin',entry(name)));
+  const draft={boats:[{name:'더블스컬 A',type:'2X',seats:[{seat:'1번',id:'id-1',name:'위조 이름',changed:true},{seat:'2번',id:'',name:''}]}]};
+  assert.throws(()=>s.call('trainingDraftSave',{draft,revision:4}),/관리자 인증/);
+  let t=s.call('trainingDraftSave',{draft,revision:4},'valid').training;
+  assert.equal(t.draft.boats[0].seats[0].name,'가');assert.ok(t.draft.boats[0].seats[0].changed);assert.equal(t.plan,null);
+  assert.equal(s.call('trainingRoster').trainings[0].draft,undefined);
+  assert.throws(()=>s.call('trainingPublish',{draft,revision:t.revision},'valid'),/모든 좌석/);
+  const invalid=JSON.parse(JSON.stringify(draft));invalid.boats[0].seats[1]={seat:'2번',id:'id-1'};
+  assert.throws(()=>s.call('trainingDraftSave',{draft:invalid,revision:t.revision},'valid'),/중복/);
+  invalid.boats.push({...invalid.boats[0],name:'더블스컬 C'});
+  assert.throws(()=>s.call('trainingDraftSave',{draft:invalid,revision:t.revision},'valid'),/중복|배 종류/);
+  assert.throws(()=>s.call('trainingDraftSave',{draft,revision:0},'valid'),/다른 사용자/);
+  draft.boats[0].seats[1]={seat:'2번',id:'id-2',name:'위조',locked:true};
+  t=s.call('trainingPublish',{draft,revision:t.revision},'valid').training;
+  assert.equal(t.plan.boats[0].seats[1].name,'나');assert.ok(t.plan.boats[0].seats[1].locked);assert.equal(t.draft,null);assert.equal(t.plan.wait[0].id,'id-3');
+});
 test('registration privately persists and protects same-name updates without exposing edit keys',()=>{
   const s=server();let result=s.call('trainingJoin',entry('김선수'));
   assert.equal(result.training.participants.length,1);assert.equal(result.training.participants[0].editHash,undefined);assert.ok(!JSON.stringify(result).includes('aaaa'));

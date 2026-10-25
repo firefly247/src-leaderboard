@@ -35,6 +35,7 @@ function dispatch_(action, p, token) {
   if (action === 'trainingRecommend') return trainingRecommend_(p);
   if (action === 'trainingDraftGet') return trainingDraftGet_(p);
   if (action === 'trainingDraftEdit') return trainingDraftEdit_(p);
+  if (action === 'trainingDraftSave') return trainingDraftSave_(p);
   if (action === 'trainingPublish') return trainingPublish_(p);
   if (action === 'trainingCheck') return trainingCheck_(p);
   if (action === 'trainingQualifications') return trainingQualifications_(p);
