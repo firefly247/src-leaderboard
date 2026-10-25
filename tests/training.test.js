@@ -116,4 +116,18 @@ test('typing or blurring a name preserves date button nodes so the first date cl
   const context=vm.createContext({form,busy:false,draftStatus:'',draftDates:new Set(),participationKey:null,signupSessions:()=>[{date:'2026-10-24'},{date:'2026-10-25'}],dayLabel:v=>v,esc:v=>v,el:s=>s==='#trainingParticipation'?container:hint,all:s=>buttons.filter(b=>s.includes('date')?b.dataset.participationDate:b.dataset.participationStatus)});
   vm.runInContext(fn,context);context.syncChoices();const first=buttons[0];form.elements.name.value='김선수';context.syncChoices();assert.equal(buttons[0],first);
   context.draftStatus='참석';context.draftDates.add('2026-10-24');context.syncChoices();assert.equal(buttons[0],first);assert.equal(first['aria-pressed'],'true');assert.equal(submit.disabled,false);
+  context.draftDates.add('2026-10-25');context.syncChoices();assert.equal(buttons[1]['aria-pressed'],'true');assert.equal(buttons[0].disabled,false);assert.equal(buttons[1].disabled,false);
+  for(const status of ['불참','미정']){context.draftStatus=status;context.draftDates.clear();context.syncChoices();assert.ok(buttons.filter(b=>b.dataset.participationDate).every(b=>b.disabled));for(const b of buttons.filter(b=>b.dataset.participationStatus))assert.equal(b.disabled,b.dataset.participationStatus!==status);}
+  context.draftStatus='';context.syncChoices();assert.ok(buttons.every(b=>!b.disabled));assert.equal(submit.disabled,true);
+});
+test('signup completion opens one popup after success and none after a failed save',async()=>{
+  const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8'),fn=source.match(/async function mutate\(action,payload=\{\},admin=false\)\{[\s\S]*?\n  \}/)[0],popups=[],messages=[];
+  const context=vm.createContext({busy:false,sequence:0,data:{opened:true,revision:1},selectedDate:'2026-10-24',signupSessions:()=>[{date:'2026-10-24'}],render(){},message:t=>messages.push(t),api:async()=>({trainings:[{date:'2026-10-24',revision:2}]}),alert:t=>popups.push(t)});
+  vm.runInContext(fn,context);await context.mutate('trainingWeekJoin',{});assert.deepEqual(popups,['참가 신청이 완료되었습니다.']);assert.equal(context.busy,false);assert.equal(messages.at(-1),'');
+  context.api=async()=>{throw new Error('저장 실패');};await context.mutate('trainingWeekJoin',{});assert.equal(popups.length,1);assert.equal(messages.at(-1),'저장 실패');assert.equal(context.busy,false);
+});
+test('signup labels omit the removed title, disclosures, save wording and training date suffix',()=>{
+  const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8');
+  for(const text of ['나의 참가 신청','신청 이름','참가 신청 저장','${esc(dayLabel(s.date))} 훈련'])assert.ok(!source.includes(text),text);
+  assert.match(source,/type="submit" class="primary-button">참가 신청<\/button>/);
 });
