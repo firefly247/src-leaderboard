@@ -1,5 +1,6 @@
 /** Competition drafts and participant selections stay in the private spreadsheet. */
 function raceLineupSheet_(create){
+  if(typeof StorageContext_!=='undefined'&&StorageContext_)return storageSheet_('COMPETITION_LINEUPS');
   const ss=SpreadsheetApp.openById(prop_('REQUEST_SHEET_ID'));let sheet=ss.getSheetByName('COMPETITION_LINEUPS');
   if(!sheet&&create){sheet=ss.insertSheet('COMPETITION_LINEUPS');sheet.appendRow(['id','session_json']);sheet.setFrozenRows(1);}return sheet;
 }
@@ -11,13 +12,13 @@ function raceLineupWrite_(sheet,entry){
 function raceLineupSummary_(r){return {id:r.id,year:r.year,name:r.name,finalizedAt:r.finalized?.finalizedAt||''};}
 function raceLineupPublic_(r){return {...raceLineupSummary_(r),finalized:r.finalized||null};}
 function raceLineupList_(){
-  const lock=LockService.getScriptLock();lock.waitLock(30000);try{return {races:raceLineupRows_(raceLineupSheet_(false)).map(e=>raceLineupSummary_(e.race)).sort((a,b)=>b.year-a.year||a.name.localeCompare(b.name,'ko'))};}finally{lock.releaseLock();}
+  const lock=(typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock());lock.waitLock(30000);try{return {races:raceLineupRows_(raceLineupSheet_(false)).map(e=>raceLineupSummary_(e.race)).sort((a,b)=>b.year-a.year||a.name.localeCompare(b.name,'ko'))};}finally{lock.releaseLock();}
 }
 function raceLineupAdminData_(){
   return {...raceLineupList_(),players:playerBirthYears_().filter(p=>!p.isDormant),events:competitionEvents_(),divisions:competitionDivisions_(),competitions:competitions_()};
 }
 function raceLineupLocked_(p,fn,admin){
-  const lock=LockService.getScriptLock();lock.waitLock(30000);
+  const lock=(typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock());lock.waitLock(30000);
   try{const sheet=raceLineupSheet_(false),entry=raceLineupRows_(sheet).find(e=>e.race.id===p.id);if(!entry)throw new Error('대회 편성을 찾을 수 없습니다.');
     if(fn){if(Number(p.revision)!==entry.race.revision)throw new Error('다른 운영진이 변경했습니다. 최신 정보를 불러온 뒤 다시 확인해 주세요.');fn(entry.race);entry.race.revision++;raceLineupWrite_(sheet,entry);}
     return {race:admin?entry.race:raceLineupPublic_(entry.race)};
@@ -30,7 +31,7 @@ function raceLineupCreate_(p){
   const catalog=p.competitionId?competitions_().find(c=>c.competition_id===p.competitionId):null;
   if(p.competitionId&&!catalog)throw new Error('대회를 확인해 주세요.');
   const name=catalog?catalog.competition_name:String(p.name||'').trim();if(!name||name.length>100||/[<>\x00-\x1f]/.test(name))throw new Error('대회명을 100자 이내로 입력해 주세요.');
-  const lock=LockService.getScriptLock();lock.waitLock(30000);
+  const lock=(typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock());lock.waitLock(30000);
   try{const sheet=raceLineupSheet_(true),rows=raceLineupRows_(sheet),existing=rows.find(e=>e.race.year===year&&e.race.name===name);if(existing)return {race:existing.race};
     const race={id:Utilities.getUuid(),year,name,competitionId:catalog?.competition_id||'',revision:1,participants:[],participantsConfirmed:false,groups:[],finalized:null};raceLineupWrite_(sheet,{row:sheet.getLastRow()+1,race});return {race};
   }finally{lock.releaseLock();}

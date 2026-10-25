@@ -12,7 +12,7 @@ function supabaseRequest_(path, method, payload) {
   const settings = supabaseSettings_();
   if (!settings) throw new Error('Supabase 연결 정보가 등록되지 않았습니다.');
   const allowed = ['events','records','competitions','competition_dates','competition_events','competition_divisions','competition_records','dormant_members','player_birth_years','weekend_training','competition_lineups','request_log'];
-  if (!(path === 'rpc/club_connection_status' && method === 'post') && !(allowed.some(function (name) { return path === 'club_' + name; }) && method === 'get'))
+  if (!(['rpc/club_connection_status','rpc/club_store_read','rpc/club_store_commit'].includes(path) && method === 'post') && !(allowed.some(function (name) { return path === 'club_' + name; }) && method === 'get'))
     throw new Error('허용되지 않은 Supabase 연결 요청입니다.');
   const options = { method: method, muteHttpExceptions: true, followRedirects: false,
     headers: { apikey: settings.key, 'Content-Type': 'application/json' } };
@@ -29,7 +29,7 @@ function supabaseConnectionStatus_() {
   if (!supabaseSettings_()) return { configured: false, connected: false, activeStorage: 'sheets-and-csv' };
   const result = supabaseRequest_('rpc/club_connection_status', 'post', {});
   if (result.schemaVersion !== '20261025130000' || result.tables !== 12) throw new Error('Supabase 테이블 버전이 일치하지 않습니다.');
-  return { configured: true, connected: true, schemaVersion: result.schemaVersion, activeStorage: 'sheets-and-csv' };
+  return { configured: true, connected: true, schemaVersion: result.schemaVersion, activeStorage: typeof storageProvider_==='function'?storageProvider_():'sheets-and-csv' };
 }
 /** Run in the owner-only Apps Script editor after setting the two properties. */
 function supabaseConnectionReport() { console.log(JSON.stringify(supabaseConnectionStatus_())); }

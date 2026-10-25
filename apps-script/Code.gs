@@ -20,6 +20,9 @@ function doPost(e) {
 }
 
 function dispatch_(action, p, token) {
+  return typeof storageDispatch_ === 'function' ? storageDispatch_(action,p,token) : dispatchCore_(action,p,token);
+}
+function dispatchCore_(action, p, token) {
   if (action === 'kakaoAuthConfig') return kakaoAuthConfig_();
   if (action === 'kakaoLoginStart') return kakaoLoginStart_(p);
   if (action === 'kakaoLoginComplete') return kakaoLoginComplete_(p);
@@ -91,6 +94,7 @@ function login_(password) {
 }
 
 function requestSheet_() {
+  if (typeof StorageContext_ !== 'undefined' && StorageContext_) return storageSheet_(REQUEST_SHEET);
   const ss = SpreadsheetApp.openById(prop_('REQUEST_SHEET_ID'));
   let sheet = ss.getSheetByName(REQUEST_SHEET);
   if (!sheet) {
@@ -119,7 +123,7 @@ function updateCompetitionRequests_(p) {
   const edits = p.edits;
   if (!Array.isArray(edits) || !edits.length || edits.length > 100) throw new Error('수정할 대회 요청을 1~100건 지정해 주세요.');
   if (new Set(edits.map(edit => edit.requestId)).size !== edits.length) throw new Error('중복된 요청입니다.');
-  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  const lock = (typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock()); lock.waitLock(30000);
   try {
     const requests = rowsToRequests_();
     // Validate the entire batch before writing, including the source seen by the administrator.
@@ -259,6 +263,7 @@ function adminList_(view) {
 
 // Player years are private reference data. Never write them to GitHub CSVs or request logs.
 function birthYearSheet_(create) {
+  if (typeof StorageContext_ !== 'undefined' && StorageContext_) return storageSheet_(BIRTH_YEAR_SHEET);
   const ss = SpreadsheetApp.openById(prop_('REQUEST_SHEET_ID'));
   let sheet = ss.getSheetByName(BIRTH_YEAR_SHEET);
   if (!sheet && create) {
@@ -299,7 +304,7 @@ function savePlayerBirthYears_(p) {
     return { memberName: name, birthYear: year, joinYear, isDormant: player.isDormant };
   });
   if (new Set(players.map(player => player.memberName)).size !== players.length) throw new Error('중복된 선수가 있습니다.');
-  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  const lock = (typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock()); lock.waitLock(30000);
   try {
     const names = new Set(playerBirthYears_().map(player => player.memberName));
     if (players.some(player => !player.memberName || !names.has(player.memberName))) throw new Error('등록된 선수를 선택해 주세요.');
@@ -341,7 +346,7 @@ function savePlayerBirthYears_(p) {
 }
 function processRequest_(p) {
   if (!['approved','rejected'].includes(p.decision)) throw new Error('처리 결과가 올바르지 않습니다.');
-  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  const lock = (typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock()); lock.waitLock(30000);
   try {
     const request = rowsToRequests_().find(r => r.request_id === p.requestId);
     if (!request) throw new Error('요청을 찾을 수 없습니다.');
@@ -360,7 +365,7 @@ function processAddRequests_(p) {
   const requestIds = Array.isArray(p.requestIds) ? [...new Set(p.requestIds.map(clean_).filter(Boolean))] : [];
   if (!requestIds.length) throw new Error('승인할 에르고 기록을 선택해 주세요.');
   if (requestIds.length > 100) throw new Error('한 번에 최대 100건까지 승인할 수 있습니다.');
-  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  const lock = (typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock()); lock.waitLock(30000);
   try {
     const allRequests = rowsToRequests_();
     const requests = requestIds.map(id => allRequests.find(r => r.request_id === id));
@@ -377,7 +382,7 @@ function processCompetitionAddRequests_(p) {
   const requestIds = Array.isArray(p.requestIds) ? [...new Set(p.requestIds.map(clean_).filter(Boolean))] : [];
   if (!requestIds.length) throw new Error('승인할 대회 기록을 선택해 주세요.');
   if (requestIds.length > 100) throw new Error('한 번에 최대 100건까지 승인할 수 있습니다.');
-  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  const lock = (typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock()); lock.waitLock(30000);
   try {
     const allRequests = rowsToRequests_();
     const requests = requestIds.map(id => allRequests.find(r => r.request_id === id));
@@ -394,7 +399,7 @@ function processRejectRequests_(p) {
   const requestIds = Array.isArray(p.requestIds) ? [...new Set(p.requestIds.map(clean_).filter(Boolean))] : [];
   if (!requestIds.length) throw new Error('거절할 기록을 선택해 주세요.');
   if (requestIds.length > 100) throw new Error('한 번에 최대 100건까지 거절할 수 있습니다.');
-  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  const lock = (typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock()); lock.waitLock(30000);
   try {
     const allRequests = rowsToRequests_();
     const requests = requestIds.map(id => allRequests.find(r => r.request_id === id));
@@ -500,7 +505,7 @@ function approveCompetitionAdds_(requests) {
   writeCompetitionApprovals_(context, 'Approve ' + requests.length + ' selected competition record requests');
 }
 function manageEvent_(p) {
-  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  const lock = (typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock()); lock.waitLock(30000);
   try {
     const events = events_(), name = clean_(p.eventName);
     if (p.operation === 'add') {
@@ -522,7 +527,7 @@ function manageEvent_(p) {
 }
 
 function manageCompetition_(p) {
-  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  const lock = (typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock()); lock.waitLock(30000);
   try {
     const competitions = competitions_(), name = clean_(p.competitionName);
     if (p.operation === 'add') {
@@ -548,7 +553,7 @@ function manageCompetition_(p) {
 }
 
 function manageCompetitionEvent_(p) {
-  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  const lock = (typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock()); lock.waitLock(30000);
   try {
     const events = competitionEvents_(), name = clean_(p.competitionEventName);
     if (p.operation === 'add') {
@@ -574,7 +579,7 @@ function manageCompetitionEvent_(p) {
 }
 
 function manageCompetitionDivision_(p) {
-  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  const lock = (typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock()); lock.waitLock(30000);
   try {
     const divisions = competitionDivisions_(), name = clean_(p.competitionDivisionName);
     if (p.operation === 'add') {
@@ -612,7 +617,7 @@ function saveApprovedRecord_(p) {
   const columns = competition ? COMPETITION_RECORD_COLUMNS : RECORD_COLUMNS;
   const allowed = competition ? ['member_name','competition_id','competition_event_id','competition_division_id','year','competition_type','is_cox','gold','silver','bronze','note'] : ['member_name','event_id','time_display','competition','competition_date','note'];
   if (!Object.keys(p.changes).length || Object.keys(p.changes).some(key => !allowed.includes(key))) throw new Error('수정할 수 없는 항목입니다.');
-  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  const lock = (typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock()); lock.waitLock(30000);
   try {
     const snapshot = githubGet_(path), rows = parseCsvObjects_(snapshot.content);
     const row = rows.find(record => record.record_id === p.recordId);
@@ -670,7 +675,7 @@ function competitionDateCatalog_() {
 }
 function saveCompetitionDates_(p) {
   if (!Array.isArray(p.dates) || !p.dates.length || p.dates.length > 100) throw new Error('저장할 대회 날짜를 1~100건 지정해 주세요.');
-  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  const lock = (typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock()); lock.waitLock(30000);
   try {
     const available = new Set(competitionRecords_().map(row => row.year + '\0' + row.competition_id));
     const seen = new Set();
@@ -714,6 +719,7 @@ function writeCsv_(path, headers, rows, message, expectedSha) {
 }
 function csvValue_(value) { const text = String(value == null ? '' : value); return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text; }
 function githubGet_(path) {
+  if (typeof StorageContext_ !== 'undefined' && StorageContext_ && storageCsvName_(path)) return storageCsvGet_(path);
   const url = githubUrl_(path);
   const response = UrlFetchApp.fetch(url, { headers: githubHeaders_(), muteHttpExceptions: true });
   if (response.getResponseCode() !== 200) throw new Error('GitHub 파일을 읽지 못했습니다: ' + response.getResponseCode());
@@ -721,6 +727,7 @@ function githubGet_(path) {
   return { sha: body.sha, content: Utilities.newBlob(Utilities.base64Decode(body.content.replace(/\n/g,''))).getDataAsString('UTF-8') };
 }
 function githubPut_(path, content, message, expectedSha) {
+  if (typeof StorageContext_ !== 'undefined' && StorageContext_ && storageCsvName_(path)) return storageCsvPut_(path,content,expectedSha);
   const current = githubGet_(path);
   if (expectedSha && current.sha !== expectedSha) throw new Error('기록이 변경되었습니다. 새로 조회한 뒤 수정해 주세요.');
   const response = UrlFetchApp.fetch(githubUrl_(path), { method: 'put', contentType: 'application/json', headers: githubHeaders_(), payload: JSON.stringify({ message: message, content: Utilities.base64Encode(content, Utilities.Charset.UTF_8), sha: current.sha, branch: properties_().getProperty('GITHUB_BRANCH') || 'main' }), muteHttpExceptions: true });

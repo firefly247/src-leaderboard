@@ -7,6 +7,7 @@ function trainingDate_(value) {
   return date;
 }
 function trainingSheet_() {
+  if(typeof StorageContext_!=='undefined'&&StorageContext_)return storageSheet_('WEEKEND_TRAINING');
   const ss = SpreadsheetApp.openById(prop_('REQUEST_SHEET_ID'));
   let sheet = ss.getSheetByName('WEEKEND_TRAINING');
   if (!sheet) { sheet = ss.insertSheet('WEEKEND_TRAINING'); sheet.appendRow(['date','session_json']); sheet.setFrozenRows(1); }
@@ -38,13 +39,13 @@ function trainingListFromSheet_(sheet) {
   return {sessions:sheet.getDataRange().getDisplayValues().slice(1).filter(row=>row[1]).map(row=>JSON.parse(row[1])).filter(s=>s.opened===true).map(s=>({date:s.date,openedAt:s.openedAt})).sort((a,b)=>a.date.localeCompare(b.date)).slice(-40)};
 }
 function trainingList_() {
-  const lock=LockService.getScriptLock();lock.waitLock(30000);
+  const lock=(typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock());lock.waitLock(30000);
   try{return trainingListFromSheet_(trainingSheet_());}finally{lock.releaseLock();}
 }
 /** Reuse the player-info column catalog without publishing the private player profiles. */
 function trainingRoster_(admin) {
   const players=playerBirthYears_(),columns=[...new Set(players.map(p=>/^\d{4}$/.test(String(p.joinYear||''))?Number(p.joinYear):null))].sort((a,b)=>a===null?1:b===null?-1:a-b);
-  const lock=LockService.getScriptLock();lock.waitLock(30000);
+  const lock=(typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock());lock.waitLock(30000);
   try{
     const sheet=trainingSheet_(),catalog=trainingListFromSheet_(sheet),dates=new Set(catalog.sessions.map(s=>s.date));
     const trainings=sheet.getDataRange().getDisplayValues().slice(1).filter(row=>dates.has(row[0])).map(row=>trainingPublic_(JSON.parse(row[1]),admin).training).sort((a,b)=>a.date.localeCompare(b.date));
@@ -55,7 +56,7 @@ function trainingOpen_(p) {
   if(!Array.isArray(p.dates)||p.dates.length<1||p.dates.length>2)throw new Error('개설할 토·일 날짜를 선택해 주세요.');
   const dates=[...new Set(p.dates.map(trainingDate_))].sort();
   if(dates.length===2&&new Date(dates[1]+'T00:00:00Z')-new Date(dates[0]+'T00:00:00Z')!==86400000)throw new Error('같은 주의 토·일을 선택해 주세요.');
-  const lock=LockService.getScriptLock();lock.waitLock(30000);
+  const lock=(typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock());lock.waitLock(30000);
   try{
     const sheet=trainingSheet_();
     dates.forEach(date=>{const entry=trainingRead_(sheet,date);if(entry.session.opened)return;entry.session.opened=true;entry.session.openedAt=new Date().toISOString();entry.session.revision++;trainingWrite_(sheet,entry);});
@@ -64,7 +65,7 @@ function trainingOpen_(p) {
 }
 function trainingRequireOpen_(s) {if(s.opened!==true)throw new Error('운영진이 아직 개설하지 않은 훈련입니다.');}
 function trainingLocked_(p,fn,admin) {
-  const date=trainingDate_(p.date), lock=LockService.getScriptLock();lock.waitLock(30000);
+  const date=trainingDate_(p.date), lock=(typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock());lock.waitLock(30000);
   try { const sheet=trainingSheet_(),entry=trainingRead_(sheet,date);const result=fn(entry.session);if(result!==false)trainingWrite_(sheet,entry);return trainingPublic_(entry.session,admin); }
   finally {lock.releaseLock();}
 }
@@ -99,7 +100,7 @@ function trainingWeekJoin_(p) {
   if(!Array.isArray(p.dates)||p.dates.length>2)throw new Error('참가할 훈련을 선택해 주세요.');
   const dates=[...new Set(p.dates)];
   if(dates.some(d=>d!==saturday&&d!==sunday)||p.status==='참석'&&!dates.length||p.status!=='참석'&&dates.length)throw new Error('참가 여부를 다시 선택해 주세요.');
-  const lock=LockService.getScriptLock();lock.waitLock(30000);
+  const lock=(typeof storageLock_ === 'function' ? storageLock_() : LockService.getScriptLock());lock.waitLock(30000);
   try{
     const sheet=trainingSheet_(),entries=[saturday,sunday].map(d=>trainingRead_(sheet,d)).filter(e=>e.session.opened===true);
     if(!entries.length||dates.some(d=>!entries.some(e=>e.session.date===d)))throw new Error('운영진이 아직 개설하지 않은 훈련입니다.');
