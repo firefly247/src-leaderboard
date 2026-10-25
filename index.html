@@ -12,6 +12,7 @@
   <link rel="apple-touch-icon" href="static/icons/club-180.png">
   <link rel="icon" type="image/png" href="static/icons/club-192.png">
   <link rel="stylesheet" href="static/training.css?v=20261025-08">
+  <link rel="stylesheet" href="static/race-lineup.css?v=20261025-01">
   <link rel="stylesheet" href="static/style.css?v=20261024-20">
 </head>
 <body>
@@ -24,6 +25,7 @@
       <button class="tab-button" data-tab="competition" type="button">대회</button>
       <button class="tab-button" data-tab="athletes" type="button">선수(Beta)</button>
       <button class="tab-button" data-tab="training" type="button">주말 훈련(Beta)</button>
+      <button class="tab-button" data-tab="race-lineup" type="button">대회 조 편성(Beta)</button>
       <button class="tab-button" data-tab="request" type="button">기록 등록</button>
       <button class="tab-button" data-tab="admin" type="button">관리자</button>
       <button id="androidDownloadButton" class="header-install-button" type="button">Android APK 다운로드</button>
@@ -90,6 +92,7 @@
   <dialog id="memberDialog" class="member-dialog" aria-labelledby="dialogMemberName"><div class="dialog-header"><div><p class="eyebrow">MEMBER RECORDS</p><h2 id="dialogMemberName"></h2></div><button id="dialogCloseButton" class="dialog-close" type="button" aria-label="팝업 닫기">×</button></div><div id="dialogContent"></div></dialog><dialog id="photoDialog" class="photo-dialog"><button class="dialog-close" type="button" data-close-photo aria-label="팝업 닫기">×</button><img id="proofPhotoImage" alt="기록 증빙사진"></dialog>
   <dialog id="batchProgressDialog" class="batch-progress-dialog" aria-labelledby="batchProgressTitle"><div class="batch-progress-icon" aria-hidden="true"><span></span></div><p class="eyebrow">RECORD REQUEST</p><h2 id="batchProgressTitle">기록 요청 진행 중</h2><p id="batchProgressMessage" class="batch-progress-message" aria-live="polite"></p><div class="batch-progress-track" aria-hidden="true"><span id="batchProgressBar"></span></div><strong id="batchProgressCount" class="batch-progress-count"></strong><button id="batchProgressConfirm" class="primary-button" type="button" hidden>확인</button></dialog>
   <footer>© <span id="currentYear"></span> 삼성조정클럽</footer><script src="static/athlete-analysis.js?v=20261016-03"></script><script src="static/leaderboard.js?v=20261024-16"></script><script src="static/training-plan.js?v=20261025-01"></script><script src="static/training.js?v=20261025-12"></script>
+  <script src="static/race-lineup-plan.js?v=20261025-01"></script><script src="static/race-lineup.js?v=20261025-01"></script>
   <script src="static/pwa.js?v=20261024-20"></script>
 </body>
 </html>

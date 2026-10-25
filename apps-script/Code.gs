@@ -30,7 +30,15 @@ function dispatch_(action, p, token) {
   if (action === 'trainingRoster') return trainingRoster_();
   if (action === 'trainingJoin') return trainingJoin_(p);
   if (action === 'trainingWeekJoin') return trainingWeekJoin_(p);
+  if (action === 'raceLineupList') return raceLineupList_();
+  if (action === 'raceLineupGet') return raceLineupGet_(p);
   requireAdmin_(token);
+  if (action === 'raceLineupAdminData') return raceLineupAdminData_();
+  if (action === 'raceLineupGetAdmin') return raceLineupGetAdmin_(p);
+  if (action === 'raceLineupCreate') return raceLineupCreate_(p);
+  if (action === 'raceLineupParticipants') return raceLineupParticipants_(p);
+  if (action === 'raceLineupSave') return raceLineupSave_(p,false);
+  if (action === 'raceLineupFinalize') return raceLineupSave_(p,true);
   if (action === 'trainingOpen') return trainingOpen_(p);
   if (action === 'trainingRecommend') return trainingRecommend_(p);
   if (action === 'trainingDraftGet') return trainingDraftGet_(p);

@@ -1,0 +1,45 @@
+.race-lineup-shell { max-width:840px; margin:auto; }
+.race-lineup-shell [hidden] { display:none!important; }
+.race-lineup-shell .panel { padding:18px; margin-bottom:14px; }
+.race-lineup-shell h2 { margin:0; font-size:20px; }
+.race-heading,.race-group-heading { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+.race-buttons { display:flex; flex-wrap:wrap; align-items:center; gap:5px; }
+.race-lineup-shell button { min-height:32px; border:1px solid #cbd5e1; border-radius:7px; background:#fff; color:#243b58; padding:5px 9px; font:inherit; font-size:12px; cursor:pointer; }
+.race-lineup-shell button[aria-pressed=true] { border-color:#2563eb; background:#e7f0ff; color:#123f7f; box-shadow:inset 0 0 0 1px #2563eb; }
+.race-lineup-shell button:disabled { opacity:.42; cursor:default; }
+.race-lineup-shell button.primary-button { background:#1557e5; color:#fff; border-color:#1557e5; }
+.race-list { margin-top:10px; }
+.race-lineup-shell summary { padding:10px 0; font-weight:700; cursor:pointer; font-size:13px; }
+.race-lineup-shell input { width:100%; min-height:36px; padding:7px 9px; border:1px solid #cbd5e1; border-radius:7px; font:inherit; font-size:16px; box-sizing:border-box; }
+.race-create form { display:grid; gap:10px; }
+.race-create label { display:grid; gap:5px; font-size:12px; }
+.race-note { margin:8px 0; color:#64748b; font-size:11px; line-height:1.5; }
+.race-setting { margin:8px 0; }
+.race-setting>strong { display:block; font-size:12px; margin-bottom:5px; }
+.race-setting small { color:#64748b; font-size:11px; }
+#raceTeamName { flex:1 1 120px; width:120px; }
+.race-player-table td { padding:3px; }
+.race-player-table button { width:100%; min-height:44px; border-color:transparent; padding:4px; font-size:13px; }
+.race-player-table small,.race-picker small { display:block; font-size:10px; font-weight:400; margin-top:2px; color:#64748b; }
+.race-group { margin-top:12px; padding:10px; border:1px solid #d3deeb; border-radius:9px; background:#f8fafc; }
+.race-group-heading { margin-bottom:7px; }
+.race-group-heading strong { font-size:12px; }
+.race-slot-scroll { overflow-x:auto; }
+.race-main-slots { display:grid; grid-template-columns:repeat(var(--race-slots),minmax(0,1fr)); min-width:calc(var(--race-slots) * 48px); gap:4px; }
+.race-lineup-shell .race-slot { position:relative; min-width:0; min-height:62px; padding:4px 2px; border:2px solid #cbd5e1; border-radius:7px; background:#fff; text-align:center; box-sizing:border-box; user-select:none; -webkit-touch-callout:none; touch-action:pan-y; }
+.race-slot span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; }
+.race-slot small { display:block; color:#64748b; font-size:9px; line-height:1.5; }
+.race-lineup-shell .race-slot.is-changed { border-color:#2563eb; }
+.race-group-footer { display:flex; align-items:center; justify-content:space-between; gap:7px; margin-top:6px; }
+.race-reserves { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; width:52%; max-width:250px; }
+.race-age-total { text-align:right; font-size:12px; }
+.race-age-total small { display:block; font-size:10px; }
+.race-age-total.is-valid { color:#166534; }
+.race-age-total.is-incomplete { color:#b45309; }
+.race-picker { padding:8px; margin-top:7px; border:1px solid #93c5fd; border-radius:8px; background:#eff6ff; }
+.race-picker>strong { display:block; font-size:12px; margin-bottom:5px; }
+.race-bottom { display:flex; align-items:center; justify-content:space-between; gap:6px; flex-wrap:wrap; margin-top:14px; }
+.race-bottom>small { color:#64748b; font-size:11px; }
+#raceMessage { font-size:13px; }
+#raceMessage.is-error { color:#b91c1c; }
+@media(max-width:560px) { .race-lineup-shell .panel { padding:14px; } .race-group { padding:8px; } .race-group-heading .race-buttons { margin-left:auto; } }
