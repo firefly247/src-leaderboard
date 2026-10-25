@@ -23,9 +23,9 @@ function trainingWrite_(sheet,entry) {
   sheet.getRange(entry.row,1,1,2).setNumberFormat('@').setValues([[entry.session.date,json]]);
   SpreadsheetApp.flush();
 }
-function trainingPublic_(s) {
+function trainingPublic_(s,admin) {
   return {training:{date:s.date,opened:s.opened===true,revision:s.revision,registrationRevision:s.registrationRevision,
-    participants:s.opened?trainingTenures_(s.participants,s.date).map(p=>({id:p.id,name:p.name,status:p.status,comment:p.comment||'',canCox:p.canCox,canSmallBoat:p.canSmallBoat,tenure:p.tenure})):[],plan:s.opened?s.plan:null}};
+    participants:s.opened?trainingTenures_(s.participants,s.date).map(p=>({id:p.id,name:p.name,status:p.status,comment:p.comment||'',canCox:p.canCox,canSmallBoat:p.canSmallBoat,tenure:p.tenure})):[],plan:s.opened?s.plan:null,...(admin?{draft:s.draft||null}:{})}};
 }
 /** Derive seniority from the private joining-year column; never return birth/joining years. */
 function trainingTenures_(participants,date) {
@@ -42,12 +42,12 @@ function trainingList_() {
   try{return trainingListFromSheet_(trainingSheet_());}finally{lock.releaseLock();}
 }
 /** Reuse the player-info column catalog without publishing the private player profiles. */
-function trainingRoster_() {
+function trainingRoster_(admin) {
   const players=playerBirthYears_(),columns=[...new Set(players.map(p=>/^\d{4}$/.test(String(p.joinYear||''))?Number(p.joinYear):null))].sort((a,b)=>a===null?1:b===null?-1:a-b);
   const lock=LockService.getScriptLock();lock.waitLock(30000);
   try{
     const sheet=trainingSheet_(),catalog=trainingListFromSheet_(sheet),dates=new Set(catalog.sessions.map(s=>s.date));
-    const trainings=sheet.getDataRange().getDisplayValues().slice(1).filter(row=>dates.has(row[0])).map(row=>trainingPublic_(JSON.parse(row[1])).training).sort((a,b)=>a.date.localeCompare(b.date));
+    const trainings=sheet.getDataRange().getDisplayValues().slice(1).filter(row=>dates.has(row[0])).map(row=>trainingPublic_(JSON.parse(row[1]),admin).training).sort((a,b)=>a.date.localeCompare(b.date));
     return {...catalog,rosterColumns:columns,trainings};
   }finally{lock.releaseLock();}
 }
@@ -63,9 +63,9 @@ function trainingOpen_(p) {
   }finally{lock.releaseLock();}
 }
 function trainingRequireOpen_(s) {if(s.opened!==true)throw new Error('운영진이 아직 개설하지 않은 훈련입니다.');}
-function trainingLocked_(p,fn) {
+function trainingLocked_(p,fn,admin) {
   const date=trainingDate_(p.date), lock=LockService.getScriptLock();lock.waitLock(30000);
-  try { const sheet=trainingSheet_(),entry=trainingRead_(sheet,date);const result=fn(entry.session);if(result!==false)trainingWrite_(sheet,entry);return trainingPublic_(entry.session); }
+  try { const sheet=trainingSheet_(),entry=trainingRead_(sheet,date);const result=fn(entry.session);if(result!==false)trainingWrite_(sheet,entry);return trainingPublic_(entry.session,admin); }
   finally {lock.releaseLock();}
 }
 function trainingGet_(p) {return trainingLocked_(p,()=>false);}
@@ -110,36 +110,98 @@ function trainingWeekJoin_(p) {
   }finally{lock.releaseLock();}
 }
 function trainingExpected_(s,p) {if(Number(p.revision)!==s.revision)throw new Error('다른 사용자가 변경했습니다. 새로고침 후 다시 시도해 주세요.');}
-/** Enumerate this club's fleet; require a cox for every quad and small-boat eligibility. */
-function trainingBuildPlan_(participants) {
+/** Recommend a draft while preserving the exact boat/seat of locked members. */
+function trainingBoat_(type,index) {
+  const seats=type==='4X+'?['COX','1번','2번','3번','4번']:type==='2X'?['1번','2번']:['1번'];
+  return {name:type==='4X+'?'유타쿼드 '+String.fromCharCode(65+index):type==='2X'?'더블스컬 '+String.fromCharCode(65+index):'싱글스컬',type,seats:seats.map(seat=>({seat,id:'',name:''}))};
+}
+function trainingBuildPlan_(participants,previous) {
   const people=participants.filter(p=>p.status==='참석');
-  const coxes=people.filter(p=>p.canCox).sort((a,b)=>Number(a.canSmallBoat)-Number(b.canSmallBoat)||a.name.localeCompare(b.name,'ko'));
+  const pinned=(previous?.boats||[]).flatMap(b=>b.seats.filter(m=>m.locked).map(m=>({boat:b.name,...m})));
+  if(pinned.some(m=>!people.some(p=>p.id===m.id)))throw new Error('고정된 멤버의 참가 여부가 변경되었습니다. 고정을 해제해 주세요.');
   let best=null;
-  for(let q=0;q<=Math.min(4,coxes.length);q++)for(let d=0;d<=2;d++)for(let single=0;single<=1;single++){
+  for(let q=0;q<=4;q++)for(let d=0;d<=2;d++)for(let single=0;single<=1;single++){
     const seated=q*5+d*2+single;if(seated>people.length)continue;
-    const usedCox=coxes.slice(0,q),usedIds=new Set(usedCox.map(p=>p.id));
-    const small=people.filter(p=>!usedIds.has(p.id)&&p.canSmallBoat);
-    if(small.length<d*2+single)continue;
-    const boats=usedCox.map((p,i)=>({name:'유타쿼드 '+String.fromCharCode(65+i),type:'4X+',seats:[{seat:'COX',id:p.id,name:p.name}]}));
-    const takeSmall=()=>{small.sort((a,b)=>a.name.localeCompare(b.name,'ko'));const p=small.shift();usedIds.add(p.id);return p;};
-    if(single){const p=takeSmall('싱글스컬');boats.push({name:'싱글스컬',type:'1X',seats:[{seat:'1번',id:p.id,name:p.name}]});}
-    for(let i=0;i<d;i++){const seats=[];for(let j=0;j<2;j++){const p=takeSmall('더블스컬');seats.push({seat:(j+1)+'번',id:p.id,name:p.name});}boats.push({name:'더블스컬 '+String.fromCharCode(65+i),type:'2X',seats});}
-    const remaining=people.filter(p=>!usedIds.has(p.id)).sort((a,b)=>(b.tenure||0)-(a.tenure||0)||a.name.localeCompare(b.name,'ko'));
-    for(let seat=1;seat<=4;seat++)for(let i=0;i<q;i++){const p=remaining.shift();boats[i].seats.push({seat:seat+'번',id:p.id,name:p.name});usedIds.add(p.id);}
+    const boats=[];
+    for(let i=0;i<q;i++)boats.push(trainingBoat_('4X+',i));
+    if(single)boats.push(trainingBoat_('1X',0));
+    for(let i=0;i<d;i++)boats.push(trainingBoat_('2X',i));
+    const usedIds=new Set();let valid=true;
+    pinned.forEach(m=>{const seat=boats.find(b=>b.name===m.boat)?.seats.find(s=>s.seat===m.seat);if(!seat||usedIds.has(m.id)){valid=false;return;}Object.assign(seat,{id:m.id,name:m.name,locked:true,changed:!!m.changed});usedIds.add(m.id);});
+    if(!valid)continue;
+    const fill=(seat,filter,sort)=>{if(seat.id)return;const member=people.filter(p=>!usedIds.has(p.id)&&filter(p)).sort(sort)[0];if(!member){valid=false;return;}Object.assign(seat,{id:member.id,name:member.name});usedIds.add(member.id);};
+    boats.filter(b=>b.type==='4X+').forEach(b=>fill(b.seats[0],p=>p.canCox,(a,b)=>Number(a.canSmallBoat)-Number(b.canSmallBoat)||a.name.localeCompare(b.name,'ko')));
+    boats.filter(b=>b.type!=='4X+').forEach(b=>b.seats.forEach(seat=>fill(seat,p=>p.canSmallBoat,(a,b)=>a.name.localeCompare(b.name,'ko'))));
+    for(let seat=1;seat<=4;seat++)boats.filter(b=>b.type==='4X+').forEach(b=>fill(b.seats[seat],()=>true,(a,b)=>(b.tenure||0)-(a.tenure||0)||a.name.localeCompare(b.name,'ko')));
+    if(!valid)continue;
     const score=seated*1000+q;
-    if(!best||score>best.score)best={score,boats,wait:participants.filter(p=>p.status==='참석'&&!usedIds.has(p.id)).map(p=>({id:p.id,name:p.name,reason:'좌석 또는 탑승 가능 조건 확인 필요'}))};
+    if(!best||score>best.score)best={score,boats,wait:people.filter(p=>!usedIds.has(p.id)).map(p=>({id:p.id,name:p.name,reason:'좌석 또는 탑승 가능 조건 확인 필요'}))};
   }
+  if(!best)throw new Error('고정된 좌석을 유지하는 조합이 없습니다. 고정을 조정하거나 직접 배정해 주세요.');
   return {boats:best.boats,wait:best.wait};
 }
+function trainingDraftGet_(p) {return p.date?trainingLocked_(p,()=>false,true):trainingRoster_(true);}
 function trainingRecommend_(p) {
   return trainingLocked_(p,s=>{
-    trainingRequireOpen_(s);
-    trainingExpected_(s,p);
-    const built=trainingBuildPlan_(trainingTenures_(s.participants,s.date)),oldChecks=s.plan?s.plan.checks:{};
-    const checks={};built.boats.forEach(b=>b.seats.forEach(m=>{checks[m.id]=oldChecks[m.id]||'미확인';}));
-    s.plan={boats:built.boats,wait:built.wait,checks,registrationRevision:s.registrationRevision,publishedAt:new Date().toISOString()};s.revision++;
-  });
+    trainingRequireOpen_(s);trainingExpected_(s,p);
+    const built=trainingBuildPlan_(trainingTenures_(s.participants,s.date),s.draft||s.plan);
+    s.draft={...built,registrationRevision:s.registrationRevision};s.revision++;
+  },true);
 }
+function trainingDraftWait_(s) {
+  const ids=new Set(s.draft.boats.flatMap(b=>b.seats.map(m=>m.id)));
+  s.draft.wait=s.participants.filter(m=>m.status==='참석'&&!ids.has(m.id)).map(m=>({id:m.id,name:m.name,reason:'배정 대기'}));
+}
+function trainingDraftEdit_(p) {
+  return trainingLocked_(p,s=>{
+    trainingRequireOpen_(s);trainingExpected_(s,p);
+    if(!s.draft)s.draft=s.plan?JSON.parse(JSON.stringify(s.plan)):{boats:[],wait:[],registrationRevision:s.registrationRevision};
+    const draft=s.draft;
+    if(p.operation==='start'){trainingDraftWait_(s);s.revision++;return;}
+    if(p.operation==='addBoat'){
+      if(!['4X+','2X','1X'].includes(p.type))throw new Error('보트를 확인해 주세요.');
+      const limit=p.type==='4X+'?4:p.type==='2X'?2:1;
+      const index=Array.from({length:limit},(_,i)=>i).find(i=>!draft.boats.some(b=>b.name===trainingBoat_(p.type,i).name));
+      if(index==null)throw new Error('보유한 보트 수를 초과했습니다.');
+      draft.boats.push(trainingBoat_(p.type,index));
+    }else{
+      const boat=draft.boats.find(b=>b.name===p.boat);if(!boat)throw new Error('보트를 찾을 수 없습니다.');
+      if(p.operation==='removeBoat'){
+        if(boat.seats.some(m=>m.locked))throw new Error('멤버 고정을 먼저 해제해 주세요.');
+        draft.boats=draft.boats.filter(b=>b!==boat);
+      }else{
+        const seat=boat.seats.find(m=>m.seat===p.seat);if(!seat)throw new Error('좌석을 찾을 수 없습니다.');
+        if(p.operation==='lock'){
+          if(!seat.id)throw new Error('멤버를 먼저 배정해 주세요.');
+          seat.locked=!seat.locked;
+        }else if(p.operation==='replace'){
+          if(seat.locked)throw new Error('고정을 해제한 뒤 변경해 주세요.');
+          const member=s.participants.find(m=>m.id===p.id&&m.status==='참석');if(!member)throw new Error('참석 신청자를 선택해 주세요.');
+          const other=draft.boats.flatMap(b=>b.seats).find(m=>m.id===member.id);
+          if(other===seat)return false;
+          if(other?.locked)throw new Error('선택한 멤버의 고정을 먼저 해제해 주세요.');
+          if(other)Object.assign(other,{id:seat.id,name:seat.name,changed:true});
+          Object.assign(seat,{id:member.id,name:member.name,changed:true});
+        }else throw new Error('변경 작업을 확인해 주세요.');
+      }
+    }
+    trainingDraftWait_(s);draft.registrationRevision=s.registrationRevision;s.revision++;
+  },true);
+}
+function trainingPublish_(p) {
+  return trainingLocked_(p,s=>{
+    trainingRequireOpen_(s);trainingExpected_(s,p);
+    if(!s.draft||!s.draft.boats.length)throw new Error('배별 조합을 먼저 만들어 주세요.');
+    const seats=s.draft.boats.flatMap(b=>b.seats),ids=seats.map(m=>m.id);
+    if(ids.some(id=>!id)||new Set(ids).size!==ids.length)throw new Error('모든 좌석에 서로 다른 멤버를 배정해 주세요.');
+    if(ids.some(id=>!s.participants.some(m=>m.id===id&&m.status==='참석')))throw new Error('참가 여부가 변경되었습니다. 명단을 확인해 주세요.');
+    trainingDraftWait_(s);
+    const checks={};ids.forEach(id=>checks[id]=s.plan?.checks?.[id]||'미확인');
+    s.plan={...JSON.parse(JSON.stringify(s.draft)),checks,registrationRevision:s.registrationRevision,publishedAt:new Date().toISOString()};
+    s.draft=null;s.revision++;
+  },true);
+}
+
 function trainingCheck_(p) {
   if(!['미확인','출석','불참'].includes(p.status))throw new Error('출석 상태를 확인해 주세요.');
   return trainingLocked_(p,s=>{

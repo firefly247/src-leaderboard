@@ -22,7 +22,8 @@ test('admin authorization, revision conflicts, and attendance-only updates',()=>
   const s=server();s.call('trainingJoin',entry('김선수',{canSmallBoat:true}));
   assert.throws(()=>s.call('trainingRecommend',{revision:1}),/관리자 인증/);
   assert.throws(()=>s.call('trainingCheck',{id:'id-1',status:'불참',revision:1}),/관리자 인증/);
-  let {training:t}=s.call('trainingRecommend',{revision:2},'valid');assert.equal(t.plan.boats[0].type,'1X');const boats=JSON.stringify(t.plan.boats);
+  let {training:t}=s.call('trainingRecommend',{revision:2},'valid');assert.equal(t.draft.boats[0].type,'1X');assert.equal(t.plan,null);
+  t=s.call('trainingPublish',{revision:t.revision},'valid').training;const boats=JSON.stringify(t.plan.boats);
   assert.throws(()=>s.call('trainingCheck',{id:'id-1',status:'불참',revision:1},'valid'),/다른 사용자가 변경/);
   t=s.call('trainingCheck',{id:'id-1',status:'불참',revision:t.revision},'valid').training;
   assert.equal(t.plan.checks['id-1'],'불참');assert.equal(JSON.stringify(t.plan.boats),boats);assert.equal(s.call('trainingGet').training.plan.checks['id-1'],'불참');
@@ -37,8 +38,46 @@ test('fleet capacity and qualifications without a removed arrival-time restricti
   p[0].canCox=true;const beginners=s.build(p);assert.equal(beginners.boats.length,1);assert.equal(beginners.boats[0].seats.length,5);
   p[0].arrival='늦참';assert.equal(s.build(p).boats.length,1);assert.equal(s.build(p).wait.length,27);
 });
+test('draft edits, swaps, locks and reassignment stay private until explicit publication',()=>{
+  const s=server();['가','나','다','라','마','바'].forEach((name,i)=>s.call('trainingJoin',entry(name,{canCox:i===0,canSmallBoat:true})));
+  let t=s.call('trainingRecommend',{revision:7},'valid').training;
+  const edit=p=>{t=s.call('trainingDraftEdit',{revision:t.revision,...p},'valid').training;};
+  assert.equal(t.plan,null);assert.equal(t.draft.boats.length,2);
+  for(const action of ['trainingDraftGet','trainingDraftEdit','trainingPublish'])assert.throws(()=>s.call(action),/관리자 인증/);
+  assert.equal(s.call('trainingGet').training.draft,undefined);assert.equal(s.call('trainingRoster').trainings[0].draft,undefined);
+  const single=t.draft.boats.find(b=>b.type==='1X'),quad=t.draft.boats.find(b=>b.type==='4X+'),a=single.seats[0],b=quad.seats[1];
+  edit({operation:'replace',boat:single.name,seat:a.seat,id:b.id});
+  assert.equal(t.draft.boats.find(v=>v.type==='1X').seats[0].id,b.id);
+  assert.equal(t.draft.boats.find(v=>v.type==='4X+').seats[1].id,a.id);
+  assert.ok(t.draft.boats.find(v=>v.type==='1X').seats[0].changed);
+  edit({operation:'lock',boat:single.name,seat:a.seat});
+  assert.throws(()=>s.call('trainingDraftEdit',{operation:'replace',boat:single.name,seat:a.seat,id:a.id,revision:t.revision},'valid'),/고정/);
+  t=s.call('trainingRecommend',{revision:t.revision},'valid').training;
+  assert.equal(t.draft.boats.find(v=>v.type==='1X').seats[0].id,b.id);assert.ok(t.draft.boats.find(v=>v.type==='1X').seats[0].locked);
+  assert.equal(s.call('trainingGet').training.plan,null);
+  t=s.call('trainingPublish',{revision:t.revision},'valid').training;
+  const published=JSON.stringify(s.call('trainingGet').training.plan);assert.ok(t.plan.boats.length);assert.equal(t.draft,null);
+  edit({operation:'start'});edit({operation:'lock',boat:single.name,seat:a.seat});edit({operation:'replace',boat:single.name,seat:a.seat,id:a.id});
+  assert.equal(JSON.stringify(s.call('trainingGet').training.plan),published);
+  t=s.call('trainingPublish',{revision:t.revision},'valid').training;
+  assert.equal(t.plan.boats.find(v=>v.type==='1X').seats[0].id,a.id);
+});
+test('manual drafts support unqualified applicants, fleet limits, stale changes and incomplete seats',()=>{
+  const s=server();s.call('trainingJoin',entry('가'));s.call('trainingJoin',entry('나'));
+  let t=s.call('trainingRecommend',{revision:3},'valid').training;
+  const edit=p=>{t=s.call('trainingDraftEdit',{revision:t.revision,...p},'valid').training;};
+  assert.equal(t.draft.boats.length,0);edit({operation:'addBoat',type:'1X'});
+  assert.throws(()=>s.call('trainingPublish',{revision:t.revision},'valid'),/모든 좌석/);
+  assert.throws(()=>s.call('trainingDraftEdit',{operation:'addBoat',type:'1X',revision:t.revision},'valid'),/보유한/);
+  edit({operation:'replace',boat:'싱글스컬',seat:'1번',id:'id-1'});edit({operation:'lock',boat:'싱글스컬',seat:'1번'});
+  assert.throws(()=>s.call('trainingDraftEdit',{operation:'removeBoat',boat:'싱글스컬',revision:t.revision},'valid'),/고정/);
+  assert.throws(()=>s.call('trainingDraftEdit',{operation:'lock',boat:'싱글스컬',seat:'1번',revision:0},'valid'),/다른 사용자가/);
+  s.call('trainingJoin',entry('가',{status:'불참'}));t=s.call('trainingDraftGet',{},'valid').training;
+  assert.throws(()=>s.call('trainingRecommend',{revision:t.revision},'valid'),/참가 여부/);
+  assert.throws(()=>s.call('trainingPublish',{revision:t.revision},'valid'),/참가 여부/);
+});
 test('registration changes preserve published plan and flag a stale snapshot; dates are isolated',()=>{
-  const s=server();s.call('trainingJoin',entry('김선수',{canSmallBoat:true}));let t=s.call('trainingRecommend',{revision:2},'valid').training;const plan=JSON.stringify(t.plan);
+  const s=server();s.call('trainingJoin',entry('김선수',{canSmallBoat:true}));let t=s.call('trainingRecommend',{revision:2},'valid').training;t=s.call('trainingPublish',{revision:t.revision},'valid').training;const plan=JSON.stringify(t.plan);
   t=s.call('trainingJoin',entry('김선수',{status:'불참',canSmallBoat:true})).training;
   assert.equal(JSON.stringify(t.plan),plan);assert.notEqual(t.plan.registrationRevision,t.registrationRevision);
   assert.equal(s.call('trainingGet',{date:'2026-10-25'}).training.participants.length,0);

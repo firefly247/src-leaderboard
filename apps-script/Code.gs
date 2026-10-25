@@ -33,6 +33,9 @@ function dispatch_(action, p, token) {
   requireAdmin_(token);
   if (action === 'trainingOpen') return trainingOpen_(p);
   if (action === 'trainingRecommend') return trainingRecommend_(p);
+  if (action === 'trainingDraftGet') return trainingDraftGet_(p);
+  if (action === 'trainingDraftEdit') return trainingDraftEdit_(p);
+  if (action === 'trainingPublish') return trainingPublish_(p);
   if (action === 'trainingCheck') return trainingCheck_(p);
   if (action === 'trainingQualifications') return trainingQualifications_(p);
   if (action === 'adminList') return adminList_(p.view);
