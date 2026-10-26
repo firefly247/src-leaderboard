@@ -3,47 +3,56 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="삼성조정클럽 에르고 기록과 대회 실적 리더보드">
-  <title>삼성조정클럽 리더보드</title>
+  <meta name="description" content="함께 노를 젓고, 함께 기록을 만드는 삼성조정클럽. 대회 성과와 클럽의 이야기를 만나보세요.">
+  <title>삼성조정클럽</title>
   <meta name="theme-color" content="#07152f">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="삼성조정클럽">
-  <link rel="manifest" href="static/manifest.webmanifest?v=20261024-18">
+  <link rel="manifest" href="static/manifest.webmanifest?v=20261026-11">
   <link rel="apple-touch-icon" href="static/icons/club-180.png">
   <link rel="icon" type="image/png" href="static/icons/club-192.png">
   <link rel="stylesheet" href="static/training.css?v=20261025-08">
   <link rel="stylesheet" href="static/race-lineup.css?v=20261025-01">
   <link rel="stylesheet" href="static/style.css?v=20261024-20">
   <link rel="stylesheet" href="static/member-auth.css?v=20261026-09">
+  <link rel="stylesheet" href="static/club-home.css?v=20261026-11">
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="#ergo" aria-label="삼성조정클럽 리더보드 홈"><span>삼성조정클럽</span><span>리더보드</span></a>
+    <a class="brand" href="#home" aria-label="삼성조정클럽 홈"><svg class="club-brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M5 8l22 16M27 8L5 24" stroke="#edc777" stroke-width="2"/><path d="M3 27c4-3 7 3 11 0s7 3 15 0" stroke="#9ed4d9" stroke-width="2"/></svg><span>삼성조정클럽</span></a>
     <button id="headerMenuToggle" class="header-menu-toggle" type="button" aria-label="메뉴 열기" aria-expanded="false" aria-controls="mainNavigation"><span></span><span></span><span></span></button>
     <nav id="mainNavigation" class="main-tabs" aria-label="주요 메뉴" hidden>
       <div class="member-auth"><button id="kakaoLogin" class="kakao-login" type="button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C6.5 3 2 6.5 2 10.8c0 2.8 1.9 5.3 4.7 6.6l-1 3.6 4.2-2.6c.7.1 1.4.2 2.1.2 5.5 0 10-3.5 10-7.8S17.5 3 12 3Z"/></svg>카카오 로그인</button><span id="memberAuthStatus" class="member-auth-status" role="status">카카오 로그인 준비 중</span><button id="memberLogout" class="header-logout-button" type="button" hidden>회원 로그아웃</button></div>
-      <button class="tab-button is-active" data-tab="ergo" type="button">에르고</button>
-      <button class="tab-button" data-tab="competition" type="button">대회</button>
-      <button class="tab-button" data-tab="athletes" type="button">선수(Beta)</button>
-      <button class="tab-button" data-tab="training" type="button">주말 훈련(Beta)</button>
-      <button class="tab-button" data-tab="race-lineup" type="button">대회 조 편성(Beta)</button>
-      <button class="tab-button" data-tab="request" type="button">기록 등록</button>
+      <button class="tab-button is-active" data-tab="home" type="button">클럽 소개</button>
+      <button class="tab-button" data-tab="ergo" data-member-menu type="button" hidden>ERG 리더보드</button>
+      <button class="tab-button" data-tab="competition" data-member-menu type="button" hidden>대회 리더보드</button>
+      <button class="tab-button" data-tab="athletes" data-member-menu type="button" hidden>선수(Beta)</button>
+      <button class="tab-button" data-tab="training" data-member-menu type="button" hidden>주말 훈련(Beta)</button>
+      <button class="tab-button" data-tab="race-lineup" data-member-menu type="button" hidden>대회 조 편성(Beta)</button>
+      <button class="tab-button" data-tab="request" data-member-menu type="button" hidden>기록 등록</button>
       <button class="tab-button" data-tab="admin" type="button" hidden>관리자</button>
-      <button id="androidDownloadButton" class="header-install-button" type="button">Android APK 다운로드</button>
+      <div id="memberTools" class="member-tools" hidden><button id="androidDownloadButton" class="header-install-button" type="button">Android APK 다운로드</button>
       <button id="appInstallButton" class="header-install-button" type="button">홈 화면에 추가</button>
-      <button id="refreshButton" class="refresh-button" type="button" aria-label="최신 데이터 새로고침"><span aria-hidden="true">↻</span> 새로고침</button>
+      <button id="refreshButton" class="refresh-button" type="button" aria-label="최신 데이터 새로고침"><span aria-hidden="true">↻</span> 새로고침</button></div>
     </nav>
   </header>
   <main class="page-shell">
     <div id="statusMessage" class="status-message" role="status" hidden></div>
-    <section class="tab-panel is-active" data-panel="ergo">
-      <section class="competition-hero ergo-hero"><div><p class="eyebrow">ERGO RECORDS</p><h1>에르고 기록</h1></div><div class="club-medal-summary"><div class="competition-filter-toggles"><label class="indoor-medal-toggle" for="recentErgoThreeYearsOnly"><span>최근 3년 내 기록</span><input id="recentErgoThreeYearsOnly" type="checkbox" checked><i aria-hidden="true"></i></label></div><div id="ergoRecordTotal" class="club-medal-total ergo-record-total"></div></div></section>
+    <section class="tab-panel is-active club-home" data-panel="home" aria-label="삼성조정클럽 소개">
+      <section class="club-hero"><div class="club-hero-copy"><p class="club-kicker">SAMSUNG ROWING CLUB</p><h1>삼성조정클럽</h1><p class="club-hero-title">같은 리듬으로,<br>더 멀리.</p><p class="club-hero-description">주말의 훈련이 대회의 한 장면이 되고,<br>한 사람의 기록이 팀의 역사로 이어집니다.<br>함께 노를 젓고, 함께 성장하는 우리.</p><button class="club-home-cta" type="button" data-member-login data-home-login>카카오로 회원 로그인 <span aria-hidden="true">↗</span></button><button class="club-home-cta" type="button" data-home-member data-home-view="competition" hidden>대회 리더보드 보기 <span aria-hidden="true">↗</span></button></div>
+      <div class="club-hero-art"><svg viewBox="0 0 600 420" fill="none" aria-hidden="true"><defs><g id="club-sculler"><path d="M-8-4L-50-73M8 4L50 73" stroke="#c8dce0" stroke-width="3"/><path d="M-50-73L-59-89M50 73L59 89" stroke="#edc777" stroke-width="7"/><circle r="7" fill="#103e52"/><path d="M-10 0H10" stroke="#103e52" stroke-width="5"/></g></defs><path d="M-40 60C100-20 320 150 650 20M-40 145C150 55 320 235 650 100M-40 240C100 140 390 330 650 200M-40 330C170 240 370 410 650 285M-40 420C170 330 390 500 650 375" stroke="#28576b" stroke-width="1.5"/><g transform="translate(310 210) rotate(-28)"><path d="M-222 0Q-140-15 175-10L217 0L175 10Q-140 15-222 0Z" fill="#e4e8df"/><path d="M-260-12L-280-12M-270 0H-310M-260 12H-295" stroke="#588291" stroke-width="2" stroke-linecap="round"/><use href="#club-sculler" x="-95"/><use href="#club-sculler" x="-33"/><use href="#club-sculler" x="29"/><use href="#club-sculler" x="91"/><circle cx="170" r="5" fill="#bf9556"/></g><path d="M480 46h65m-32-12v25M65 345h50" stroke="#467183" stroke-width="1"/></svg><span class="club-art-caption">TOGETHER ON WATER</span></div></section>
+      <section class="club-achievements" aria-label="누적 대회 성과"><div class="club-record-label"><strong id="clubHomeRange">대회 기록</strong><span>물 위에 쌓아온 우리의 기록</span></div><div id="clubHomeStats" class="club-stats" aria-live="polite"><div class="club-stat"><span>대회 출전</span><strong>—</strong></div><div class="club-stat"><span>함께 이룬 메달</span><strong>—</strong></div><div class="club-stat"><span>대회에 함께한 선수</span><strong>—</strong></div></div><div class="club-record-bottom"><div id="clubHomeMedals" class="club-medal-totals"></div><p class="club-home-note">등록된 수상·실내·비치 대회 기준 · 같은 크루의 메달은 한 번 집계합니다.</p></div></section>
+      <section aria-label="최근 대회 성과"><div class="club-section-heading"><div><p class="club-kicker">OUR LATEST RACES</p><h2>최근의 레이스</h2></div><span id="clubHomeSeason" class="club-season"></span></div><div id="clubHomeRaces" class="club-races"><p class="club-home-note">대회 기록을 불러오고 있습니다.</p></div></section>
+      <section class="club-about"><div><p class="club-kicker">HOW WE ROW</p><h2>함께 타고,<br>함께 성장합니다.</h2></div><div class="club-practices"><article><span class="club-practice-number">01 / WATER</span><h3>주말의 팀워크</h3><p>토요일과 일요일, 같은 배에서 호흡을 맞추는 훈련을 이어갑니다.</p></article><article><span class="club-practice-number">02 / ERG</span><h3>꾸준함의 기록</h3><p>ERG 기록으로 자신의 변화를 살피고, 다음 목표를 만듭니다.</p></article><article><span class="club-practice-number">03 / RACE</span><h3>함께하는 도전</h3><p>수상·실내·비치 대회에서 훈련의 시간을 하나의 레이스로 완성합니다.</p></article></div></section><p class="club-home-footer">회원 로그인 후 리더보드, 훈련 신청과 크루 편성을 이용할 수 있습니다.</p>
+    </section>
+    <section class="tab-panel" data-panel="ergo">
+      <section class="competition-hero ergo-hero"><div><p class="eyebrow">ERGO RECORDS</p><h1>ERG 리더보드</h1></div><div class="club-medal-summary"><div class="competition-filter-toggles"><label class="indoor-medal-toggle" for="recentErgoThreeYearsOnly"><span>최근 3년 내 기록</span><input id="recentErgoThreeYearsOnly" type="checkbox" checked><i aria-hidden="true"></i></label></div><div id="ergoRecordTotal" class="club-medal-total ergo-record-total"></div></div></section>
       <section id="topChampions" class="top-champions" aria-label="종목별 1위"></section>
       <div id="eventSections" class="event-sections" aria-label="종목별 순위"></div>
       <section class="panel"><div class="section-heading table-heading"><div><p class="eyebrow">MEMBERS</p><h2>회원별 PB</h2></div><input id="memberSearch" class="search-input" type="search" placeholder="회원 검색" aria-label="회원 검색"></div><div class="table-wrap"><table id="memberTable" class="member-summary-table"><thead></thead><tbody></tbody></table></div></section>
     </section>
     <section class="tab-panel" data-panel="competition">
-      <section class="competition-hero"><div><p class="eyebrow">CLUB MEDALS</p><h1>대회 기록</h1></div><div class="club-medal-summary"><div class="competition-filter-toggles"><label class="indoor-medal-toggle" for="excludeIndoorMedals"><span>실내대회 제외</span><input id="excludeIndoorMedals" type="checkbox" checked><i aria-hidden="true"></i></label></div><div id="clubMedalTotal" class="club-medal-total"></div></div></section>
+      <section class="competition-hero"><div><p class="eyebrow">CLUB MEDALS</p><h1>대회 리더보드</h1></div><div class="club-medal-summary"><div class="competition-filter-toggles"><label class="indoor-medal-toggle" for="excludeIndoorMedals"><span>실내대회 제외</span><input id="excludeIndoorMedals" type="checkbox" checked><i aria-hidden="true"></i></label></div><div id="clubMedalTotal" class="club-medal-total"></div></div></section>
       <div class="competition-leaderboards">
         <section class="panel"><div class="section-heading"><div><p class="eyebrow">MOST ACTIVE</p><h2>대회 출석왕</h2></div></div><div id="attendanceTop5" class="top-five-list"></div></section>
         <section class="panel"><div class="section-heading"><div><p class="eyebrow">MEDAL HONORS</p><h2>대회 메달왕</h2></div></div><div id="medalTop5" class="top-five-list"></div><p class="ranking-rule">금메달 수를 우선하며, 동률이면 은메달·동메달 순으로 비교합니다.</p></section>
@@ -92,8 +101,8 @@
   <dialog id="appInstallDialog" class="app-install-dialog" aria-labelledby="appInstallTitle"><img class="app-install-icon" src="static/icons/club-192.png" width="80" height="80" alt="삼성조정클럽 로고"><h2 id="appInstallTitle">앱 설치</h2><p id="appInstallIntro">홈 화면에 추가하면 앱처럼 바로 실행할 수 있습니다.</p><ol id="appInstallSteps"></ol><a id="apkDownloadLink" class="primary-button apk-download-link" href="downloads/samsung-rowing-club.apk?v=1.0.0" download="samsung-rowing-club.apk" hidden>APK 다운로드 · v1.0.0</a><p id="apkCompatibility" class="form-description" hidden>Android 8.0 이상 · 삼성조정클럽 앱</p><p class="form-description">기록 조회·저장에는 인터넷 연결이 필요합니다.</p><button id="appInstallClose" class="primary-button" type="button">확인</button></dialog>
   <dialog id="memberDialog" class="member-dialog" aria-labelledby="dialogMemberName"><div class="dialog-header"><div><p class="eyebrow">MEMBER RECORDS</p><h2 id="dialogMemberName"></h2></div><button id="dialogCloseButton" class="dialog-close" type="button" aria-label="팝업 닫기">×</button></div><div id="dialogContent"></div></dialog><dialog id="photoDialog" class="photo-dialog"><button class="dialog-close" type="button" data-close-photo aria-label="팝업 닫기">×</button><img id="proofPhotoImage" alt="기록 증빙사진"></dialog>
   <dialog id="batchProgressDialog" class="batch-progress-dialog" aria-labelledby="batchProgressTitle"><div class="batch-progress-icon" aria-hidden="true"><span></span></div><p class="eyebrow">RECORD REQUEST</p><h2 id="batchProgressTitle">기록 요청 진행 중</h2><p id="batchProgressMessage" class="batch-progress-message" aria-live="polite"></p><div class="batch-progress-track" aria-hidden="true"><span id="batchProgressBar"></span></div><strong id="batchProgressCount" class="batch-progress-count"></strong><button id="batchProgressConfirm" class="primary-button" type="button" hidden>확인</button></dialog>
-  <footer>© <span id="currentYear"></span> 삼성조정클럽</footer><script src="static/vendor/supabase-2.118.0.js"></script><script src="static/backend-config.js?v=20261026-03"></script><script src="static/supabase-backend.js?v=20261026-08"></script><script src="static/athlete-analysis.js?v=20261016-03"></script><script src="static/leaderboard.js?v=20261026-10"></script><script src="static/training-plan.js?v=20261025-01"></script><script src="static/training.js?v=20261026-08"></script>
-  <script src="static/race-lineup-plan.js?v=20261025-01"></script><script src="static/race-lineup.js?v=20261026-08"></script>
+  <footer>© <span id="currentYear"></span> 삼성조정클럽</footer><script src="static/vendor/supabase-2.118.0.js"></script><script src="static/backend-config.js?v=20261026-03"></script><script src="static/supabase-backend.js?v=20261026-08"></script><script src="static/athlete-analysis.js?v=20261016-03"></script><script src="static/club-home.js?v=20261026-11"></script><script src="static/leaderboard.js?v=20261026-11"></script><script src="static/training-plan.js?v=20261025-01"></script><script src="static/training.js?v=20261026-11"></script>
+  <script src="static/race-lineup-plan.js?v=20261025-01"></script><script src="static/race-lineup.js?v=20261026-11"></script>
   <script src="static/pwa.js?v=20261024-20"></script>
   <script src="static/supabase-member-auth.js?v=20261026-09"></script>
 </body>

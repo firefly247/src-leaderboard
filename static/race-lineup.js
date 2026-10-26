@@ -97,7 +97,7 @@
     }catch(e){message(e.message,true);}
   });
   window.addEventListener('beforeunload',e=>{if(local.size||selectedChanged()){e.preventDefault();e.returnValue='';}});
-  document.querySelector('[data-tab="race-lineup"]').addEventListener('click',()=>{panel.classList.add('is-active');if(!loaded||!!state.adminUserId&&!players.length)loadCatalog();else render();});
+  document.querySelector('[data-tab="race-lineup"]').addEventListener('click',()=>{if(!state.memberUserId)return;panel.classList.add('is-active');if(!loaded||!!state.adminUserId&&!players.length)loadCatalog();else render();});
   document.addEventListener('club-admin-changed',()=>{epoch++;busy=false;loaded=false;race=null;players=[];events=[];divisions=[];competitions=[];local.clear();selections.clear();render();if(panel.classList.contains('is-active'))loadCatalog();});
   render();if(location.hash==='#race-lineup')document.querySelector('[data-tab="race-lineup"]').click();
 })();

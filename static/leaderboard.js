@@ -2,7 +2,7 @@
 
 
 const GITHUB_COMMIT_URL = "https://api.github.com/repos/firefly247/src-leaderboard/commits/main";
-const state = { events: [], records: [], dormantMembers: new Set(), competitions: [], competitionEvents: [], competitionDivisions: [], competitionRecords: [], competitionDates: [], competitionLineups: new Map(), rankings: {}, members: [], competitionMembers: [], competitionSummaryType: "water", recentErgoThreeYearsOnly: true, excludeIndoorMedals: true, clubMedals: {gold:0,silver:0,bronze:0}, athleteSelectedName: "", athleteCompareName: "", athleteView: "card", pendingDeleteIds: new Set(), adminUserId: "", refreshing: false, refreshedAt: 0 };
+const state = { events: [], records: [], dormantMembers: new Set(), competitions: [], competitionEvents: [], competitionDivisions: [], competitionRecords: [], competitionDates: [], competitionLineups: new Map(), rankings: {}, members: [], competitionMembers: [], competitionSummaryType: "water", recentErgoThreeYearsOnly: true, excludeIndoorMedals: true, clubMedals: {gold:0,silver:0,bronze:0}, athleteSelectedName: "", athleteCompareName: "", athleteView: "card", pendingDeleteIds: new Set(), adminUserId: "", memberUserId: "", refreshing: false, refreshedAt: 0 };
 const $ = (s) => document.querySelector(s);
 const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const eventNameCompare = (a,b) => { const an=String(a.event_name||a),bn=String(b.event_name||b),am=an.match(/^\s*(\d+(?:\.\d+)?)/),bm=bn.match(/^\s*(\d+(?:\.\d+)?)/);return am&&bm&&Number(am[1])!==Number(bm[1])?Number(am[1])-Number(bm[1]):an.localeCompare(bn,"ko"); };
@@ -149,7 +149,7 @@ function renderForms() {
   syncDropdownTriggers();
   renderForms.catalogSignature=catalogSignature;
 }
-function render() { renderErgo();renderCompetition();renderAthletes();renderForms(); }
+function render() { renderErgo();renderCompetition();renderAthletes();renderForms();if(typeof window!=="undefined")window.ClubHome?.render(state.competitionRecords,state.competitionDates); }
 function memberErgoRecordsHtml(m) { if(!m)return '<p class="empty-cell">등록된 에르고 기록이 없습니다.</p>';return `<div class="member-pb-grid">${state.events.map(e=>{const r=m.pb[e.event_id];return `<div class="member-pb-card"><span>${esc(e.event_name)} PB</span><strong>${esc(r?r.timeDisplay:"-")}</strong><small>${esc(r?r.competition_date:"")}</small></div>`;}).join("")}</div><div class="member-history-list">${state.events.map(e=>{const rows=includedErgoRecords().filter(r=>r.memberName===m.memberName&&r.eventId===e.event_id).sort((a,b)=>(b.competition_date||"").localeCompare(a.competition_date||"")||a.timeMs-b.timeMs);return `<section class="member-event-history"><div class="member-event-heading"><h3>${esc(e.event_name)}</h3><span>${rows.length}개 기록</span></div><div class="table-wrap"><table class="member-history-table"><thead><tr><th>날짜</th><th>기록</th><th>대회/장소</th><th>삭제요청</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.competition_date||"-")}</td><td class="time-cell">${recordTime(r)}</td><td>${esc(r.competition||"-")}</td><td>${deleteControl(r)}</td></tr>`).join("")||'<tr><td colspan="4" class="empty-cell">기록이 없습니다.</td></tr>'}</tbody></table></div></section>`;}).join("")}</div>`; }
 function openMember(i) { const m=state.members[i];if(!m)return;$("#dialogMemberName").textContent=m.memberName+" 선수 기록";$("#dialogContent").innerHTML=memberErgoRecordsHtml(m);$("#memberDialog").showModal(); }
 function memberCompetitionRecordsHtml(memberName) { const member=state.competitionMembers.find(m=>m.memberName===memberName),rows=state.competitionRecords.filter(r=>r.memberName===memberName).sort((a,b)=>b.year-a.year||a.competitionName.localeCompare(b.competitionName,"ko"));if(!member)return '<p class="empty-cell">등록된 대회 기록이 없습니다.</p>';return `<div class="member-pb-grid competition-medal-cards"><div class="member-pb-card"><span>출전</span><strong>${member.attendance}</strong><small>대회</small></div><div class="member-pb-card"><span>🥇 금메달</span><strong>${member.gold}</strong><small>개</small></div><div class="member-pb-card"><span>🥈 은메달</span><strong>${member.silver}</strong><small>개</small></div><div class="member-pb-card"><span>🥉 동메달</span><strong>${member.bronze}</strong><small>개</small></div></div><div class="member-history-list"><div class="table-wrap"><table class="competition-detail-table"><thead><tr><th>연도</th><th>대회</th><th>종목</th><th>나이대</th><th>결과</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.year}</td><td>${esc(r.competitionName)}<small class="record-tags">${competitionTypeLabel(r.competitionType)}${r.note?" · "+esc(r.note):""}${r.isCox?" · COX":""}</small></td><td>${esc(r.competitionEventName)}</td><td>${esc(r.competitionDivisionName)}</td><td>${medalIcons([r])}</td></tr>`).join("")}</tbody></table></div></div>`; }
@@ -332,15 +332,32 @@ function adminContent(view,data) {
 }
 function showAdminGroup(view) { $("#adminContent").classList.toggle("reference-admin",["competitions","competition-events","competition-divisions","events","player-birth-years","competition-dates","member-accounts"].includes(view)); const referenceViews=["competitions","competition-events","competition-divisions","events","player-birth-years","competition-dates","member-accounts"],group=referenceViews.includes(view)?"references":"records";document.querySelectorAll("[data-admin-group]").forEach(button=>button.classList.toggle("is-active",button.dataset.adminGroup===group));document.querySelectorAll("[data-admin-group-panel]").forEach(panel=>panel.hidden=panel.dataset.adminGroupPanel!==group); }
 let adminLoadSequence=0;
+function canOpenClubTab(tab){return ['home','ergo','competition','athletes','training','race-lineup','request','admin'].includes(tab)&&(tab==='home'||Boolean(state.memberUserId)&&(tab!=='admin'||Boolean(state.adminUserId)));}
+function openClubTab(tab){
+  if(!canOpenClubTab(tab))return;
+  setHeaderMenuOpen(false);
+  document.querySelectorAll('.tab-button').forEach(button=>button.classList.toggle('is-active',button.dataset.tab===tab));
+  document.querySelectorAll('.tab-panel').forEach(panel=>panel.classList.toggle('is-active',panel.dataset.panel===tab));
+  history.replaceState(null,'','#'+tab);if(tab==='admin')loadAdmin('add');
+}
+function syncClubRoute(){
+  const requested=location.hash.slice(1)||'home',tab=canOpenClubTab(requested)?requested:'home';
+  if(!document.querySelector(`[data-panel="${tab}"]`)?.classList.contains('is-active'))document.querySelector(`[data-tab="${tab}"]`).click();
+  else if(requested!==tab)history.replaceState(null,'','#home');
+}
 function syncMemberAdministrator(event){
   const member=event.detail.member,previous=state.adminUserId;
+  state.memberUserId=member?.userId||'';
+  document.querySelectorAll('[data-member-menu]').forEach(button=>button.hidden=!state.memberUserId);
+  $('#memberTools').hidden=!state.memberUserId;
   state.adminUserId=member?.role==='admin'?member.userId:'';
   const enabled=Boolean(state.adminUserId);document.querySelector('[data-tab="admin"]').hidden=!enabled;$('#adminConsole').hidden=!enabled;
   if(previous!==state.adminUserId){
     adminLoadSequence++;$('#adminContent').innerHTML='';delete $('#adminContent')._approvedData;$('#approvedRecordDialog')?.remove();
     document.dispatchEvent(new CustomEvent('club-admin-changed',{detail:{enabled}}));
-    if(location.hash==='#admin')document.querySelector(`[data-tab="${enabled?'admin':'ergo'}"]`).click();
   }
+  if(!state.memberUserId){$('#memberDialog')?.close?.();$('#photoDialog')?.close?.();}
+  syncClubRoute();
 }
 async function loadAdmin(view) {
   const sequence=++adminLoadSequence,token=state.adminUserId;
@@ -457,7 +474,7 @@ function finishBatchProgress(completed,total,error,onConfirm) { const dialog=$("
 function clearCompletedBatchRows(type,rows,completed,allComplete) { const container=$("#"+type+"BatchRows");if(allComplete){const rowCount=Math.max(1,rows.length);container.innerHTML="";for(let i=0;i<rowCount;i++)addBatchRow(type);return;}rows.slice(0,completed).forEach(row=>row.remove());if(!container.querySelector(".batch-row"))addBatchRow(type);renumberBatchRows(type); }
 
 $("#currentYear").textContent=new Date().getFullYear();
-document.querySelectorAll(".tab-button").forEach(button=>button.onclick=()=>{if(button.dataset.tab==="admin"&&!state.adminUserId)return;setHeaderMenuOpen(false);document.querySelectorAll(".tab-button").forEach(x=>x.classList.toggle("is-active",x===button));document.querySelectorAll(".tab-panel").forEach(x=>x.classList.toggle("is-active",x.dataset.panel===button.dataset.tab));history.replaceState(null,"","#"+button.dataset.tab);if(button.dataset.tab==="admin"&&state.adminUserId)loadAdmin("add");});
+document.querySelectorAll(".tab-button").forEach(button=>button.onclick=()=>openClubTab(button.dataset.tab));
 
 function setHeaderMenuOpen(open,restoreFocus=false) {
   const toggle=$("#headerMenuToggle");$("#mainNavigation").hidden=!open;toggle.setAttribute("aria-expanded",String(open));toggle.setAttribute("aria-label",open?"메뉴 닫기":"메뉴 열기");if(restoreFocus)toggle.focus();
@@ -465,7 +482,7 @@ function setHeaderMenuOpen(open,restoreFocus=false) {
 $("#headerMenuToggle").onclick=()=>setHeaderMenuOpen($("#mainNavigation").hidden);
 document.addEventListener("click",event=>{if(!event.target.closest(".site-header"))setHeaderMenuOpen(false);});
 document.addEventListener("keydown",event=>{if(event.key==="Escape"&&!$("#mainNavigation").hidden)setHeaderMenuOpen(false,true);});
-$(".brand").onclick=event=>{event.preventDefault();document.querySelector('.tab-button[data-tab="ergo"]').click();};
+$(".brand").onclick=event=>{event.preventDefault();document.querySelector('.tab-button[data-tab="home"]').click();};
 let activeRequestView="ergo",activeRegistrationMode="single";
 function showRequestPanel() { if(activeRequestView==="competition")activeRegistrationMode="bulk";document.querySelector(".registration-mode-switch").hidden=activeRequestView==="competition";document.querySelectorAll("[data-request-view]").forEach(button=>button.classList.toggle("is-active",button.dataset.requestView===activeRequestView));document.querySelectorAll("[data-registration-mode]").forEach(button=>button.classList.toggle("is-active",button.dataset.registrationMode===activeRegistrationMode));document.querySelectorAll("[data-request-panel]").forEach(panel=>panel.classList.toggle("is-active",panel.dataset.requestPanel===activeRequestView&&panel.dataset.registrationPanel===activeRegistrationMode));closeAllDropdowns(); }
 document.querySelectorAll("[data-request-view]").forEach(button=>button.onclick=()=>{activeRequestView=button.dataset.requestView;activeRegistrationMode=activeRequestView==="competition"?"bulk":"single";showRequestPanel();});
@@ -538,4 +555,4 @@ $("#adminContent").onsubmit=async e=>{if(e.target.id==="competitionDateForm"){e.
 
 window.addEventListener("resize",closeCompetitionMemberMenu);document.addEventListener("scroll",event=>{if(competitionMemberMenu&&!competitionMemberMenu.element.contains(event.target))closeCompetitionMemberMenu();},true);
 document.addEventListener("focusin",event=>{const input=event.target;if(!input.matches('input.batch-member-input,#trainingJoinForm input[name="name"],#memberNameInput,input[name="member_name"],#memberSearch,#competitionMemberSearch,#competitionParticipantSearch,#athleteSearch,#birthYearSearch,#approvedRecordSearch,#athletePrimarySelect,#athleteSecondarySelect'))return;if(input.type==="search"||input.matches("#athletePrimarySelect,#athleteSecondarySelect"))input.dataset.memberMode="search";const initialized=input.dataset.memberAutocomplete;setupCompetitionMemberInput(input);if(!initialized)openCompetitionMemberMenu(input);});
-document.addEventListener("club-auth-changed",syncMemberAdministrator);setupDropdowns();document.addEventListener("click",event=>{if(!event.target.closest(".member-name-autocomplete,.competition-member-menu"))closeCompetitionMemberMenu();if(!event.target.closest(".inline-dropdown"))closeAllDropdowns();});document.addEventListener("keydown",event=>{if(event.key!=="Escape")return;closeAllDropdowns();document.querySelectorAll(".athlete-badge.is-explaining").forEach(card=>{card.classList.remove("is-explaining");card.querySelector(".athlete-badge-name")?.setAttribute("aria-expanded","false");});});addBatchRow("ergo");addCompetitionTeam();setDefaultErgoDates();showRequestPanel();const initialTab=location.hash.slice(1);if(["competition","athletes","request"].includes(initialTab))document.querySelector(`[data-tab="${initialTab}"]`).click();const refreshWhenVisible=()=>{if(!document.hidden&&Date.now()-state.refreshedAt>60000)refresh();};window.addEventListener("pageshow",refreshWhenVisible);window.addEventListener("focus",refreshWhenVisible);document.addEventListener("visibilitychange",refreshWhenVisible);setInterval(()=>{if(!document.hidden)refresh();},300000);refresh();
+document.addEventListener("club-auth-changed",syncMemberAdministrator);setupDropdowns();document.addEventListener("click",event=>{if(!event.target.closest(".member-name-autocomplete,.competition-member-menu"))closeCompetitionMemberMenu();if(!event.target.closest(".inline-dropdown"))closeAllDropdowns();});document.addEventListener("keydown",event=>{if(event.key!=="Escape")return;closeAllDropdowns();document.querySelectorAll(".athlete-badge.is-explaining").forEach(card=>{card.classList.remove("is-explaining");card.querySelector(".athlete-badge-name")?.setAttribute("aria-expanded","false");});});addBatchRow("ergo");addCompetitionTeam();setDefaultErgoDates();showRequestPanel();const initialTab=location.hash.slice(1);if(initialTab==='home')document.querySelector('[data-tab="home"]').click();window.addEventListener('hashchange',syncClubRoute);const refreshWhenVisible=()=>{if(!document.hidden&&Date.now()-state.refreshedAt>60000)refresh();};window.addEventListener("pageshow",refreshWhenVisible);window.addEventListener("focus",refreshWhenVisible);document.addEventListener("visibilitychange",refreshWhenVisible);setInterval(()=>{if(!document.hidden)refresh();},300000);refresh();

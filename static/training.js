@@ -167,6 +167,6 @@
   });
   document.addEventListener('club-auth-changed',render);
   window.addEventListener('beforeunload',e=>{if(localDrafts.size){e.preventDefault();e.returnValue='';}});
-  document.addEventListener('member-visibility-changed',render);document.querySelector('[data-tab="training"]').addEventListener('click',()=>{panel.classList.add('is-active');render();load();});document.addEventListener('club-admin-changed',()=>{sequence++;editTarget=null;localDrafts.clear();rosterData.forEach(t=>delete t.draft);render();if(panel.classList.contains('is-active'))load();});
+  document.addEventListener('member-visibility-changed',render);document.querySelector('[data-tab="training"]').addEventListener('click',()=>{if(!state.memberUserId)return;panel.classList.add('is-active');render();load();});document.addEventListener('club-admin-changed',()=>{sequence++;editTarget=null;localDrafts.clear();rosterData.forEach(t=>delete t.draft);render();if(panel.classList.contains('is-active'))load();});
   setInterval(()=>{if(panel.classList.contains('is-active')&&!document.hidden)load(true);},30000);setView('join');render();if(location.hash==='#training')document.querySelector('[data-tab="training"]').click();
 })();
