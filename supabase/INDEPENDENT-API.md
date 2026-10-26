@@ -2,19 +2,19 @@
 
 ## 실제 상태 (2026-10-26)
 
-- 업무 DB는 이미 Supabase입니다. 기존 운영 사이트의 요청 처리는 아직 Apps Script입니다.
+- 업무 DB와 운영 사이트의 요청 처리는 Supabase입니다. `65414c9`를 main에 반영하고 GitHub Pages 배포 성공을 확인했습니다. 기존 Apps Script 웹 앱은 아직 보관 처리 전입니다.
 - 독립 Edge Function `club-api`를 배포했습니다. 공개 조회 및 인증 없는 신청/관리자 접근 차단을 실제 API로 확인했습니다.
 - 신규 SQL `20261026090000`, `20261026093000`, `20261026101500`을 실제 프로젝트에 적용했습니다. 수동 SQL 적용이므로 CLI migration 이력에 자동 등록되지는 않습니다.
 - 기존 관리자 비밀번호는 서버 간 직접 전달 후 bcrypt로 보관했습니다. 브라우저 코드·Git·출력에는 비밀번호와 서버 키를 넣지 않았습니다. 새 API에서 관리자 로그인 및 선수 61명/대회 1개/훈련 2개 조회를 실제 확인했습니다.
 - 기존 사진 54개를 `club-proofs`에 업로드하고 SHA-256을 대조했습니다. **10:08 KST에 운영 DB 사진 주소를 실제 Supabase Storage로 전환했습니다.** DB 버전은 2입니다. 공개 기록의 GitHub 사진 참조는 0개, 실제 이미지 다운로드와 해시도 확인했습니다.
 - 카카오 앱 생성·콜백 등록 후 Supabase의 제공자 ON, REST API 키/Client Secret 저장, 이메일 없는 사용자 허용 ON을 새로 불러와 확인했습니다. 카카오 로그인 페이지까지 연결도 확인했습니다.
-- `static/backend-config.js`를 `ready:true`로 바꾸어 새 화면을 개통합니다. 실제 계정 로그인·동의·복귀와 첫 선수 연결은 아직 미검증이며, 기존 Apps Script 웹 앱 보관도 로그인 확인 후 진행합니다. 이 단계만으로 Apps Script 제거 완료라고 판단하지 않습니다.
+- `static/backend-config.js`를 `ready:true`로 바꾸어 새 화면을 개통했습니다. 실제 사이트의 공개 대회 기록·기존 참가 명단 조회, 로그인 전 신청 차단, 카카오 버튼으로 인증 페이지까지 이동을 확인했습니다. 실제 계정 로그인·동의·복귀와 첫 선수 연결은 아직 미검증이며, 기존 Apps Script 웹 앱 보관도 로그인 확인 후 진행합니다. 이 단계만으로 Apps Script 제거 완료라고 판단하지 않습니다.
 
 ## 로그인 설명
 
 회원은 Supabase 관리 사이트에 가입하지 않습니다. 클럽 사이트의 카카오 로그인 버튼으로 카카오가 본인 계정을 확인하고 Supabase Auth가 로그인 세션을 관리합니다.
 
-첫 로그인 → 본인 선수 선택 → 운영진의 연결 승인 → 본인 이름으로 참가 신청 순서입니다. 공개 기록과 참가 명단은 로그인 없이 조회합니다. 이름/닉네임이 같아도 자동 연결하거나 관리자 권한을 부여하지 않습니다. 연결 요청은 운영진이 승인/거절합니다.
+첫 로그인 → 본인 선수 선택 → 가입 신청 → 운영진의 연결 승인 → 본인 이름으로 참가 신청 순서입니다. 공개 기록과 참가 명단은 로그인 없이 조회합니다. 이름/닉네임이 같아도 자동 연결하거나 관리자 권한을 부여하지 않습니다. 연결 요청은 운영진이 승인/거절합니다.
 
 서버가 Supabase Auth의 사용자 API로 토큰을 검증하고, 서비스 전용 `club_accounts`에서 선수와 권한을 읽습니다. 클라이언트가 보낸 사용자 ID·선수 이름·role은 권한 근거로 쓰지 않습니다. 브라우저별 기존 신청 수정키는 운영진이 선수 연결을 승인한 뒤 해당 본인 신청에 한해서 이전합니다.
 
@@ -30,7 +30,7 @@
 
 ## 남은 개통 순서
 
-1. 사용자가 카카오 디벨로퍼스 로그인 및 필요한 최초 개발자 등록/약관 동의를 완료합니다. 앱이 없다고 확인했으므로 앱을 생성하고 카카오 로그인을 설정해야 합니다.
+1. 카카오 개발자 등록과 앱 생성은 사용자가 완료했습니다.
 2. 카카오 OAuth redirect URI: `https://rssdactzolryhfyfinon.supabase.co/auth/v1/callback`.
 3. 카카오 REST API Key와 활성화된 Client Secret을 Supabase Kakao provider에 등록합니다. 이메일이 불필요한 클럽 로그인은 `Allow users without an email` 설정을 사용할 수 있습니다. 비밀키를 채팅이나 Git에 기록하지 않습니다.
 4. Supabase Site URL: `https://firefly247.github.io/src-leaderboard/`. Redirect allow list에는 정확한 `https://firefly247.github.io/src-leaderboard/static/auth-callback.html`을 등록합니다. 이 두 주소는 실제 프로젝트에 저장하고 목록에 등록된 것을 확인했습니다.
@@ -51,7 +51,7 @@ node --test tests/*.test.js
 node scripts/verify_edge_schema.mjs <PGlite-dist/index.js>
 ```
 
-PGlite 검증은 실제 pgcrypto의 bcrypt, 세션 검증, 익명 접근 차단, 공개 8종 제한, 요청 횟수 제한, 기존 기록에만 있는 선수 연결을 확인합니다. 현재 Node 테스트는 135개 통과했습니다. 로컬 미리보기에서도 새 SDK의 직접 조회로 기록 150개가 표시되고, Supabase Storage 이미지가 실제로 로딩되는 것을 확인했습니다.
+PGlite 검증은 실제 pgcrypto의 bcrypt, 세션 검증, 익명 접근 차단, 공개 8종 제한, 요청 횟수 제한, 기존 기록에만 있는 선수 연결을 확인합니다. 현재 Node 테스트는 140개 통과했습니다. 로컬 미리보기에서도 새 SDK의 직접 조회로 기록 150개가 표시되고, Supabase Storage 이미지가 실제로 로딩되는 것을 확인했습니다.
 
 SDK 및 대시보드 단일 파일 배포 번들을 다시 만들려면 별도 빌드 폴더에 `@supabase/supabase-js@2.118.0`, `esbuild@0.25.12`, `@noble/hashes@1.8.0`을 설치하고 `node scripts/build_edge_assets.mjs <node_modules 경로>`를 실행합니다. 생성된 `.local/club-api-deploy.ts`는 서버 비밀키를 포함하지 않으며 대시보드 Code 편집기로 배포합니다. CLI 배포는 원본 `functions/club-api/index.ts`를 사용합니다.
 
