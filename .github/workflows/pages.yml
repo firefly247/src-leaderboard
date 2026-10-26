@@ -25,6 +25,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Prepare static site
         run: |
+          node scripts/verify_production_backend.mjs
           mkdir _site
           cp index.html _site/
           cp -r static _site/static

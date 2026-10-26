@@ -138,13 +138,13 @@ test("late admin responses cannot repopulate private data after logout", async (
   const context = vm.createContext({
     document: { querySelector: () => container, querySelectorAll: () => [] },
     sessionStorage: { getItem: () => "valid" },
-    fetch: () => new Promise(done => { resolve = done; }),
+    window: {ClubApi:{call:()=>new Promise(done=>{resolve=done;})}},
   });
   vm.runInContext(clientSource.slice(0, clientSource.indexOf('document.querySelectorAll(".tab-button")')), context);
   const pending = context.loadAdmin("player-birth-years");
   vm.runInContext('state.adminToken="";adminLoadSequence++;', context);
   container.innerHTML = "";
-  resolve({ ok: true, json: async () => ({ ok: true, players: [{ memberName: "김선수", birthYear: "1985" }] }) });
+  resolve({ ok: true, players: [{ memberName: "김선수", birthYear: "1985" }] });
   await pending;
   assert.equal(container.innerHTML, "");
 });
@@ -226,6 +226,7 @@ test("save sends only changed fields and rows, includes hidden edits, and confir
   const context=vm.createContext({document:{querySelector:()=>({})},sessionStorage:{getItem:()=>"valid"},alert:message=>popups.push(message),fetch:async(url,options)=>{
     const request=JSON.parse(options.body);sent.push(request);return {ok:true,json:async()=>({ok:true,savedCount:2,players:[{memberName:"김선수",birthYear:"1985",joinYear:"2021"},{memberName:"박선수",birthYear:"1991",joinYear:"2018"}]})};
   }});
+  context.window={ClubApi:{call:async(action,payload,adminToken)=>{const response=await context.fetch('',{body:JSON.stringify({action,payload,adminToken})});return response.json();}}};
   vm.runInContext(clientSource.slice(0,clientSource.indexOf('document.querySelectorAll(".tab-button")')),context);
   await context.saveChangedPlayerYears(form);
   assert.deepEqual(sent[0].payload.players,[{memberName:"김선수",joinYear:"2021"},{memberName:"박선수",birthYear:"1991"}]);

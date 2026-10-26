@@ -1,0 +1,4 @@
+[functions.club-api]
+verify_jwt = false
+# Public reads and password login have no JWT. The handler validates Supabase
+# access tokens and administrator sessions itself before any protected action.

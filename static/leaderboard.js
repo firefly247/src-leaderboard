@@ -1,6 +1,6 @@
 "use strict";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbwxHRgWZWMisQzVIK8KogLwU2ri5EfhCnY2FqqBLm7Nb8Oo9DYNIF_L28UgMfwO9q2f/exec";
+
 const GITHUB_COMMIT_URL = "https://api.github.com/repos/firefly247/src-leaderboard/commits/main";
 const state = { events: [], records: [], dormantMembers: new Set(), competitions: [], competitionEvents: [], competitionDivisions: [], competitionRecords: [], competitionDates: [], competitionLineups: new Map(), rankings: {}, members: [], competitionMembers: [], competitionSummaryType: "water", recentErgoThreeYearsOnly: true, excludeIndoorMedals: true, clubMedals: {gold:0,silver:0,bronze:0}, athleteSelectedName: "", athleteCompareName: "", athleteView: "card", pendingDeleteIds: new Set(), adminToken: sessionStorage.getItem("ergAdminToken") || "", refreshing: false, refreshedAt: 0 };
 const $ = (s) => document.querySelector(s);
@@ -165,7 +165,7 @@ function memberNameMatches(name,query) {
   const nameInitials=name=>[...name].map(char=>{const code=char.codePointAt(0)-0xac00;return code>=0&&code<11172?"ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ"[Math.floor(code/588)]:char;}).join("");
   return initialsOnly?nameInitials(name).includes(normalized):competitionMemberSearchKey(name).includes(normalized);
 }
-async function api(action,payload={},admin=false) { const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action,payload,adminToken:admin?state.adminToken:""})}),data=await res.json();if(!res.ok||!data.ok)throw new Error(data.message||"요청에 실패했습니다.");return data; }
+async function api(action,payload={},admin=false) { return window.ClubApi.call(action,payload,admin?state.adminToken:""); }
 async function compress(file) {
   if(!file)return null;
   if(file.size>10*1024*1024)throw new Error("증빙사진은 원본 파일 기준 10MB 이하여야 합니다.");
@@ -194,15 +194,8 @@ async function fetchCsv(name,revision) { const local=["localhost","127.0.0.1"].i
 async function loadRecordFiles() {
   const names=["events.csv","records.csv","competitions.csv","competition_events.csv","competition_divisions.csv","competition_records.csv","competition_dates.csv","dormant_members.csv"];
   const local=["localhost","127.0.0.1"].includes(location.hostname);
-  const source=local?{provider:"sheets-and-csv"}:await api("storageSource");
-  if(source.provider==="supabase") {
-    const data=await api("publicData");
-    if(data.provider!=="supabase"||!data.files||names.some(n=>typeof data.files[n]!=="string"))throw new Error("저장소가 변경되었습니다. 다시 새로고침해 주세요.");
-    return names.map(n=>data.files[n]);
-  }
-  if(source.provider!=="sheets-and-csv")throw new Error("저장소 설정을 확인해 주세요.");
-  const revision=await latestRevision();
-  return Promise.all(names.map(n=>fetchCsv(n,revision)));
+  if(local&&!window.ClubApi?.ready)return Promise.all(names.map(n=>fetchCsv(n,"main")));
+  return window.ClubApi.publicFiles();
 }
 async function refresh(manual=false) { if(state.refreshing)return;const b=$("#refreshButton"),s=$("#statusMessage");state.refreshing=true;b.disabled=true;b.setAttribute("aria-busy","true");if(manual){s.hidden=false;s.classList.remove("status-error");s.textContent="최신 기록을 확인하는 중입니다.";}try{const files=await loadRecordFiles();state.events=csvObjects(files[0]).filter(e=>e.event_id&&e.event_name).sort(eventNameCompare);state.records=csvObjects(files[1]).map(record).filter(r=>r.memberName&&r.eventId&&r.timeMs>0);state.competitions=csvObjects(files[2]).filter(c=>c.competition_id&&c.competition_name);state.competitionEvents=csvObjects(files[3]).filter(e=>e.competition_event_id&&e.competition_event_name);state.competitionDivisions=csvObjects(files[4]).filter(d=>d.competition_division_id&&d.competition_division_name);state.competitionRecords=csvObjects(files[5]).map(competitionRecord).filter(r=>r.memberName&&r.competitionId&&r.competitionEventId&&r.competitionDivisionId&&r.year);state.competitionDates=csvObjects(files[6]);state.dormantMembers=new Set(csvObjects(files[7]).map(row=>row.member_name));build();render();applyDormantMemberVisibility();if(manual)s.hidden=true;api("pendingDeleteRecords").then(d=>state.pendingDeleteIds=new Set(d.recordIds||[])).catch(()=>{});}catch(e){s.hidden=false;s.classList.add("status-error");s.textContent=e.message;console.error(e);}finally{state.refreshing=false;state.refreshedAt=Date.now();b.disabled=false;b.removeAttribute("aria-busy");} }
 function result(selector,message,bad=false) { const e=$(selector);e.textContent=message;e.classList.toggle("is-error",bad); }
@@ -337,7 +330,7 @@ function adminContent(view,data) {
   const rows=requests.map(r=>`<tr>${isBatchable?`<td><input class="admin-request-check" type="checkbox" value="${esc(r.request_id)}" aria-label="${esc(r.member_name)} 기록 선택"></td>`:""}<td>${esc(r.member_name)}</td><td>${esc(r.event_name||"-")}</td><td>${esc(r.competition_date||"-")}</td><td>${esc(r.time_display||"-")}</td><td>${esc(r.status)}</td>${showPhoto?`<td>${r.proof_photo_url?`<button class="photo-link" data-photo-url="${esc(r.proof_photo_url)}">사진</button>`:"-"}</td>`:""}<td>${esc(formatRequestTime(r.requested_at))}</td><td>${r.status==="pending"?`<button class="primary-button admin-action" data-id="${esc(r.request_id)}" data-decision="approved">승인</button> <button class="secondary-button admin-action" data-id="${esc(r.request_id)}" data-decision="rejected">거절</button>`:"-"}</td></tr>`).join("")||`<tr><td colspan="${columnCount}" class="empty-cell">표시할 요청이 없습니다.</td></tr>`;
   c.innerHTML=`<p class="eyebrow">ADMIN</p><h2>${titles[view]}</h2>${isBatchable&&requests.length?`<div class="admin-batch-toolbar"><label><input id="adminSelectAll" type="checkbox"> 전체 선택</label><span id="adminSelectedCount">0건 선택</span><div class="admin-batch-actions"><button id="adminBatchReject" class="delete-request-button" type="button" data-request-view="${view}" disabled>선택 항목 일괄거절</button><button id="adminBatchApprove" class="primary-button" type="button" data-request-view="${view}" disabled>선택 항목 일괄승인</button></div></div>`:""}<div class="table-wrap"><table class="admin-table"><thead><tr>${isBatchable?'<th class="admin-check-column">선택</th>':""}<th>이름</th><th>종목/대회</th><th>날짜/연도</th><th>기록/메달</th><th>상태</th>${showPhoto?"<th>사진</th>":""}<th>요청 시각</th><th>처리</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
-function showAdminGroup(view) { $("#adminContent").classList.toggle("reference-admin",["competitions","competition-events","competition-divisions","events","player-birth-years","competition-dates"].includes(view)); const referenceViews=["competitions","competition-events","competition-divisions","events","player-birth-years","competition-dates"],group=referenceViews.includes(view)?"references":"records";document.querySelectorAll("[data-admin-group]").forEach(button=>button.classList.toggle("is-active",button.dataset.adminGroup===group));document.querySelectorAll("[data-admin-group-panel]").forEach(panel=>panel.hidden=panel.dataset.adminGroupPanel!==group); }
+function showAdminGroup(view) { $("#adminContent").classList.toggle("reference-admin",["competitions","competition-events","competition-divisions","events","player-birth-years","competition-dates","member-links"].includes(view)); const referenceViews=["competitions","competition-events","competition-divisions","events","player-birth-years","competition-dates","member-links"],group=referenceViews.includes(view)?"references":"records";document.querySelectorAll("[data-admin-group]").forEach(button=>button.classList.toggle("is-active",button.dataset.adminGroup===group));document.querySelectorAll("[data-admin-group-panel]").forEach(panel=>panel.hidden=panel.dataset.adminGroupPanel!==group); }
 let adminLoadSequence=0;
 async function loadAdmin(view) {
   const sequence=++adminLoadSequence,token=state.adminToken;
@@ -346,6 +339,7 @@ async function loadAdmin(view) {
   document.querySelectorAll("[data-admin-view]").forEach(b=>b.classList.toggle("is-active",b.dataset.adminView===view));
   $("#adminContent").innerHTML="<p>불러오는 중입니다.</p>";
   try{
+    if(view==="member-links"){await window.ClubMembership.renderAdmin($("#adminContent"));return;}
     const data=await api("adminList",{view},true);
     if(sequence===adminLoadSequence&&state.adminToken===token)adminContent(view,data);
   }catch(e){if(sequence===adminLoadSequence&&state.adminToken===token)$("#adminContent").innerHTML='<p class="form-result is-error">'+esc(e.message)+'</p>';}

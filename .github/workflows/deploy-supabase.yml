@@ -1,0 +1,35 @@
+name: Verify and deploy independent Supabase API
+on:
+  push:
+    branches: [main, codex/remove-apps-script]
+    paths: ['supabase/**', 'static/**', 'tests/**', 'index.html', '.github/workflows/deploy-supabase.yml']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node --test tests/*.test.js
+  deploy:
+    needs: verify
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Deploy API with application-level authentication
+        if: env.SUPABASE_ACCESS_TOKEN != ''
+        run: npx --yes supabase@2.122.0 functions deploy club-api --project-ref rssdactzolryhfyfinon --no-verify-jwt
+      - name: Report manual deployment requirement
+        if: env.SUPABASE_ACCESS_TOKEN == ''
+        run: echo "::warning::SUPABASE_ACCESS_TOKEN is not configured. Use the documented dashboard deployment; no API deployment was performed by this workflow."

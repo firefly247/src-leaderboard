@@ -1,4 +1,4 @@
-# Supabase 연결 준비
+# Supabase 운영 및 독립 API 이전
 
 데이터 복사와 향후 운영 DB 전환 절차는 [저장소 전환 안내](STORAGE-SWITCH.md)를 따릅니다. 사용자의 전환 지시에 따라 2026-10-26에 활성화했습니다.
 
@@ -10,7 +10,9 @@
 
 관리 화면: https://supabase.com/dashboard/project/rssdactzolryhfyfinon
 
-현재 사이트의 업무 데이터 읽기/쓰기는 Supabase를 사용합니다. 기존 Sheets/CSV에 이중 저장하지 않습니다. 증빙사진은 압축된 GitHub 파일의 기존 주소로 제공하며, Supabase의 비공개 버킷에도 이전 시점 복사본이 있습니다. 카카오 로그인은 기존 구현을 유지합니다.
+현재 사이트의 업무 데이터 읽기/쓰기는 Supabase를 사용합니다. 기존 Sheets/CSV에 이중 저장하지 않습니다. 기존 증빙사진 54개는 2026-10-26 10:08 KST에 실제 제공 주소도 Supabase Storage로 전환했습니다. 비공개 백업은 별도로 보존합니다. Apps Script가 남아 있는 기존 신청 경로의 추가 사진은 최종 전환 전에 다시 확인해야 합니다. 카카오 로그인은 기존 구현을 유지합니다.
+
+Apps Script를 없애는 독립 API 배포 상태와 카카오 로그인 개통 절차는 [독립 API 이전](INDEPENDENT-API.md)을 참고하세요. 새 API는 배포·검증했지만, 카카오 앱이 아직 없어 운영 화면 연결은 변경하지 않았습니다.
 
 ## 준비된 항목
 

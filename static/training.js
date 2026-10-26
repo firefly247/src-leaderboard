@@ -6,7 +6,7 @@
     <section id="trainingOpening" class="panel" hidden><h2>이번 주 훈련 개설</h2><div class="training-week-nav"><button type="button" data-action="previousWeek">← 이전 주</button><strong id="trainingWeekLabel"></strong><button type="button" data-action="nextWeek">다음 주 →</button></div><div id="trainingOpenDates" class="training-day-buttons"></div><button type="button" class="primary-button" data-action="open" aria-describedby="trainingOpenHint">선택한 날짜 개설</button><p id="trainingOpenHint" class="form-description" role="status"></p><p class="form-description">개설한 날짜만 회원에게 표시됩니다. 기존 날짜의 신청과 편성은 유지됩니다.</p></section>
     <div id="trainingBrowseDates"><div class="training-date-heading"><h2>개설된 훈련</h2><button type="button" class="secondary-button" data-action="reload">새로고침</button></div><div id="trainingDates" class="training-day-buttons" aria-label="개설된 훈련 날짜"></div><p id="trainingNoDates" class="form-description">아직 개설된 훈련이 없습니다.</p></div>
     <div class="training-tabs" aria-label="훈련 메뉴"><button type="button" data-view="join" class="is-active">참가 신청</button><button type="button" data-view="list">참가 명단</button><button type="button" data-view="crew">크루 편성</button></div><p id="trainingMessage" role="status" aria-live="polite"></p>
-    <section data-screen="join" class="panel"><form id="trainingJoinForm"><fieldset id="trainingFormFields" disabled><label>이름<input name="name" maxlength="30" autocomplete="off" required placeholder="회원 이름"></label>
+    <section data-screen="join" class="panel"><div id="trainingMemberGate"><p>참가 신청은 카카오 로그인 후 이용할 수 있습니다.</p><button type="button" class="primary-button" data-member-login>카카오 로그인</button><button type="button" data-member-link hidden>선수 연결 확인</button></div><form id="trainingJoinForm"><fieldset id="trainingFormFields" disabled><label>이름<input name="name" maxlength="30" autocomplete="off" required placeholder="회원 이름"></label>
     <fieldset class="training-choice"><legend>참가 여부</legend><div id="trainingParticipation" class="training-buttons" aria-label="이번 주 참가 여부"></div><p id="trainingSignupHint" class="form-description"></p></fieldset>
     <label>코멘트<textarea name="comment" maxlength="1000" rows="4" placeholder="전달할 내용을 자유롭게 입력해 주세요."></textarea></label><button type="submit" class="primary-button">참가 신청</button></fieldset></form></section>
     <section data-screen="list" hidden><div class="panel"><div class="section-heading"><h2>참가 명단</h2><strong id="trainingListCount"></strong></div><div id="trainingRoster"></div><div id="trainingOperator" hidden><p class="form-description">추천 조합을 수정한 뒤 편성 공개 버튼을 누르세요.</p></div><p id="trainingAdminHint" class="form-description">추천 편성은 관리자 로그인 후 사용할 수 있습니다.</p></div></section>
@@ -72,6 +72,14 @@
   }
   function hydrateDraft(){const name=form.elements.name.value.trim(),entries=weekData.map(t=>({date:t.date,member:t.participants.find(m=>m.name===name)})).filter(e=>e.member);draftDates.clear();entries.filter(e=>e.member.status==='참석').forEach(e=>draftDates.add(e.date));draftStatus=draftDates.size?'참석':entries.some(e=>e.member.status==='미정')?'미정':entries.length?'불참':'';form.elements.comment.value=entries[0]?.member.comment||'';syncChoices();}
   function render(){
+    const member=window.ClubMembership?.member;
+    const gate=el('#trainingMemberGate');
+    gate.hidden=Boolean(member?.playerName);
+    gate.querySelector('p').textContent=member?(member.requestedPlayerName?'운영진이 선수 연결을 확인하고 있습니다. 확인이 끝나면 참가 신청할 수 있습니다.':'본인 선수 정보를 연결한 뒤 참가 신청할 수 있습니다.'):'참가 신청은 카카오 로그인 후 이용할 수 있습니다.';
+    gate.querySelector('[data-member-login]').hidden=Boolean(member);
+    gate.querySelector('[data-member-link]').hidden=!member;
+    if(window.ClubApi?.ready){form.elements.name.value=member?.playerName||'';form.elements.name.readOnly=true;}
+
     const admin=!!state.adminToken,opened=!!data?.opened;
     el('#trainingOpening').hidden=!admin;el('#trainingOperator').hidden=!admin;el('#trainingAdminHint').hidden=admin;el('#trainingFormFields').disabled=busy||!catalogLoaded||!signupSessions().length;
     const days=weekDates();el('#trainingWeekLabel').textContent=`${dayLabel(days[0])} – ${dayLabel(days[1])}`;
@@ -154,6 +162,7 @@
     if(b.dataset.check&&state.adminToken){mutate('trainingCheck',{id:b.dataset.check,status:b.dataset.value},true);return;}
     switch(b.dataset.action){case 'reload':load();break;case 'previousWeek':case 'nextWeek':week.setUTCDate(week.getUTCDate()+(b.dataset.action==='nextWeek'?7:-7));openSelection.clear();render();break;case 'open':if(state.adminToken)mutate('trainingOpen',{dates:[...openSelection].sort()},true);break;case 'recommend':draftAction(selectedDate,'trainingRecommend');break;}
   });
+  document.addEventListener('club-auth-changed',render);
   window.addEventListener('beforeunload',e=>{if(localDrafts.size){e.preventDefault();e.returnValue='';}});
   document.addEventListener('member-visibility-changed',render);document.querySelector('[data-tab="training"]').addEventListener('click',()=>{panel.classList.add('is-active');render();load();});document.addEventListener('click',e=>{if(e.target.closest('#adminLogout'))setTimeout(()=>{editTarget=null;localDrafts.clear();rosterData.forEach(t=>delete t.draft);render();},0);});
   setInterval(()=>{if(panel.classList.contains('is-active')&&!document.hidden)load(true);},30000);setView('join');render();if(location.hash==='#training')document.querySelector('[data-tab="training"]').click();

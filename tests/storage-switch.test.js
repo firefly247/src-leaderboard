@@ -56,10 +56,10 @@ test('Mismatched readback and changed sources prevent activation',()=>{
   assert.throws(()=>f.ctx.storageMigrate_(true),/대조|원본이 변경/);assert.equal(f.props.CLUB_STORAGE_PROVIDER,'sheets-and-csv');
  }
 });
-test('Front-end source selection fails closed and preserves original CSV path while legacy is active',async()=>{
+test('Production landing loads one public projection and never falls back to old CSVs on failure',async()=>{
  const source=fs.readFileSync('static/leaderboard.js','utf8'),body=source.slice(source.indexOf('async function loadRecordFiles()'),source.indexOf('async function refresh(manual=false)'));
- const calls=[],ctx={location:{hostname:'example.com'},latestRevision:async()=> 'sha',fetchCsv:async n=>{calls.push(n);return n;},api:async()=>({provider:'sheets-and-csv'})};vm.createContext(ctx);vm.runInContext(body,ctx);
- assert.equal((await ctx.loadRecordFiles()).length,8);assert.equal(calls.length,8);calls.length=0;ctx.api=async action=>action==='storageSource'?{provider:'supabase'}:Promise.reject(new Error('offline'));
+ const calls=[],ctx={location:{hostname:'example.com'},window:{ClubApi:{ready:true,publicFiles:async()=>Array(8).fill('csv')}},fetchCsv:async n=>{calls.push(n);return n;}};vm.createContext(ctx);vm.runInContext(body,ctx);
+ assert.equal((await ctx.loadRecordFiles()).length,8);assert.equal(calls.length,0);ctx.window.ClubApi.publicFiles=async()=>{throw new Error('offline');};
  await assert.rejects(()=>ctx.loadRecordFiles(),/offline/);assert.equal(calls.length,0);
 });
 test('Real training, player-year edits, requests and race drafts persist using Supabase exclusively',()=>{

@@ -1,0 +1,10 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+const root=process.cwd(),deps=path.resolve(process.argv[2]||'.local/edge-build/node_modules');
+const esbuild=await import(pathToFileURL(path.join(deps,'esbuild/lib/main.js')));
+await fs.mkdir('static/vendor',{recursive:true});
+await esbuild.build({stdin:{contents:"export { createClient } from '@supabase/supabase-js';",resolveDir:path.dirname(deps),sourcefile:'supabase-browser-entry.js'},nodePaths:[deps],bundle:true,platform:'browser',format:'iife',globalName:'SupabaseSDK',minify:true,legalComments:'eof',outfile:'static/vendor/supabase-2.118.0.js'});
+await fs.copyFile(path.join(deps,'@supabase/supabase-js/LICENSE'),'static/vendor/supabase-LICENSE');
+await esbuild.build({entryPoints:['supabase/functions/club-api/index.ts'],bundle:true,platform:'neutral',format:'esm',external:['npm:*'],outfile:'.local/club-api-deploy.ts'});
+console.log('Built pinned browser SDK and one-file dashboard deployment.');
