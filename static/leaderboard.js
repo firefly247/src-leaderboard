@@ -371,6 +371,7 @@ function competitionMemberNames(query="",names=state.members.map(member=>member.
   return [...new Set(names)].filter(name=>!isDormantMember(name)&&memberNameMatches(name,query)).sort((a,b)=>a.localeCompare(b,"ko"));
 }
 function memberInputNames(input) {
+  if(Array.isArray(input._memberAutocompleteNames))return input._memberAutocompleteNames;
   if(input.id==="birthYearSearch")return [...document.querySelectorAll("[data-birth-year-name]")].map(row=>row.dataset.birthYearName);
   const names=state.members.map(member=>member.memberName);
   if(input.id==="approvedRecordSearch"||input.name==="member_name")names.push(...($("#adminContent")._approvedData?.records||[]).map(row=>row.member_name));
@@ -398,7 +399,8 @@ function openCompetitionMemberMenu(input,query=input.value) {
   menu.style.width=`${width}px`;menu.style.left=`${Math.max(8,Math.min(rect.left,window.innerWidth-width-8))}px`;menu.style.maxHeight=`${maxHeight}px`;menu.style.top=`${rect.bottom+6}px`;
   input.setAttribute("aria-expanded","true");input.setAttribute("aria-controls",id);competitionMemberMenu={input,element:menu,names,activeIndex:-1};
 }
-function setupCompetitionMemberInput(input) {
+function setupCompetitionMemberInput(input,names) {
+  if(Array.isArray(names))input._memberAutocompleteNames=names;
   if(input.dataset.memberAutocomplete)return;
   input.dataset.memberAutocomplete="true";input.classList.add("member-name-autocomplete");input.removeAttribute("list");
   input.setAttribute("role","combobox");input.setAttribute("aria-autocomplete","list");input.setAttribute("aria-expanded","false");input.setAttribute("autocomplete","off");

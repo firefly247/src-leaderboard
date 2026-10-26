@@ -44,6 +44,14 @@ test("shared autocomplete keeps existing search callbacks and initializes only o
   app.setupCompetitionMemberInput(input);app.setupCompetitionMemberInput(input);
   assert.equal(listeners.input.length,1);input.oninput();listeners.input[0]();assert.equal(filtered,1);
 });
+test("signup autocomplete uses its authenticated player catalog with the same Korean search",()=>{
+  const app=client(),input={value:"",dataset:{memberMode:"search"},classList:{add(){},toggle(){}},removeAttribute(){},setAttribute(){},addEventListener(){}};
+  vm.runInContext('state.members=[{memberName:"공개기록선수"}];',app);
+  app.setupCompetitionMemberInput(input,["김기현","조홍관"]);
+  assert.deepEqual(Array.from(app.memberInputNames(input)),["김기현","조홍관"]);
+  assert.deepEqual(Array.from(app.competitionMemberNames("ㄱㄱㅎ",app.memberInputNames(input))),["김기현"]);
+  assert.deepEqual(Array.from(app.competitionMemberNames("공개",app.memberInputNames(input))),[]);
+});
 test("choosing a member commits the full name to that input and notifies input/change listeners",()=>{
   const app=client(),events=[],other={value:"다른선수"},input={isConnected:true,disabled:false,value:"김",focus(){},dispatchEvent(event){events.push(event.type);}};
   app.chooseCompetitionMember(input,"김선수");assert.equal(input.value,"김선수");assert.deepEqual(events,["input","change"]);assert.equal(other.value,"다른선수");

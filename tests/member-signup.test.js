@@ -17,16 +17,28 @@ function fixture(member={nickname:'카카오 별명',playerName:null,requestedPl
     close(){this.open=false;}
   }
   const ctx={window:{ClubApi:{ready:true,client:{auth:{getSession:async()=>({data:{session:{access_token:'token'}}}),onAuthStateChange(){},signInWithOAuth:async options=>{calls.push({action:typeof options.provider==='string'?'oauth':'invalid',options});return {};},signOut:async()=>({})}},call:async(action,data)=>{calls.push({action,data});if(action==='memberSession')return {member:{...member}};if(action==='memberLinkOptions')return {names:['김기현','이찬희']};if(action==='memberLinkRequest'){await request(data);member.requestedPlayerName=data.name;return {ok:true};}throw new Error('Unexpected action');}}},document:{querySelector:selector=>{if(!elements.has(selector))elements.set(selector,new Element());return elements.get(selector);},createElement:()=>dialog=new Element(),body:{appendChild(){}},dispatchEvent(){},addEventListener(){}},CustomEvent:class{},setTimeout,URL,location:{href:'https://club.example/'}};
+  ctx.window.setupCompetitionMemberInput=(input,names)=>{input._memberAutocompleteNames=names;};
+  ctx.window.closeCompetitionMemberMenu=()=>{};
   vm.createContext(ctx);vm.runInContext(source,ctx);
-  return {ctx,calls,elements,get dialog(){return dialog;},set request(handler){request=handler;},select(name){dialog.querySelector('[data-link-names]').onclick({target:{closest:()=>({dataset:{linkName:name}})}});},submit(){return dialog.querySelector('[data-signup-form]').onsubmit({preventDefault(){}});}};
+  return {ctx,calls,elements,get dialog(){return dialog;},set request(handler){request=handler;},select(name){const input=dialog.querySelector('[data-link-search]');if(input.disabled)return;input.value=name;input.oninput();},submit(){return dialog.querySelector('[data-signup-form]').onsubmit({preventDefault(){}});}};
 }
 test('First Kakao login opens signup; selecting a name does not save until explicit submission',async()=>{
   const f=fixture();await settle();assert.equal(f.dialog.open,true);assert.match(f.dialog.innerHTML,/회원 가입/);
   f.select('김기현');assert.equal(f.calls.filter(c=>c.action==='memberLinkRequest').length,0);
-  assert.equal(f.dialog.querySelector('[data-link-selection]').textContent,'선택한 이름: 김기현');
+  assert.equal(f.dialog.querySelector('[data-link-search]').value,'김기현');
   await f.submit();assert.equal(f.calls.filter(c=>c.action==='memberLinkRequest').length,1);
   assert.equal(f.ctx.window.ClubMembership.member.requestedPlayerName,'김기현');
   assert.match(f.dialog.innerHTML,/가입 승인 대기/);assert.doesNotMatch(f.dialog.innerHTML,/data-signup-form/);
+});
+test('Signup shows one empty autocomplete input and accepts only complete registered names',async()=>{
+  const f=fixture();await settle();
+  assert.doesNotMatch(f.dialog.innerHTML,/data-link-names|data-link-selection|김기현|이찬희/);
+  const input=f.dialog.querySelector('[data-link-search]'),submit=f.dialog.querySelector('[data-signup-submit]');
+  assert.equal(input.value,'');assert.deepEqual(Array.from(input._memberAutocompleteNames),['김기현','이찬희']);
+  f.select('김');assert.equal(submit.disabled,true);await f.submit();assert.equal(f.calls.some(c=>c.action==='memberLinkRequest'),false);
+  f.select('미등록');await f.submit();assert.equal(f.calls.some(c=>c.action==='memberLinkRequest'),false);
+  f.select(' 김기현 ');assert.equal(submit.disabled,false);
+  f.select('');assert.equal(submit.disabled,true);
 });
 test('Signup blocks duplicate submission and selection changes while saving',async()=>{
   const f=fixture();await settle();let finish;f.request=()=>new Promise(resolve=>finish=resolve);

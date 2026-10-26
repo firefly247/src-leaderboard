@@ -191,7 +191,7 @@ test("대회 일괄 등록은 반응형 팀 입력과 회원 검색 선택을 �
   assert.match(source, /competition-team-name-select/);
   assert.match(source, /<option value="__new__">새 팀명 입력<\/option>/);
   assert.match(html, /competition-team-grid-headings[^>]*>.*종목.*나이대.*팀명.*메달.*COX.*CREW/);
-  assert.match(source, /function setupCompetitionMemberInput\(input\)/);
+  assert.match(source, /function setupCompetitionMemberInput\(input,names\)/);
   assert.doesNotMatch(source, /list="competitionMemberSuggestions"/);
   assert.match(source, /class="batch-member-input competition-person-input"/);
   assert.doesNotMatch(source, /competition-team-summary|CREW \$\{crewIndex\}명/);
