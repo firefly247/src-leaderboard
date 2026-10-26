@@ -74,3 +74,10 @@ button.training-member { min-height:44px; cursor:pointer; user-select:none; -web
 .training-draft-hint { margin:7px 0 0; color:#53657d; font-size:11px; line-height:1.4; }
 .training-roster-section { margin-top:14px; padding-top:12px; }
 @media(max-width:560px) { .training-shell .panel { padding:18px 14px; } .training-shell .form-grid { grid-template-columns:1fr; } .training-shell input { font-size:16px!important; } .training-shell .section-heading h2 { font-size:22px; } .training-shell .training-person { flex-wrap:wrap; } .training-shell .training-attendance { width:100%; } .training-shell .training-attendance button { flex:1; } .training-week-nav strong { width:100%; order:-1; } }
+
+.training-shell .training-slots .training-check-slot { background:transparent; }
+.training-shell .training-slots .training-check-slot.is-present { background:#2563eb; color:#fff; border-color:#2563eb; }
+.training-shell .training-slots .training-check-slot.is-absent { background:#e5e7eb; color:#6b7280; border-color:#9ca3af; }
+.training-slots .training-check-slot.is-present small { color:#dbeafe; }
+.training-slots .training-check-slot.is-absent small { color:#6b7280; }
+.training-check-slot:focus-visible { outline:3px solid #93c5fd; outline-offset:2px; }

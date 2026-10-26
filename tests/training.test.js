@@ -231,3 +231,11 @@ test('roster stacks date tables and one deduplicated absence table with identica
   assert.ok(!html.includes('data-recommend-date'));const admin=context.trainingRosterSectionsHtml(trainings,[2020,2023],true,false);assert.match(admin,/data-recommend-date="2026-10-24"/);assert.match(admin,/data-recommend-date="2026-10-25"/);
   assert.equal(context.trainingRosterWeek([...trainings,{date:'2026-10-31',opened:true,participants:[]}],'2026-10-25').length,2);
 });
+test('Published crew uses compact seat rows and cycles attendance without changing assignments',()=>{
+ const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8'),context=vm.createContext({esc:v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;')});
+ for(const name of ['nextTrainingCheck','trainingCrewHtml'])vm.runInContext(source.match(new RegExp('function '+name+'\\([^\\n]*\\)\\{[\\s\\S]*?'+(name==='nextTrainingCheck'?'\\}':'\\n  \\}')))[0],context);
+ const plan={boats:[{name:'유타쿼드 A',seats:['COX','1번','2번','3번','4번'].map((seat,i)=>({id:'p'+i,name:i===0?'<회원>':'회원'+i,seat}))}],checks:{}};
+ const boats=JSON.stringify(plan.boats);let status;
+ for(const expected of ['출석','불참','미확인','출석']){status=context.nextTrainingCheck(status);assert.equal(status,expected);plan.checks.p0=status;const html=context.trainingCrewHtml(plan,true);assert.match(html,/--seat-count:5/);assert.equal((html.match(/data-check=/g)||[]).length,5);assert.match(html,/&lt;회원>/);if(status==='출석')assert.match(html,/is-present/);if(status==='불참')assert.match(html,/is-absent/);}
+ assert.equal(JSON.stringify(plan.boats),boats);assert.doesNotMatch(context.trainingCrewHtml(plan,false),/<button|data-check=/);assert.match(context.trainingCrewHtml(plan,true,true),/disabled/);
+});
