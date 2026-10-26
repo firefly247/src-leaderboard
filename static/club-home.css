@@ -68,3 +68,41 @@
  .club-about { grid-template-columns:1fr; margin-top:37px; padding:28px 24px; gap:28px; }.club-about h2 { font-size:26px; }.club-practices { grid-template-columns:1fr; gap:20px; }.club-practices article { display:grid; grid-template-columns:80px 1fr; column-gap:12px; }.club-practice-number { grid-column:1/-1; font-size:9px; margin-bottom:7px; }.club-practices h3 { font-size:12px; margin:0; }.club-practices p { font-size:12px; }
 }
 @media(prefers-reduced-motion:reduce){.club-home *{scroll-behavior:auto;}}
+.club-hero-photo { min-height:450px; }
+.club-hero-photo img { width:100%; height:100%; object-fit:cover; object-position:52% center; }
+.club-hero-photo .club-art-caption { color:white; text-shadow:0 1px 8px #07152f; }
+.club-content { margin-top:52px; color:#536472; font-size:14px; line-height:1.9; word-break:keep-all; }
+.club-content h2 { color:var(--club-ink); font-size:27px; letter-spacing:-.05em; }
+.club-introduction { max-width:850px; margin:38px auto; }
+.club-source-links { display:flex; flex-wrap:wrap; gap:18px; margin-top:20px; }
+.club-home a { color:#246b78; text-underline-offset:4px; font-weight:650; }
+.club-videos { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.club-videos iframe { width:100%; aspect-ratio:16/9; height:auto; border:0; border-radius:12px; background:#09253b; }
+.club-location,.club-coach,.club-joining { gap:35px; align-items:center; }
+.club-location img,.club-coach img { width:100%; height:auto; border-radius:12px; }
+.club-about p,.club-about li { font-size:13px; line-height:1.9; color:#536472; word-break:keep-all; }
+.club-about h3 { color:var(--club-ink); font-size:18px; }
+.club-about a { font-size:12px; }
+.club-coach { grid-template-columns:1.1fr 1fr; }
+.club-coach ul { padding-left:18px; }
+.club-schedule { margin:20px 0; }
+.club-schedule>div { display:grid; grid-template-columns:135px 1fr; gap:20px; padding:13px 0; border-bottom:1px solid #dce3e5; }
+.club-schedule dt { font-weight:750; color:var(--club-ink); }
+.club-schedule dd { margin:0; }
+.club-schedule small { display:block; font-size:11px; color:#72808b; }
+.club-history article { display:grid; grid-template-columns:120px 1fr; gap:25px; padding:24px 0; border-top:1px solid #d9e2e5; }
+.club-history h3 { margin:0; font-size:20px; color:var(--club-teal); font-variant-numeric:tabular-nums; }
+.club-history ul { margin:0; padding-left:19px; }
+.club-history li+li { margin-top:8px; }
+.club-history p { margin:0; }
+.club-history strong { color:var(--club-ink); font-weight:650; }
+.club-joining { grid-template-columns:1fr 1.2fr; }
+.club-joining h3 { margin-top:0; }
+@media(max-width:760px){
+ .club-hero-photo { min-height:0; height:240px; }.club-hero-photo img { object-position:center 67%; }
+ .club-content { margin-top:35px; font-size:13px; }.club-content h2 { font-size:23px; }.club-introduction { margin:28px 3px; }
+ .club-videos { grid-template-columns:1fr; gap:14px; }
+ .club-location,.club-coach,.club-joining { grid-template-columns:1fr; gap:22px; }
+ .club-coach img { order:2; }.club-schedule>div { grid-template-columns:105px 1fr; gap:12px; }
+ .club-history article { grid-template-columns:1fr; gap:9px; padding:20px 0; }.club-history h3 { font-size:18px; }.club-history li+li { margin-top:8px; }
+}

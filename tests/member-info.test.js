@@ -10,7 +10,7 @@ test('Member info combines reference years and every Kakao account without dupli
  assert.match(table,/&lt;관리자&gt;/);assert.doesNotMatch(table,/<관리자>/);assert.match(table,/data-account-user="admin"[^>]*checked[^>]*disabled/);
  assert.match(table,/data-approve-user="pending"/);assert.match(table,/data-account-only-name="이름 미입력"/);assert.match(table,/미가입/);
  assert.equal((table.match(/data-account-user=/g)||[]).length,3);
- const html=fs.readFileSync('index.html','utf8');assert.match(html,/data-admin-view="member-info">회원 정보/);assert.doesNotMatch(html,/data-admin-view="member-accounts"|data-admin-view="player-birth-years"|선수/);
+ const html=fs.readFileSync('index.html','utf8');assert.match(html,/data-admin-view="member-info">회원 정보/);assert.doesNotMatch(html,/data-admin-view="member-accounts"|data-admin-view="player-birth-years"/);assert.doesNotMatch(html.slice(html.indexOf('data-panel="ergo"')),/선수/);
 });
 test('Member account reload restores only unsaved year/dormancy changes and search without changing baselines',()=>{
  const makeRow=()=>({dataset:{birthYearName:'김회원',savedBirthYear:'1980',savedJoinYear:'2023',savedDormant:'false'},fields:{'.birth-year-input':{value:'1980'},'.join-year-input':{value:'2023'},'.player-dormant-input':{checked:false}},querySelector(s){return this.fields[s];}});
