@@ -2,7 +2,7 @@
 
 
 const GITHUB_COMMIT_URL = "https://api.github.com/repos/firefly247/src-leaderboard/commits/main";
-const state = { events: [], records: [], dormantMembers: new Set(), competitions: [], competitionEvents: [], competitionDivisions: [], competitionRecords: [], competitionDates: [], competitionLineups: new Map(), rankings: {}, members: [], competitionMembers: [], competitionSummaryType: "water", recentErgoThreeYearsOnly: true, excludeIndoorMedals: true, clubMedals: {gold:0,silver:0,bronze:0}, athleteSelectedName: "", athleteCompareName: "", athleteView: "card", pendingDeleteIds: new Set(), adminToken: sessionStorage.getItem("ergAdminToken") || "", refreshing: false, refreshedAt: 0 };
+const state = { events: [], records: [], dormantMembers: new Set(), competitions: [], competitionEvents: [], competitionDivisions: [], competitionRecords: [], competitionDates: [], competitionLineups: new Map(), rankings: {}, members: [], competitionMembers: [], competitionSummaryType: "water", recentErgoThreeYearsOnly: true, excludeIndoorMedals: true, clubMedals: {gold:0,silver:0,bronze:0}, athleteSelectedName: "", athleteCompareName: "", athleteView: "card", pendingDeleteIds: new Set(), adminUserId: "", refreshing: false, refreshedAt: 0 };
 const $ = (s) => document.querySelector(s);
 const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const eventNameCompare = (a,b) => { const an=String(a.event_name||a),bn=String(b.event_name||b),am=an.match(/^\s*(\d+(?:\.\d+)?)/),bm=bn.match(/^\s*(\d+(?:\.\d+)?)/);return am&&bm&&Number(am[1])!==Number(bm[1])?Number(am[1])-Number(bm[1]):an.localeCompare(bn,"ko"); };
@@ -165,7 +165,7 @@ function memberNameMatches(name,query) {
   const nameInitials=name=>[...name].map(char=>{const code=char.codePointAt(0)-0xac00;return code>=0&&code<11172?"ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ"[Math.floor(code/588)]:char;}).join("");
   return initialsOnly?nameInitials(name).includes(normalized):competitionMemberSearchKey(name).includes(normalized);
 }
-async function api(action,payload={},admin=false) { return window.ClubApi.call(action,payload,admin?state.adminToken:""); }
+async function api(action,payload={},admin=false) { return window.ClubApi.call(action,payload); }
 async function compress(file) {
   if(!file)return null;
   if(file.size>10*1024*1024)throw new Error("증빙사진은 원본 파일 기준 10MB 이하여야 합니다.");
@@ -256,17 +256,17 @@ async function saveChangedPlayerYears(form) {
   if(form.dataset.partialYearUpdates!=="true"){alert("선수 정보 저장 API를 최신 버전으로 배포한 뒤 다시 조회해 주세요. 입력한 값은 유지했습니다.");return;}
   for(const row of rows){if(!row.querySelector('.birth-year-input').reportValidity()||!row.querySelector('.join-year-input').reportValidity())return;}
   const players=rows.map(playerYearChanges);if(players.some(player=>player.isDormant!==undefined)&&form.dataset.dormancyUpdates!=="true"){alert("휴면회원 저장 API를 최신 버전으로 배포한 뒤 다시 조회해 주세요.");return;}
-  const button=form.querySelector('#birthYearBatchSave'),controls=[...form.querySelectorAll('input,button')],token=state.adminToken;
+  const button=form.querySelector('#birthYearBatchSave'),controls=[...form.querySelectorAll('input,button')],token=state.adminUserId;
   const disabled=controls.map(control=>control.disabled);controls.forEach(control=>control.disabled=true);button.textContent="저장 중...";
   try{
     const data=await api('savePlayerBirthYears',{players},true);
-    if(state.adminToken!==token)return;
+    if(state.adminUserId!==token)return;
     const confirmed=verifySavedPlayerYears(players,data);
     rows.forEach(row=>{const saved=confirmed.get(row.dataset.birthYearName);row.dataset.savedBirthYear=saved.birthYear;row.dataset.savedJoinYear=saved.joinYear;if(saved.isDormant!==undefined){row.dataset.savedDormant=String(saved.isDormant);row.querySelector(".player-dormant-input").checked=saved.isDormant;saved.isDormant?state.dormantMembers.add(saved.memberName):state.dormantMembers.delete(saved.memberName);}row.querySelector('.birth-year-input').value=saved.birthYear;row.querySelector('.join-year-input').value=saved.joinYear;if(form.isConnected)updatePlayerYearDirtyState(row);});
     if(form.isConnected&&$("#playerJoinYearSummary"))$("#playerJoinYearSummary").innerHTML=playerJoinYearSummaryHtml([...form.querySelectorAll("[data-birth-year-name]")].map(row=>({memberName:row.dataset.birthYearName,joinYear:row.dataset.savedJoinYear})));
     if(players.some(player=>player.isDormant!==undefined)){build();render();applyDormantMemberVisibility();}
     alert(`${players.length}명의 선수 정보를 저장하고 확인했습니다.`);
-  }catch(error){if(state.adminToken===token)alert(error.message);}
+  }catch(error){if(state.adminUserId===token)alert(error.message);}
   finally{controls.forEach((control,index)=>control.disabled=disabled[index]);button.textContent="저장";if(form.isConnected)updatePlayerYearSaveState();}
 }
 function renderCompetitionDateAdmin(container,dates) {
@@ -277,11 +277,11 @@ async function saveCompetitionDates(form) {
   message.classList.remove('is-error');
   if(!changed.length){message.textContent="변경한 개최일이 없습니다.";return;}
   if(changed.length>100){message.textContent="한 번에 최대 100건까지 저장할 수 있습니다.";message.classList.add('is-error');return;}
-  const dates=changed.map(row=>({competitionId:row.dataset.competitionId,year:Number(row.dataset.year),date:row.querySelector('.competition-date-input').value})),controls=[...form.querySelectorAll('input,button')],disabled=controls.map(control=>control.disabled),token=state.adminToken;
+  const dates=changed.map(row=>({competitionId:row.dataset.competitionId,year:Number(row.dataset.year),date:row.querySelector('.competition-date-input').value})),controls=[...form.querySelectorAll('input,button')],disabled=controls.map(control=>control.disabled),token=state.adminUserId;
   controls.forEach(control=>control.disabled=true);message.textContent="개최일을 저장하는 중입니다.";
   try{
     const data=await api('saveCompetitionDates',{dates},true);
-    if(state.adminToken!==token||!form.isConnected)return;
+    if(state.adminUserId!==token||!form.isConnected)return;
     state.competitionDates=data.competitionDates;renderCompetitionTables();
     changed.forEach(row=>{const input=row.querySelector('.competition-date-input');input.dataset.originalDate=input.value;});
     message.textContent=`${data.savedCount}건의 개최일을 저장했습니다.`;
@@ -313,9 +313,9 @@ function openApprovedRecordEditor(view,data,id) {
   dialog.querySelector("form").onsubmit=async event=>{
     event.preventDefault();if(saving)return;const form=event.currentTarget,values=new FormData(form),changes={};
     const fields=competition?["member_name","year","competition_id","competition_event_id","competition_division_id","competition_type","is_cox","gold","silver","bronze","note"]:["member_name","competition_date","event_id","time_display","competition","note"];
-    fields.forEach(field=>changes[field]=String(values.get(field)||"").trim());const applyToTeam=values.get("applyToTeam")==="on",token=state.adminToken,message=dialog.querySelector("#approvedRecordEditResult"),controls=[...form.querySelectorAll("input,select,button")];
+    fields.forEach(field=>changes[field]=String(values.get(field)||"").trim());const applyToTeam=values.get("applyToTeam")==="on",token=state.adminUserId,message=dialog.querySelector("#approvedRecordEditResult"),controls=[...form.querySelectorAll("input,select,button")];
     saving=true;controls.forEach(control=>control.disabled=true);message.textContent="저장 중...";message.classList.remove("is-error");
-    try{const saved=await api("saveApprovedRecord",{kind:competition?"competition":"ergo",recordId:id,expectedRecord:row,changes,applyToTeam,expectedTeamRecords:applyToTeam?team:undefined},true);if(state.adminToken!==token)return;dialog.close();await loadAdmin(view);if($("#approvedRecordCount"))$("#approvedRecordCount").textContent=`${saved.updatedCount}건을 수정했습니다. `+$("#approvedRecordCount").textContent;await refresh();}
+    try{const saved=await api("saveApprovedRecord",{kind:competition?"competition":"ergo",recordId:id,expectedRecord:row,changes,applyToTeam,expectedTeamRecords:applyToTeam?team:undefined},true);if(state.adminUserId!==token)return;dialog.close();await loadAdmin(view);if($("#approvedRecordCount"))$("#approvedRecordCount").textContent=`${saved.updatedCount}건을 수정했습니다. `+$("#approvedRecordCount").textContent;await refresh();}
     catch(error){message.textContent=error.message;message.classList.add("is-error");}
     finally{saving=false;controls.forEach(control=>control.disabled=false);}
   };dialog.showModal();
@@ -330,19 +330,29 @@ function adminContent(view,data) {
   const rows=requests.map(r=>`<tr>${isBatchable?`<td><input class="admin-request-check" type="checkbox" value="${esc(r.request_id)}" aria-label="${esc(r.member_name)} 기록 선택"></td>`:""}<td>${esc(r.member_name)}</td><td>${esc(r.event_name||"-")}</td><td>${esc(r.competition_date||"-")}</td><td>${esc(r.time_display||"-")}</td><td>${esc(r.status)}</td>${showPhoto?`<td>${r.proof_photo_url?`<button class="photo-link" data-photo-url="${esc(r.proof_photo_url)}">사진</button>`:"-"}</td>`:""}<td>${esc(formatRequestTime(r.requested_at))}</td><td>${r.status==="pending"?`<button class="primary-button admin-action" data-id="${esc(r.request_id)}" data-decision="approved">승인</button> <button class="secondary-button admin-action" data-id="${esc(r.request_id)}" data-decision="rejected">거절</button>`:"-"}</td></tr>`).join("")||`<tr><td colspan="${columnCount}" class="empty-cell">표시할 요청이 없습니다.</td></tr>`;
   c.innerHTML=`<p class="eyebrow">ADMIN</p><h2>${titles[view]}</h2>${isBatchable&&requests.length?`<div class="admin-batch-toolbar"><label><input id="adminSelectAll" type="checkbox"> 전체 선택</label><span id="adminSelectedCount">0건 선택</span><div class="admin-batch-actions"><button id="adminBatchReject" class="delete-request-button" type="button" data-request-view="${view}" disabled>선택 항목 일괄거절</button><button id="adminBatchApprove" class="primary-button" type="button" data-request-view="${view}" disabled>선택 항목 일괄승인</button></div></div>`:""}<div class="table-wrap"><table class="admin-table"><thead><tr>${isBatchable?'<th class="admin-check-column">선택</th>':""}<th>이름</th><th>종목/대회</th><th>날짜/연도</th><th>기록/메달</th><th>상태</th>${showPhoto?"<th>사진</th>":""}<th>요청 시각</th><th>처리</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
-function showAdminGroup(view) { $("#adminContent").classList.toggle("reference-admin",["competitions","competition-events","competition-divisions","events","player-birth-years","competition-dates","member-links"].includes(view)); const referenceViews=["competitions","competition-events","competition-divisions","events","player-birth-years","competition-dates","member-links"],group=referenceViews.includes(view)?"references":"records";document.querySelectorAll("[data-admin-group]").forEach(button=>button.classList.toggle("is-active",button.dataset.adminGroup===group));document.querySelectorAll("[data-admin-group-panel]").forEach(panel=>panel.hidden=panel.dataset.adminGroupPanel!==group); }
+function showAdminGroup(view) { $("#adminContent").classList.toggle("reference-admin",["competitions","competition-events","competition-divisions","events","player-birth-years","competition-dates","member-accounts"].includes(view)); const referenceViews=["competitions","competition-events","competition-divisions","events","player-birth-years","competition-dates","member-accounts"],group=referenceViews.includes(view)?"references":"records";document.querySelectorAll("[data-admin-group]").forEach(button=>button.classList.toggle("is-active",button.dataset.adminGroup===group));document.querySelectorAll("[data-admin-group-panel]").forEach(panel=>panel.hidden=panel.dataset.adminGroupPanel!==group); }
 let adminLoadSequence=0;
+function syncMemberAdministrator(event){
+  const member=event.detail.member,previous=state.adminUserId;
+  state.adminUserId=member?.role==='admin'?member.userId:'';
+  const enabled=Boolean(state.adminUserId);document.querySelector('[data-tab="admin"]').hidden=!enabled;$('#adminConsole').hidden=!enabled;
+  if(previous!==state.adminUserId){
+    adminLoadSequence++;$('#adminContent').innerHTML='';delete $('#adminContent')._approvedData;$('#approvedRecordDialog')?.remove();
+    document.dispatchEvent(new CustomEvent('club-admin-changed',{detail:{enabled}}));
+    if(location.hash==='#admin')document.querySelector(`[data-tab="${enabled?'admin':'ergo'}"]`).click();
+  }
+}
 async function loadAdmin(view) {
-  const sequence=++adminLoadSequence,token=state.adminToken;
+  const sequence=++adminLoadSequence,token=state.adminUserId;
   if(!token)return;
   showAdminGroup(view);
   document.querySelectorAll("[data-admin-view]").forEach(b=>b.classList.toggle("is-active",b.dataset.adminView===view));
   $("#adminContent").innerHTML="<p>불러오는 중입니다.</p>";
   try{
-    if(view==="member-links"){await window.ClubMembership.renderAdmin($("#adminContent"));return;}
+    if(view==="member-accounts"){await window.ClubMembership.renderAdmin($("#adminContent"),()=>sequence===adminLoadSequence&&state.adminUserId===token);return;}
     const data=await api("adminList",{view},true);
-    if(sequence===adminLoadSequence&&state.adminToken===token)adminContent(view,data);
-  }catch(e){if(sequence===adminLoadSequence&&state.adminToken===token)$("#adminContent").innerHTML='<p class="form-result is-error">'+esc(e.message)+'</p>';}
+    if(sequence===adminLoadSequence&&state.adminUserId===token)adminContent(view,data);
+  }catch(e){if(sequence===adminLoadSequence&&state.adminUserId===token)$("#adminContent").innerHTML='<p class="form-result is-error">'+esc(e.message)+'</p>';}
 }
 
 async function processSelectedAddRequests(requestIds) { try{return await api("processAddRequests",{requestIds},true);}catch(error){if(!error.message.includes("지원하지 않는 요청"))throw error;let processedCount=0;for(const requestId of requestIds){await api("processRequest",{requestId,decision:"approved"},true);processedCount++;}return {processedCount};} }
@@ -447,7 +457,7 @@ function finishBatchProgress(completed,total,error,onConfirm) { const dialog=$("
 function clearCompletedBatchRows(type,rows,completed,allComplete) { const container=$("#"+type+"BatchRows");if(allComplete){const rowCount=Math.max(1,rows.length);container.innerHTML="";for(let i=0;i<rowCount;i++)addBatchRow(type);return;}rows.slice(0,completed).forEach(row=>row.remove());if(!container.querySelector(".batch-row"))addBatchRow(type);renumberBatchRows(type); }
 
 $("#currentYear").textContent=new Date().getFullYear();
-document.querySelectorAll(".tab-button").forEach(button=>button.onclick=()=>{setHeaderMenuOpen(false);document.querySelectorAll(".tab-button").forEach(x=>x.classList.toggle("is-active",x===button));document.querySelectorAll(".tab-panel").forEach(x=>x.classList.toggle("is-active",x.dataset.panel===button.dataset.tab));history.replaceState(null,"","#"+button.dataset.tab);if(button.dataset.tab==="admin"&&state.adminToken)loadAdmin("add");});
+document.querySelectorAll(".tab-button").forEach(button=>button.onclick=()=>{if(button.dataset.tab==="admin"&&!state.adminUserId)return;setHeaderMenuOpen(false);document.querySelectorAll(".tab-button").forEach(x=>x.classList.toggle("is-active",x===button));document.querySelectorAll(".tab-panel").forEach(x=>x.classList.toggle("is-active",x.dataset.panel===button.dataset.tab));history.replaceState(null,"","#"+button.dataset.tab);if(button.dataset.tab==="admin"&&state.adminUserId)loadAdmin("add");});
 
 function setHeaderMenuOpen(open,restoreFocus=false) {
   const toggle=$("#headerMenuToggle");$("#mainNavigation").hidden=!open;toggle.setAttribute("aria-expanded",String(open));toggle.setAttribute("aria-label",open?"메뉴 닫기":"메뉴 열기");if(restoreFocus)toggle.focus();
@@ -522,11 +532,10 @@ $("#bulkCompetitionRequestForm").onsubmit=async e=>{
   try{for(const request of requests){updateBatchProgress(completed,requests.length);await api("requestCompetitionAdd",request.payload);completed++;updateBatchProgress(completed,requests.length);}}catch(x){error=x;}finally{submit.disabled=false;}
   finishBatchProgress(completed,requests.length,error,()=>{if(error){requests.slice(0,completed).forEach(request=>{request.row.dataset.submitted="true";request.row.classList.add("is-submitted");request.row.querySelector(".batch-member-input").disabled=true;});}else clearCompetitionTeamParticipants();result("#bulkCompetitionRequestResult",error?`${completed}건 접수 후 중단되었습니다. ${error.message}`:`${completed}건의 대회 기록 요청이 접수되었습니다.`,Boolean(error));});
 };
-$("#adminLoginForm").onsubmit=async e=>{e.preventDefault();try{const d=await api("adminLogin",{password:new FormData(e.currentTarget).get("password")});state.adminToken=d.adminToken;sessionStorage.setItem("ergAdminToken",d.adminToken);$("#adminLogin").hidden=true;$("#adminConsole").hidden=false;$("#adminLogout").hidden=false;loadAdmin("add");}catch(x){result("#adminLoginResult",x.message,true);}};
-$("#adminConsole").onclick=e=>{const group=e.target.closest("[data-admin-group]");if(group){loadAdmin(group.dataset.adminGroup==="references"?"competitions":"add");return;}const b=e.target.closest("[data-admin-view]");if(b)loadAdmin(b.dataset.adminView);};$("#adminLogout").onclick=()=>{adminLoadSequence++;$("#adminContent").innerHTML="";delete $("#adminContent")._approvedData;$("#approvedRecordDialog")?.remove();$("#adminLoginForm").reset();state.adminToken="";sessionStorage.removeItem("ergAdminToken");$("#adminLogout").hidden=true;$("#adminLogin").hidden=false;$("#adminConsole").hidden=true;};
+$("#adminConsole").onclick=e=>{const group=e.target.closest("[data-admin-group]");if(group){loadAdmin(group.dataset.adminGroup==="references"?"competitions":"add");return;}const b=e.target.closest("[data-admin-view]");if(b)loadAdmin(b.dataset.adminView);};
 $("#adminContent").oninput=e=>{if(e.target.matches(".birth-year-input,.join-year-input")){updatePlayerYearDirtyState(e.target.closest("[data-birth-year-name]"));updatePlayerYearSaveState();return;}if(e.target.id!=="birthYearSearch")return;const query=e.target.value.trim().toLocaleLowerCase("ko");document.querySelectorAll("[data-birth-year-name]").forEach(row=>row.hidden=!memberNameMatches(row.dataset.birthYearName,query));updatePlayerYearSaveState();};
 $("#adminContent").onsubmit=async e=>{if(e.target.id==="competitionDateForm"){e.preventDefault();await saveCompetitionDates(e.target);return;}if(e.target.id==="birthYearBatchForm"){e.preventDefault();await saveChangedPlayerYears(e.target);return;}const configs={eventAddForm:{action:"manageEvent",name:"eventName",view:"events"},competitionAddForm:{action:"manageCompetition",name:"competitionName",view:"competitions"},"competition-eventAddForm":{action:"manageCompetitionEvent",name:"competitionEventName",view:"competition-events"},"competition-divisionAddForm":{action:"manageCompetitionDivision",name:"competitionDivisionName",view:"competition-divisions"}},config=configs[e.target.id];if(!config)return;e.preventDefault();const name=new FormData(e.target).get("itemName");try{await api(config.action,{operation:"add",[config.name]:name},true);await refresh();loadAdmin(config.view);}catch(x){alert(x.message);}};
 
 window.addEventListener("resize",closeCompetitionMemberMenu);document.addEventListener("scroll",event=>{if(competitionMemberMenu&&!competitionMemberMenu.element.contains(event.target))closeCompetitionMemberMenu();},true);
 document.addEventListener("focusin",event=>{const input=event.target;if(!input.matches('input.batch-member-input,#trainingJoinForm input[name="name"],#memberNameInput,input[name="member_name"],#memberSearch,#competitionMemberSearch,#competitionParticipantSearch,#athleteSearch,#birthYearSearch,#approvedRecordSearch,#athletePrimarySelect,#athleteSecondarySelect'))return;if(input.type==="search"||input.matches("#athletePrimarySelect,#athleteSecondarySelect"))input.dataset.memberMode="search";const initialized=input.dataset.memberAutocomplete;setupCompetitionMemberInput(input);if(!initialized)openCompetitionMemberMenu(input);});
-setupDropdowns();document.addEventListener("click",event=>{if(!event.target.closest(".member-name-autocomplete,.competition-member-menu"))closeCompetitionMemberMenu();if(!event.target.closest(".inline-dropdown"))closeAllDropdowns();});document.addEventListener("keydown",event=>{if(event.key!=="Escape")return;closeAllDropdowns();document.querySelectorAll(".athlete-badge.is-explaining").forEach(card=>{card.classList.remove("is-explaining");card.querySelector(".athlete-badge-name")?.setAttribute("aria-expanded","false");});});addBatchRow("ergo");addCompetitionTeam();setDefaultErgoDates();showRequestPanel();if(state.adminToken){$("#adminLogin").hidden=true;$("#adminConsole").hidden=false;$("#adminLogout").hidden=false;}const initialTab=location.hash.slice(1);if(["competition","athletes","request","admin"].includes(initialTab))document.querySelector(`[data-tab="${initialTab}"]`).click();const refreshWhenVisible=()=>{if(!document.hidden&&Date.now()-state.refreshedAt>60000)refresh();};window.addEventListener("pageshow",refreshWhenVisible);window.addEventListener("focus",refreshWhenVisible);document.addEventListener("visibilitychange",refreshWhenVisible);setInterval(()=>{if(!document.hidden)refresh();},300000);refresh();
+document.addEventListener("club-auth-changed",syncMemberAdministrator);setupDropdowns();document.addEventListener("click",event=>{if(!event.target.closest(".member-name-autocomplete,.competition-member-menu"))closeCompetitionMemberMenu();if(!event.target.closest(".inline-dropdown"))closeAllDropdowns();});document.addEventListener("keydown",event=>{if(event.key!=="Escape")return;closeAllDropdowns();document.querySelectorAll(".athlete-badge.is-explaining").forEach(card=>{card.classList.remove("is-explaining");card.querySelector(".athlete-badge-name")?.setAttribute("aria-expanded","false");});});addBatchRow("ergo");addCompetitionTeam();setDefaultErgoDates();showRequestPanel();const initialTab=location.hash.slice(1);if(["competition","athletes","request"].includes(initialTab))document.querySelector(`[data-tab="${initialTab}"]`).click();const refreshWhenVisible=()=>{if(!document.hidden&&Date.now()-state.refreshedAt>60000)refresh();};window.addEventListener("pageshow",refreshWhenVisible);window.addEventListener("focus",refreshWhenVisible);document.addEventListener("visibilitychange",refreshWhenVisible);setInterval(()=>{if(!document.hidden)refresh();},300000);refresh();

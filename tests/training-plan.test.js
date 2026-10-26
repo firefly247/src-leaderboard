@@ -28,7 +28,7 @@ test('random fill leaves shortages empty, swaps are atomic and locks survive rec
 });
 test('editing stays in memory until save or publish and retains the original revision for conflicts',()=>{
   const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8'),calls=[],record={date:'2026-10-24',opened:true,revision:9,registrationRevision:6,participants:participants(6)};
-  const context=vm.createContext({state:{adminToken:'valid'},busy:false,rosterData:[record],localDrafts:new Map(),TrainingPlan:plan,isDormantMember:()=>false,setView(){},render(){},message(){},mutate:(...args)=>calls.push(args)});
+  const context=vm.createContext({state:{adminUserId:'verified-admin'},busy:false,rosterData:[record],localDrafts:new Map(),TrainingPlan:plan,isDormantMember:()=>false,setView(){},render(){},message(){},mutate:(...args)=>calls.push(args)});
   vm.runInContext(source.match(/function draftAction\(date,action,payload=\{\}\)\{[\s\S]*?\n  \}/)[0],context);
   const action=(a,p)=>context.draftAction(record.date,a,p);
   action('trainingRecommend');action('trainingDraftEdit',{operation:'addBoat',type:'2X'});action('trainingDraftEdit',{operation:'random',boat:'더블스컬 A'});action('trainingDraftEdit',{operation:'lock',boat:'유타쿼드 A',seat:'COX'});

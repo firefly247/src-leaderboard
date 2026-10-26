@@ -3,7 +3,7 @@ import { makeUtilities } from './utilities.mjs';
 
 const PUBLIC = new Set(['trainingGet','trainingList','trainingRoster','raceLineupList','raceLineupGet','pendingDeleteRecords']);
 const MEMBER = new Set(['trainingJoin','trainingWeekJoin','requestAdd','requestCompetitionAdd','requestDelete']);
-const ADMIN = new Set(['adminList','saveApprovedRecord','saveCompetitionDates','updateCompetitionRequests','savePlayerBirthYear','savePlayerBirthYears','processRequest','processAddRequests','processCompetitionAddRequests','processRejectRequests','manageEvent','manageCompetition','manageCompetitionEvent','manageCompetitionDivision','trainingOpen','trainingRecommend','trainingDraftGet','trainingDraftEdit','trainingDraftSave','trainingPublish','trainingCheck','trainingQualifications','raceLineupAdminData','raceLineupGetAdmin','raceLineupCreate','raceLineupParticipants','raceLineupSave','raceLineupFinalize','memberLinkList','memberLinkApprove','memberLinkReject']);
+const ADMIN = new Set(['adminList','saveApprovedRecord','saveCompetitionDates','updateCompetitionRequests','savePlayerBirthYear','savePlayerBirthYears','processRequest','processAddRequests','processCompetitionAddRequests','processRejectRequests','manageEvent','manageCompetition','manageCompetitionEvent','manageCompetitionDivision','trainingOpen','trainingRecommend','trainingDraftGet','trainingDraftEdit','trainingDraftSave','trainingPublish','trainingCheck','trainingQualifications','raceLineupAdminData','raceLineupGetAdmin','raceLineupCreate','raceLineupParticipants','raceLineupSave','raceLineupFinalize','memberLinkList','memberLinkApprove','memberLinkReject','memberAccountList','memberAccountRole']);
 const clone=x=>structuredClone(x);
 const csv=value=>{const text=String(value??'');return /[",\r\n]/.test(text)?'"'+text.replace(/"/g,'""')+'"':text;};
 
@@ -29,7 +29,6 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
     if(!rows?.[0])throw new Error('회원 정보를 확인하지 못했습니다.');
     return {...rows[0],nickname:String(user.user_metadata?.name||user.user_metadata?.full_name||user.user_metadata?.nickname||'회원').slice(0,80)};
   }
-  async function isAdmin(token,member){return member?.role==='admin'||Boolean(token&&await rpc('club_admin_validate',{p_token:token}));}
   async function limited(request,action,max=60) {
     const ip=request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()||request.headers.get('cf-connecting-ip')||'unknown';
     if(!await rpc('club_api_limit',{p_key:hex(ip+'|'+action),p_limit:max,p_seconds:300}))throw new Error('요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.');
@@ -65,12 +64,11 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
       if(typeof action!=='string'||!p||typeof p!=='object'||Array.isArray(p))throw new Error('요청 형식이 올바르지 않습니다.');
       if(action==='storageSource')return respond({ok:true,provider:'supabase',version:2});
       if(action==='publicData')return respond({ok:true,...await publicData()});
-      if(action==='adminLogin'){await limited(request,action,10);if(typeof p.password!=='string'||p.password.length>512)throw new Error('관리자 비밀번호를 확인해 주세요.');return respond({ok:true,...await rpc('club_admin_login',{p_password:p.password})});}
       if(!PUBLIC.has(action)&&!MEMBER.has(action)&&!ADMIN.has(action)&&!['memberSession','memberLinkRequest','memberLinkOptions'].includes(action))throw new Error('지원하지 않는 요청입니다.');
       const token=request.headers.get('authorization')?.replace(/^Bearer\s+/i,'')||'';
       const member=token&&!PUBLIC.has(action)?await account(token):null;
       if(action.startsWith('member')&&!ADMIN.has(action)&&!member)throw new Error('카카오 로그인이 필요합니다.');
-      if(action==='memberSession')return respond({ok:true,member:{nickname:member.nickname,playerName:member.player_name,requestedPlayerName:member.requested_player_name,role:member.role}});
+      if(action==='memberSession')return respond({ok:true,member:{userId:member.user_id,nickname:member.nickname,playerName:member.player_name,requestedPlayerName:member.requested_player_name,role:member.role}});
       if(action==='memberLinkOptions'){
         const tables=await Promise.all(['club_player_birth_years','club_records','club_competition_records','club_dormant_members'].map(n=>rest(n+'?select=member_name',undefined,'GET')));
         const dormant=new Set(tables[3].map(r=>r.member_name)),names=[...new Set(tables.slice(0,3).flatMap(rows=>rows.map(r=>r.member_name)))].filter(n=>n&&!dormant.has(n)).sort((a,b)=>a.localeCompare(b,'ko'));
@@ -82,8 +80,16 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
         const matched=await Promise.all(['club_player_birth_years','club_records','club_competition_records','club_dormant_members'].map(n=>rest(n+'?select=member_name&member_name=eq.'+encodeURIComponent(p.name),undefined,'GET')));if(!matched.slice(0,3).some(rows=>rows.length)||matched[3].length)throw new Error('등록된 활동 선수를 선택해 주세요.');
         await rest('club_accounts?user_id=eq.'+encodeURIComponent(member.user_id),{requested_player_name:p.name,display_name:member.nickname},'PATCH');return respond({ok:true,requestedPlayerName:p.name});
       }
-      const admin=ADMIN.has(action)?await isAdmin(body.adminToken,member):false;
+      const admin=ADMIN.has(action)&&member?.role==='admin';
       if(ADMIN.has(action)&&!admin)throw new Error('관리자 인증이 만료되었습니다.');
+      if(action==='memberAccountList'){const accounts=await rest('club_accounts?select=user_id,player_name,requested_player_name,display_name,role,created_at,linked_at&order=created_at',undefined,'GET');return respond({ok:true,accounts});}
+      if(action==='memberAccountRole'){
+        if(typeof p.userId!=='string'||!['member','admin'].includes(p.role))throw new Error('회원과 권한을 확인해 주세요.');
+        // Last-admin protection and the actor's current role are rechecked atomically.
+        try{await rpc('club_account_set_role',{p_actor_id:member.user_id,p_user_id:p.userId,p_role:p.role});}
+        catch{throw new Error('권한을 변경하지 못했습니다. 마지막 관리자는 해제할 수 없습니다. 최신 회원 목록을 확인해 주세요.');}
+        return respond({ok:true});
+      }
       if(action==='memberLinkList'){const links=await rest('club_accounts?select=user_id,player_name,requested_player_name,display_name,created_at&requested_player_name=not.is.null&order=created_at',undefined,'GET');return respond({ok:true,links});}
       if(action==='memberLinkReject'){if(typeof p.name!=='string'||typeof p.userId!=='string')throw new Error('연결 요청을 확인해 주세요.');const changed=await rest('club_accounts?user_id=eq.'+encodeURIComponent(p.userId)+'&requested_player_name=eq.'+encodeURIComponent(p.name),{requested_player_name:null},'PATCH',{Prefer:'return=representation'});if(!changed?.length)throw new Error('연결 요청이 변경되었습니다. 다시 조회해 주세요.');return respond({ok:true});}
       if(action==='memberLinkApprove'){await rpc('club_member_approve',{p_user_id:p.userId,p_player_name:p.name});return respond({ok:true});}

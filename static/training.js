@@ -82,7 +82,7 @@
     gate.querySelector('[data-member-link]').textContent=member?.requestedPlayerName?'가입 신청 확인':'회원 가입 완료하기';
     if(window.ClubApi?.ready){form.elements.name.value=member?.playerName||'';form.elements.name.readOnly=true;}
 
-    const admin=!!state.adminToken,opened=!!data?.opened;
+    const admin=!!state.adminUserId,opened=!!data?.opened;
     el('#trainingOpening').hidden=!admin;el('#trainingOperator').hidden=!admin;el('#trainingAdminHint').hidden=admin;el('#trainingFormFields').disabled=!canVote()||busy||!catalogLoaded||!signupSessions().length;
     const days=weekDates();el('#trainingWeekLabel').textContent=`${dayLabel(days[0])} – ${dayLabel(days[1])}`;
     el('#trainingOpenDates').innerHTML=days.map(date=>{const exists=sessions.some(s=>s.date===date);return `<button type="button" data-open-date="${date}" aria-pressed="${openSelection.has(date)}" ${busy||exists?'disabled':''}>${dayLabel(date)}<small>${exists?'개설됨':'개설할 날짜 선택'}</small></button>`;}).join('');
@@ -101,7 +101,7 @@
   }
   async function load(quiet=false){
     if(busy||pressTimer||editTarget)return;const current=++sequence;
-    try{if(!quiet)message('훈련 정보를 불러오는 중입니다.');const result=state.adminToken?await api('trainingDraftGet',{},true):await api('trainingRoster');if(current!==sequence)return;if(!Array.isArray(result.sessions)||!Array.isArray(result.trainings)||!Array.isArray(result.rosterColumns))throw new Error('지원하지 않는 요청입니다.');sessions=result.sessions;rosterData=result.trainings;rosterColumns=result.rosterColumns;catalogLoaded=true;catalogError='';
+    try{if(!quiet)message('훈련 정보를 불러오는 중입니다.');const result=state.adminUserId?await api('trainingDraftGet',{},true):await api('trainingRoster');if(current!==sequence)return;if(!Array.isArray(result.sessions)||!Array.isArray(result.trainings)||!Array.isArray(result.rosterColumns))throw new Error('지원하지 않는 요청입니다.');sessions=result.sessions;rosterData=result.trainings;rosterColumns=result.rosterColumns;catalogLoaded=true;catalogError='';
       if(!sessions.some(s=>s.date===selectedDate))selectedDate=sessions.find(s=>s.date>=today)?.date||sessions.at(-1)?.date||'';
       data=rosterData.find(t=>t.date===selectedDate)||null;weekData=rosterData.filter(t=>t.date===signupWeek||t.date===signupSunday);render();if(!quiet)message('');
     }catch(error){if(current!==sequence)return;const reason=/지원하지 않는 요청|관리자 인증/.test(error.message)?'훈련 서버 업데이트가 필요합니다. 운영진이 서버를 업데이트한 후 새로고침해 주세요.':error.message;if(!catalogLoaded)catalogError='서버 연결 실패로 개설할 수 없습니다. '+reason;render();message(reason,true);}
@@ -119,7 +119,7 @@
   form.addEventListener('submit',e=>{e.preventDefault();if(!draftStatus)return;const payload={name:form.elements.name.value.trim(),comment:form.elements.comment.value,status:draftStatus,dates:[...draftDates].sort(),week:signupWeek};try{payload.editKey=editKey(payload.name);mutate('trainingWeekJoin',payload);}catch{message('신청 수정키를 저장할 수 없습니다. 브라우저 저장소를 허용해 주세요.',true);}});
   form.elements.name.addEventListener('change',hydrateDraft);form.elements.name.addEventListener('input',syncChoices);
   function draftAction(date,action,payload={}){
-    if(!state.adminToken||busy)return;
+    if(!state.adminUserId||busy)return;
     const t=rosterData.find(t=>t.date===date);if(!t)return;selectedDate=date;data=t;editTarget=null;
     const local=localDrafts.get(date),previous=local?.draft||t.draft||t.plan;
     if(action==='trainingDraftSave'||action==='trainingPublish'){
@@ -142,7 +142,7 @@
     TrainingPlan.wait(local.draft,people);local.draft.registrationRevision=t.registrationRevision;local.revision=t.revision;editTarget=null;render();message('최신 명단을 반영했습니다. 조합을 확인한 뒤 저장해 주세요.');
   }
   function cancelPress(){clearTimeout(pressTimer);pressTimer=null;pressOrigin=null;}
-  panel.addEventListener('pointerdown',e=>{longPressed=false;const b=e.target.closest('[data-edit-member]');if(!b||b.disabled||!state.adminToken||e.button!==0)return;pressOrigin={x:e.clientX,y:e.clientY};pressTimer=setTimeout(()=>{pressTimer=null;longPressed=true;draftAction(b.dataset.draftDateAction,'trainingDraftEdit',{operation:'lock',boat:b.dataset.boat,seat:b.dataset.seat});},650);});
+  panel.addEventListener('pointerdown',e=>{longPressed=false;const b=e.target.closest('[data-edit-member]');if(!b||b.disabled||!state.adminUserId||e.button!==0)return;pressOrigin={x:e.clientX,y:e.clientY};pressTimer=setTimeout(()=>{pressTimer=null;longPressed=true;draftAction(b.dataset.draftDateAction,'trainingDraftEdit',{operation:'lock',boat:b.dataset.boat,seat:b.dataset.seat});},650);});
   panel.addEventListener('pointermove',e=>{if(pressOrigin&&Math.hypot(e.clientX-pressOrigin.x,e.clientY-pressOrigin.y)>10)cancelPress();});
   ['pointerup','pointercancel','pointerleave'].forEach(type=>panel.addEventListener(type,cancelPress));
   panel.addEventListener('contextmenu',e=>{if(e.target.closest('[data-edit-member]'))e.preventDefault();});
@@ -157,16 +157,16 @@
     if(b.dataset.refreshDraft){refreshLocalDraft(b.dataset.refreshDraft);return;}
     if(b.dataset.editPlan){draftAction(b.dataset.editPlan,'trainingDraftEdit',{operation:'start'});return;}
     if(b.dataset.view){setView(b.dataset.view);render();return;}
-    if(b.dataset.recommendDate&&state.adminToken){draftAction(b.dataset.recommendDate,'trainingRecommend',{});return;}
+    if(b.dataset.recommendDate&&state.adminUserId){draftAction(b.dataset.recommendDate,'trainingRecommend',{});return;}
     if(b.dataset.participationDate){if(draftStatus!=='참석')draftDates.clear();if(draftDates.has(b.dataset.participationDate))draftDates.delete(b.dataset.participationDate);else draftDates.add(b.dataset.participationDate);draftStatus=draftDates.size?'참석':'';syncChoices();return;}
     if(b.dataset.participationStatus){draftDates.clear();draftStatus=draftStatus===b.dataset.participationStatus?'':b.dataset.participationStatus;syncChoices();return;}
     if(b.dataset.date){selectedDate=b.dataset.date;data=null;render();load();return;}
     if(b.dataset.openDate){if(openSelection.has(b.dataset.openDate))openSelection.delete(b.dataset.openDate);else openSelection.add(b.dataset.openDate);render();return;}
-    if(b.dataset.check&&state.adminToken){mutate('trainingCheck',{id:b.dataset.check,status:b.dataset.value},true);return;}
-    switch(b.dataset.action){case 'reload':load();break;case 'previousWeek':case 'nextWeek':week.setUTCDate(week.getUTCDate()+(b.dataset.action==='nextWeek'?7:-7));openSelection.clear();render();break;case 'open':if(state.adminToken)mutate('trainingOpen',{dates:[...openSelection].sort()},true);break;case 'recommend':draftAction(selectedDate,'trainingRecommend');break;}
+    if(b.dataset.check&&state.adminUserId){mutate('trainingCheck',{id:b.dataset.check,status:b.dataset.value},true);return;}
+    switch(b.dataset.action){case 'reload':load();break;case 'previousWeek':case 'nextWeek':week.setUTCDate(week.getUTCDate()+(b.dataset.action==='nextWeek'?7:-7));openSelection.clear();render();break;case 'open':if(state.adminUserId)mutate('trainingOpen',{dates:[...openSelection].sort()},true);break;case 'recommend':draftAction(selectedDate,'trainingRecommend');break;}
   });
   document.addEventListener('club-auth-changed',render);
   window.addEventListener('beforeunload',e=>{if(localDrafts.size){e.preventDefault();e.returnValue='';}});
-  document.addEventListener('member-visibility-changed',render);document.querySelector('[data-tab="training"]').addEventListener('click',()=>{panel.classList.add('is-active');render();load();});document.addEventListener('click',e=>{if(e.target.closest('#adminLogout'))setTimeout(()=>{editTarget=null;localDrafts.clear();rosterData.forEach(t=>delete t.draft);render();},0);});
+  document.addEventListener('member-visibility-changed',render);document.querySelector('[data-tab="training"]').addEventListener('click',()=>{panel.classList.add('is-active');render();load();});document.addEventListener('club-admin-changed',()=>{sequence++;editTarget=null;localDrafts.clear();rosterData.forEach(t=>delete t.draft);render();if(panel.classList.contains('is-active'))load();});
   setInterval(()=>{if(panel.classList.contains('is-active')&&!document.hidden)load(true);},30000);setView('join');render();if(location.hash==='#training')document.querySelector('[data-tab="training"]').click();
 })();

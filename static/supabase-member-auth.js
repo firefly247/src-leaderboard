@@ -13,7 +13,7 @@
     if(!api?.ready){render();return;}
     const {data:{session}}=await api.client.auth.getSession();
     if(!session){profile=null;if(dialog.open)dialog.close();render();return;}
-    try{profile=(await api.call('memberSession')).member;render();if(profile.playerName&&dialog.open)dialog.close();if(!profile.playerName)await linkDialog();}
+    try{profile=(await api.call('memberSession')).member;render();if(profile.playerName&&dialog.open)dialog.close();if(!profile.playerName&&(!dialog.open||profile.requestedPlayerName))await linkDialog();}
     catch(error){profile=null;render();status.textContent=error.message;}
   }
   async function login(){
@@ -43,11 +43,17 @@
   button.onclick=login;logout.onclick=async()=>{const {error}=await api.client.auth.signOut();if(error){status.textContent='로그아웃하지 못했습니다.';return;}profile=null;if(dialog.open)dialog.close();render();};
   document.addEventListener('click',event=>{if(event.target.closest('[data-member-login]'))login();if(event.target.closest('[data-member-link]'))refresh();});
   if(api?.client)api.client.auth.onAuthStateChange(()=>{setTimeout(refresh,0);});
-  window.ClubMembership={get member(){return profile;},login,refresh,async renderAdmin(container){
-    const {links}=await window.api('memberLinkList',{},true);
-    container.innerHTML='<h2>회원 계정 연결</h2><p>실제 회원인지 확인한 뒤 선수 연결을 승인해 주세요.</p>'+(links.length?links.map(row=>`<div class="training-member"><strong>${escape(row.requested_player_name)}</strong><small>카카오 ${escape(row.display_name||"회원")} · 계정 ${escape(row.user_id)}</small><button type="button" data-approve-user="${escape(row.user_id)}" data-player-name="${escape(row.requested_player_name)}">연결 승인</button><button type="button" data-reject-user="${escape(row.user_id)}" data-player-name="${escape(row.requested_player_name)}">거절</button></div>`).join(''):'<p>확인할 연결 요청이 없습니다.</p>');
-    container.onclick=async event=>{const selected=event.target.closest('[data-approve-user],[data-reject-user]');if(!selected)return;selected.disabled=true;
-      try{await window.api(selected.dataset.approveUser?'memberLinkApprove':'memberLinkReject',{userId:selected.dataset.approveUser||selected.dataset.rejectUser,name:selected.dataset.playerName},true);await window.ClubMembership.renderAdmin(container);}catch(error){selected.disabled=false;alert(error.message);}
+  window.ClubMembership={get member(){return profile;},login,refresh,async renderAdmin(container,isCurrent=()=>true){
+    const actor=profile?.userId,{accounts}=await window.api('memberAccountList',{},true);
+    if(profile?.role!=='admin'||profile.userId!==actor||!isCurrent())return;
+    const adminCount=accounts.filter(row=>row.role==='admin').length;
+    container.innerHTML='<h2>회원 관리</h2><p>카카오 인증 회원 '+accounts.length+'명</p>'+(accounts.length?'<div class="table-wrap"><table class="admin-table"><thead><tr><th>선수 이름</th><th>카카오 닉네임</th><th>가입 상태</th><th>관리자 여부</th><th>관리</th></tr></thead><tbody>'+accounts.map(row=>`<tr><td>${escape(row.player_name||row.requested_player_name||'미입력')}${row.user_id===actor?' (나)':''}</td><td>${escape(row.display_name||'회원')}</td><td>${row.player_name?'승인 완료':row.requested_player_name?'승인 대기':'이름 입력 전'}${row.requested_player_name?`<div><button type="button" data-approve-user="${escape(row.user_id)}" data-player-name="${escape(row.requested_player_name)}">가입 승인</button><button type="button" data-reject-user="${escape(row.user_id)}" data-player-name="${escape(row.requested_player_name)}">거절</button></div>`:''}</td><td>${row.role==='admin'?'관리자':'일반 회원'}</td><td><button type="button" data-account-user="${escape(row.user_id)}" data-account-role="${row.role==='admin'?'member':'admin'}" ${row.role==='admin'&&adminCount===1?'disabled title="마지막 관리자는 해제할 수 없습니다."':''}>${row.role==='admin'?'관리자 해제':'관리자 지정'}</button></td></tr>`).join('')+'</tbody></table></div>':'<p>카카오 인증 회원이 없습니다.</p>');
+    container.onclick=async event=>{const selected=event.target.closest('[data-approve-user],[data-reject-user],[data-account-user]');if(!selected||selected.disabled)return;selected.disabled=true;
+      try{
+        if(selected.dataset.accountUser)await window.api('memberAccountRole',{userId:selected.dataset.accountUser,role:selected.dataset.accountRole},true);
+        else await window.api(selected.dataset.approveUser?'memberLinkApprove':'memberLinkReject',{userId:selected.dataset.approveUser||selected.dataset.rejectUser,name:selected.dataset.playerName},true);
+        await refresh();if(profile?.role==='admin'&&isCurrent())await window.ClubMembership.renderAdmin(container,isCurrent);
+      }catch(error){selected.disabled=false;alert(error.message);}
     };
   }};
   refresh();

@@ -36,5 +36,16 @@ try{
  const row=(await db.query('select player_name,role,requested_player_name from public.club_accounts')).rows[0];assert.deepEqual(row,{player_name:'김선수',role:'member',requested_player_name:null});
  await db.exec("insert into public.club_records(record_id,member_name) values('legacy','기록선수');");
  const second='00000000-0000-0000-0000-000000000002';await db.exec('reset role;');await db.query('insert into auth.users values($1)',[second]);await db.exec('set role service_role;');await db.query('insert into public.club_accounts(user_id,requested_player_name) values($1,$2)',[second,'기록선수']);assert.equal((await db.query('select public.club_member_approve($1,$2) as v',[second,'기록선수'])).rows[0].v,true);
- console.log('PostgreSQL verified: eight public datasets only; private tables/roles protected; bcrypt password initialization, sessions, rate limiting and verified member linking.');
+ await db.exec('reset role;');await db.exec(await readFile('supabase/migrations/20261026170000_account_roles.sql','utf8'));
+ for(const role of ['anon','authenticated'])assert.equal((await db.query("select has_function_privilege($1,'public.club_account_set_role(uuid,uuid,text)','execute') as v",[role])).rows[0].v,false);
+ await db.exec('set role service_role;');
+ await assert.rejects(()=>db.query('select public.club_account_set_role($1,$2,$3)',[id,second,'admin']),/administrator_required/);
+ await db.query("update public.club_accounts set role='admin' where user_id=$1",[id]);
+ await assert.rejects(()=>db.query('select public.club_account_set_role($1,$2,$3)',[id,id,'member']),/last_administrator/);
+ await assert.rejects(()=>db.query('select public.club_account_set_role($1,$2,$3)',[id,second,'owner']),/invalid_account_role/);
+ assert.equal((await db.query('select public.club_account_set_role($1,$2,$3) as v',[id,second,'admin'])).rows[0].v,true);
+ assert.equal((await db.query('select public.club_account_set_role($1,$2,$3) as v',[id,id,'member'])).rows[0].v,true);
+ await assert.rejects(()=>db.query('select public.club_account_set_role($1,$2,$3)',[id,id,'admin']),/administrator_required/);
+ await assert.rejects(()=>db.query('select public.club_account_set_role($1,$2,$3)',[second,second,'member']),/last_administrator/);
+ console.log('PostgreSQL verified: public projection and private permissions; member linking; administrator-only role changes and last-administrator protection.');
 }finally{await db.close();}

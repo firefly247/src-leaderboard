@@ -141,8 +141,9 @@ test("late admin responses cannot repopulate private data after logout", async (
     window: {ClubApi:{call:()=>new Promise(done=>{resolve=done;})}},
   });
   vm.runInContext(clientSource.slice(0, clientSource.indexOf('document.querySelectorAll(".tab-button")')), context);
+  vm.runInContext('state.adminUserId="verified-admin";', context);
   const pending = context.loadAdmin("player-birth-years");
-  vm.runInContext('state.adminToken="";adminLoadSequence++;', context);
+  vm.runInContext('state.adminUserId="";adminLoadSequence++;', context);
   container.innerHTML = "";
   resolve({ ok: true, players: [{ memberName: "김선수", birthYear: "1985" }] });
   await pending;
