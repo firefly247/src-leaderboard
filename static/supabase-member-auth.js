@@ -6,7 +6,7 @@
   const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function render(){
     button.hidden=Boolean(profile);button.disabled=!api?.ready||pending;logout.hidden=!profile;
-    status.textContent=profile?(profile.playerName?`${profile.playerName}님`:profile.requestedPlayerName?`${profile.requestedPlayerName} · 가입 승인 대기`:'회원 가입을 완료해 주세요'):api?.ready?'':'카카오 로그인 준비 중';
+    status.textContent=profile?(profile.playerName?`${profile.playerName}님`:profile.requestedPlayerName?`${profile.requestedPlayerName} · 가입 승인 대기`:'회원 가입을 완료해 주세요'):api?.ready?'':'회원 로그인 준비 중';
     document.dispatchEvent(new CustomEvent('club-auth-changed',{detail:{member:profile}}));
   }
   async function refresh(){
@@ -19,7 +19,7 @@
   async function login(){
     if(!api?.ready)return;pending=true;render();
     // `scopes` adds to Kakao's defaults; the singular OAuth scope overrides them.
-    try{const redirectTo=new URL('static/auth-callback.html',new URL('./',location.href)).href;const {error}=await api.client.auth.signInWithOAuth({provider:'kakao',options:{redirectTo,queryParams:{scope:'profile_nickname'}}});if(error)throw new Error('카카오 로그인에 연결하지 못했습니다.');}
+    try{const redirectTo=new URL('static/auth-callback.html',new URL('./',location.href)).href;const {error}=await api.client.auth.signInWithOAuth({provider:'kakao',options:{redirectTo,queryParams:{scope:'profile_nickname'}}});if(error)throw new Error('회원 로그인에 연결하지 못했습니다.');}
     catch(error){pending=false;render();status.textContent=error.message;}
   }
   async function linkDialog(){
