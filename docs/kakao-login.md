@@ -10,7 +10,7 @@
 
    `https://rssdactzolryhfyfinon.supabase.co/auth/v1/callback`
 
-4. 동의항목에서 닉네임(`profile_nickname`)과 프로필 사진(`profile_image`)을 설정합니다. 현재 Supabase 카카오 제공자는 기본적으로 이메일(`account_email`)도 요청하므로 실제 동의 화면에서 해당 항목 권한도 점검합니다. 허용하지 않은 범위를 요청해 생기는 카카오 오류는 이메일 없는 가입 허용만으로 해소되지 않습니다. 현재 OAuth 방식에는 OpenID Connect 활성화가 필수는 아닙니다.
+4. 동의항목에서 닉네임(`profile_nickname`)을 설정합니다. 이메일(`account_email`)과 프로필 사진(`profile_image`)은 사용 안 함으로 유지합니다. 로그인 요청에 `queryParams: { scope: 'profile_nickname' }`을 지정하여 Supabase의 기본 세 항목 요청을 닉네임만으로 대체합니다. `options.scopes`는 기본 항목에 추가하므로 이 목적으로 쓰지 않습니다. 실제 Supabase → 카카오 인가 URL에서 닉네임만 요청하는 것을 확인했습니다. 이메일 없는 가입 허용은 반환 이메일을 필수로 검사하지 않게 하는 별도 설정입니다. 현재 OAuth 방식에는 OpenID Connect 활성화가 필수는 아닙니다.
 5. REST API 키와 Client Secret을 확인합니다. Client Secret은 활성화한 상태로 유지합니다.
 
 ## Supabase

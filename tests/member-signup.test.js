@@ -16,7 +16,7 @@ function fixture(member={nickname:'카카오 별명',playerName:null,requestedPl
     showModal(){this.open=true;}
     close(){this.open=false;}
   }
-  const ctx={window:{ClubApi:{ready:true,client:{auth:{getSession:async()=>({data:{session:{access_token:'token'}}}),onAuthStateChange(){},signOut:async()=>({})}},call:async(action,data)=>{calls.push({action,data});if(action==='memberSession')return {member:{...member}};if(action==='memberLinkOptions')return {names:['김기현','이찬희']};if(action==='memberLinkRequest'){await request(data);member.requestedPlayerName=data.name;return {ok:true};}throw new Error('Unexpected action');}}},document:{querySelector:selector=>{if(!elements.has(selector))elements.set(selector,new Element());return elements.get(selector);},createElement:()=>dialog=new Element(),body:{appendChild(){}},dispatchEvent(){},addEventListener(){}},CustomEvent:class{},setTimeout,URL,location:{href:'https://club.example/'}};
+  const ctx={window:{ClubApi:{ready:true,client:{auth:{getSession:async()=>({data:{session:{access_token:'token'}}}),onAuthStateChange(){},signInWithOAuth:async options=>{calls.push({action:typeof options.provider==='string'?'oauth':'invalid',options});return {};},signOut:async()=>({})}},call:async(action,data)=>{calls.push({action,data});if(action==='memberSession')return {member:{...member}};if(action==='memberLinkOptions')return {names:['김기현','이찬희']};if(action==='memberLinkRequest'){await request(data);member.requestedPlayerName=data.name;return {ok:true};}throw new Error('Unexpected action');}}},document:{querySelector:selector=>{if(!elements.has(selector))elements.set(selector,new Element());return elements.get(selector);},createElement:()=>dialog=new Element(),body:{appendChild(){}},dispatchEvent(){},addEventListener(){}},CustomEvent:class{},setTimeout,URL,location:{href:'https://club.example/'}};
   vm.createContext(ctx);vm.runInContext(source,ctx);
   return {ctx,calls,elements,get dialog(){return dialog;},set request(handler){request=handler;},select(name){dialog.querySelector('[data-link-names]').onclick({target:{closest:()=>({dataset:{linkName:name}})}});},submit(){return dialog.querySelector('[data-signup-form]').onsubmit({preventDefault(){}});}};
 }
@@ -49,4 +49,12 @@ test('Linked members bypass signup; pending applicants see approval status on th
 test('Logging out closes the unfinished signup dialog',async()=>{
   const f=fixture();await settle();await f.elements.get('#memberLogout').onclick();
   assert.equal(f.dialog.open,false);assert.equal(f.ctx.window.ClubMembership.member,null);
+});
+test('Kakao login overrides default email/photo scopes while preserving the fixed callback',async()=>{
+  const f=fixture();await settle();await f.ctx.window.ClubMembership.login();
+  const {options}=f.calls.find(c=>c.action==='oauth');
+  assert.equal(options.provider,'kakao');
+  assert.equal(options.options.queryParams.scope,'profile_nickname');
+  assert.equal(options.options.scopes,undefined);
+  assert.equal(options.options.redirectTo,'https://club.example/static/auth-callback.html');
 });

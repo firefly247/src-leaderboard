@@ -18,7 +18,8 @@
   }
   async function login(){
     if(!api?.ready)return;pending=true;render();
-    try{const redirectTo=new URL('static/auth-callback.html',new URL('./',location.href)).href;const {error}=await api.client.auth.signInWithOAuth({provider:'kakao',options:{redirectTo}});if(error)throw new Error('카카오 로그인에 연결하지 못했습니다.');}
+    // `scopes` adds to Kakao's defaults; the singular OAuth scope overrides them.
+    try{const redirectTo=new URL('static/auth-callback.html',new URL('./',location.href)).href;const {error}=await api.client.auth.signInWithOAuth({provider:'kakao',options:{redirectTo,queryParams:{scope:'profile_nickname'}}});if(error)throw new Error('카카오 로그인에 연결하지 못했습니다.');}
     catch(error){pending=false;render();status.textContent=error.message;}
   }
   async function linkDialog(){
