@@ -70,3 +70,17 @@ test('Kakao login overrides default email/photo scopes while preserving the fixe
   assert.equal(options.options.scopes,undefined);
   assert.equal(options.options.redirectTo,'https://club.example/static/auth-callback.html');
 });
+test('Administrator checkboxes grant and revoke roles; failed saves restore the confirmed checked state',async()=>{
+  const f=fixture({userId:'actor',role:'admin',playerName:'장진구'});await settle();
+  const accounts=[{user_id:'actor',player_name:'장진구',role:'admin'},{user_id:'target',player_name:'선수',role:'member'}],writes=[],alerts=[];
+  let fail=false;f.ctx.alert=message=>alerts.push(message);
+  f.ctx.window.api=async(action,payload)=>{if(action==='memberAccountList')return {accounts};if(fail)throw new Error('저장 실패');writes.push(payload);accounts.find(a=>a.user_id===payload.userId).role=payload.role;return {ok:true};};
+  const container={};await f.ctx.window.ClubMembership.renderAdmin(container);
+  assert.match(container.innerHTML,/type="checkbox"/);assert.doesNotMatch(container.innerHTML,/>관리자 지정<|>관리자 해제</);
+  assert.match(container.innerHTML,/data-account-user="actor"[^>]*checked[^>]*disabled/);
+  const checkbox={checked:true,disabled:false,dataset:{accountUser:'target',accountRole:'member'}};
+  const event={target:{closest:()=>checkbox}};
+  await container.onchange(event);assert.equal(writes[0].role,'admin');assert.equal(checkbox.dataset.accountRole,'admin');
+  checkbox.disabled=false;checkbox.checked=false;await container.onchange(event);assert.equal(writes[1].role,'member');
+  fail=true;checkbox.disabled=false;checkbox.checked=true;await container.onchange(event);assert.equal(checkbox.checked,false);assert.equal(checkbox.disabled,false);assert.deepEqual(alerts,['저장 실패']);
+});
