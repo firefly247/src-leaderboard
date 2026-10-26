@@ -108,7 +108,20 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
           const person=row.session_json.participants?.find(v=>v.name===member.player_name);if(person)person.editHash=digest;
         }}
       }
-      const result=engine.dispatch(action,payload)||{},changes=engine.changes();
+      const result=engine.dispatch(action,payload)||{};
+      if(['requestAdd','requestCompetitionAdd'].includes(action)){
+        const request=engine.tables().request_log.find(row=>row.request_id===result.requestId);
+        if(!request)throw new Error('등록 요청을 확인하지 못했습니다.');
+        const source=JSON.parse(request.source_json);
+        // Private audit metadata is stamped by the server, never trusted from form data.
+        source.__club_requester={user_id:member.user_id,name:member.player_name};
+        request.source_json=JSON.stringify(source);
+      }
+      if(action==='adminList'&&Array.isArray(result.requests))result.requests=result.requests.map(request=>{
+        const requester=JSON.parse(request.source_json).__club_requester;
+        return {...request,requester_name:typeof requester?.name==='string'?requester.name:''};
+      });
+      const changes=engine.changes();
       if(photo)await upload(photo);
       if(Object.keys(changes).length)await rpc('club_store_commit',{p_expected_revision:snapshot.revision,p_changes:changes});
       return respond({ok:true,...result});

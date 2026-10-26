@@ -81,3 +81,21 @@ test('Only a verified Kakao administrator can list accounts or change roles; leg
  assert.equal((await f.adminCall('memberAccountRole',{userId:target,role:'owner'})).ok,false);
  assert.equal((await f.call('memberSession',{},'','verified')).member.userId,f.account.user_id);
 });
+test('Record requester comes from the verified member, survives approval, and stays out of public records',async()=>{
+ for(const kind of ['ergo','competition']){
+  const f=await fixture();f.account.player_name='등록회원';
+  const payload=kind==='ergo'?{memberName:'김선수',eventId:'e1',timeDisplay:'7:30.0',competitionDate:'2026-10-24',competition:'클럽'}:{memberName:'김선수',competitionName:'클럽대회',competitionEventName:'4X+',competitionDivisionName:'200미만',year:2026,competitionType:'water',gold:0,silver:0,bronze:0};
+  payload.__club_requester={user_id:'forged',name:'위조 요청자'};
+  const created=await f.call(kind==='ergo'?'requestAdd':'requestCompetitionAdd',payload,'','verified');assert.equal(created.ok,true,created.message);
+  const audit=()=>JSON.parse(f.snapshot.tables.request_log.find(r=>r.request_id===created.requestId).source_json).__club_requester;
+  assert.deepEqual(audit(),{user_id:f.account.user_id,name:'등록회원'});
+  const view=kind==='ergo'?'add':'competition-add',pending=await f.adminCall('adminList',{view});
+  assert.equal(pending.requests[0].requester_name,'등록회원');assert.equal(pending.requests[0].member_name,'김선수');
+  assert.equal((await f.call('adminList',{view},'','verified')).ok,false);
+  const approved=await f.adminCall(kind==='ergo'?'processAddRequests':'processCompetitionAddRequests',{requestIds:[created.requestId]});assert.equal(approved.ok,true,approved.message);
+  assert.equal(audit().name,'등록회원');assert.equal((await f.adminCall('adminList',{view:'history'})).requests[0].requester_name,'등록회원');
+  const publicData=await f.call('publicData');assert.doesNotMatch(JSON.stringify(publicData),/__club_requester|등록회원|requester_name/);
+  const row=f.snapshot.tables.request_log[0],legacy=JSON.parse(row.source_json);delete legacy.__club_requester;row.source_json=JSON.stringify(legacy);
+  assert.equal((await f.adminCall('adminList',{view:'history'})).requests[0].requester_name,'');
+ }
+});

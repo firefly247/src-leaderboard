@@ -58,3 +58,11 @@ test("an old API response reports deployment needed instead of showing a false e
   context.renderApprovedRecordsAdmin("competition-records",{requests:[]});
   assert.match(container.innerHTML,/API 배포가 필요/);assert.doesNotMatch(container.innerHTML,/전체 0건/);
 });
+test('Approval tables display escaped requester names and leave legacy requesters unassigned',()=>{
+  const container={innerHTML:''},context=vm.createContext({document:{querySelector:()=>container},sessionStorage:{getItem:()=>''}});
+  vm.runInContext(client.slice(0,client.indexOf('document.querySelectorAll(".tab-button")')),context);
+  for(const view of ['add','competition-add','history']){
+    context.adminContent(view,{requests:[{request_id:'one',member_name:'기록선수',requester_name:'요청자<script>',status:view==='history'?'approved':'pending'},{request_id:'old',member_name:'기존선수',status:view==='history'?'approved':'pending'}]});
+    assert.match(container.innerHTML,/<th>등록 요청자<\/th>/);assert.match(container.innerHTML,/요청자&lt;script&gt;/);assert.doesNotMatch(container.innerHTML,/<script>/);assert.match(container.innerHTML,/기존선수<\/td><td>-<\/td>/);
+  }
+});
