@@ -32,6 +32,6 @@ Site URL은 `https://firefly247.github.io/src-leaderboard/`, Redirect allow list
 
 공식 Supabase SDK의 PKCE로 동일 브라우저에서 인증을 완료하고 사이트 세션을 저장합니다. 가입·로그인 후에는 홈으로 돌아오며 주말 훈련으로 자동 이동하지 않습니다. 홈에서 최초 선수 선택과 가입 신청만 진행합니다. 주말 훈련 투표는 로그인과 선수 연결 승인이 모두 유효할 때만 활성화되며 서버에서도 동일하게 검사합니다. 회원 로그아웃은 사이트 세션을 종료하며 카카오 계정 자체를 로그아웃하지는 않습니다. 기존 Android APK는 외부 브라우저 이동에 따른 PKCE 호환성 확인이 별도로 필요합니다.
 
-이전 Apps Script 카카오 인증과 `static/kakao-callback.html`은 새 로그인 경로에 사용하지 않습니다. 기존 웹 앱은 실제 새 로그인 확인 후 보관 처리해야 합니다. [독립 API 이전 상태](../supabase/INDEPENDENT-API.md)를 참고하세요.
+이전 Apps Script 카카오 인증과 `static/kakao-callback.html`은 새 로그인 경로에 사용하지 않습니다. 2026-10-26에 기존 활성 웹 앱 배포 네 개를 모두 보관 처리하고 각 URL의 HTTP 404를 확인했습니다. [독립 API 이전 상태](../supabase/INDEPENDENT-API.md)를 참고하세요.
 
 공식 문서: [REST API](https://developers.kakao.com/docs/ko/kakaologin/rest-api), [설정](https://developers.kakao.com/docs/en/kakaologin/prerequisite).
