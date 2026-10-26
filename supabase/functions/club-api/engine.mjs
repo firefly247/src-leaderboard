@@ -298,7 +298,7 @@ function updateCompetitionRequests_(p) {
       sheet.getRange(update.request._row, 4).setValue(update.source);
       sheet.getRange(update.request._row, 12, 1, 2).setValues([[update.display, update.year]]);
     });
-    
+
     return { updatedCount: updates.length };
   } finally { lock.releaseLock(); }
 }
@@ -467,7 +467,7 @@ function savePlayerBirthYears_(p) {
       sheet.getRange(2, 1, values.length, 1).setNumberFormat('@');
       sheet.getRange(2, 1, values.length, 4).setValues(values);
     }
-    
+
     const persisted = new Map(sheet.getDataRange().getDisplayValues().slice(1).filter(row => row[0]).map(row => [row[0], row]));
     const confirmed = players.map(player => {
       const row = persisted.get(player.memberName) || [], expected = saved.get(player.memberName) || [];
@@ -936,7 +936,7 @@ function trainingWrite_(sheet,entry) {
   const json=JSON.stringify(entry.session);
   if(json.length>45000)throw new Error('훈련 저장 용량을 초과했습니다. 운영진에게 문의해 주세요.');
   sheet.getRange(entry.row,1,1,2).setNumberFormat('@').setValues([[entry.session.date,json]]);
-  
+
 }
 
 function trainingPublic_(s,admin) {
