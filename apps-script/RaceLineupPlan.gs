@@ -40,7 +40,7 @@ var RaceLineupPlan=(()=>{
       const result=status(g,players,year);
       if(result.known&&result.complete&&!result.within)throw new Error(g.teamName+': 콕스·후보 제외 합계 나이가 나이대에 맞지 않습니다.');
       if(g.max!==null&&result.sum>g.max)throw new Error(g.teamName+': 합계 나이가 상한을 초과합니다.');
-      if(complete&&!result.valid)throw new Error(g.teamName+': 출전 슬롯과 선수 생년·합계 나이를 확인해 주세요.');
+      if(complete&&!result.valid)throw new Error(g.teamName+': 출전 슬롯과 회원 생년·합계 나이를 확인해 주세요.');
     });return groups;
   }
   function normalise(input,players,year,events,divisions,complete=false){
@@ -53,7 +53,7 @@ var RaceLineupPlan=(()=>{
   function setSlot(original,id,index,name,players,year){
     const groups=copy(original),g=groups.find(g=>g.id===id),slot=g?.slots[index];if(!slot)throw new Error('좌석을 찾을 수 없습니다.');
     if(slot.locked)throw new Error('고정을 해제한 뒤 변경해 주세요.');
-    if(name){const other=groups.flatMap(v=>v.eventId===g.eventId?v.slots:[]).find(s=>s.name===name);if(other===slot)return groups;if(other)throw new Error('이미 이 종목에 배정된 선수입니다. 기존 슬롯을 먼저 비워 주세요.');}
+    if(name){const other=groups.flatMap(v=>v.eventId===g.eventId?v.slots:[]).find(s=>s.name===name);if(other===slot)return groups;if(other)throw new Error('이미 이 종목에 배정된 회원입니다. 기존 슬롯을 먼저 비워 주세요.');}
     Object.assign(slot,{name,changed:true,locked:false});return validate(groups,players,year);
   }
   function shuffle(values,rng){const a=values.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
@@ -68,9 +68,9 @@ var RaceLineupPlan=(()=>{
     const used=new Set(groups.flatMap(v=>v.eventId!==g.eventId?[]:v===g?v.slots.filter(s=>s.locked||s.kind==='reserve').map(s=>s.name):v.slots.map(s=>s.name)).filter(Boolean));
     const pool=players.filter(p=>!used.has(p.memberName)&&!reserves.has(p.memberName));
     const fixed=g.slots.filter(s=>s.kind==='rower'&&s.locked),count=g.slots.filter(s=>s.kind==='rower'&&!s.locked).length;
-    if(fixed.some(s=>age(players.find(p=>p.memberName===s.name),year)===null))throw new Error('고정된 선수의 생년을 확인해 주세요.');
+    if(fixed.some(s=>age(players.find(p=>p.memberName===s.name),year)===null))throw new Error('고정된 회원의 생년을 확인해 주세요.');
     const fixedSum=fixed.reduce((sum,s)=>sum+age(players.find(p=>p.memberName===s.name),year),0),cox=g.slots.find(s=>s.kind==='cox'&&!s.locked);
-    if(pool.length<count+(cox?1:0))throw new Error('후보와 다른 조의 선수를 제외하면 배정할 인원이 부족합니다.');
+    if(pool.length<count+(cox?1:0))throw new Error('후보와 다른 조의 회원를 제외하면 배정할 인원이 부족합니다.');
     const names=rowerSubset(pool,count,Math.max(0,g.min-fixedSum),(g.max===null?200*g.rowers:g.max)-fixedSum,year,rng);
     if(!names)throw new Error(g.teamName+': 나이대에 맞는 조합을 찾지 못했습니다.');
     const available=names.slice();g.slots.filter(s=>s.kind==='rower'&&!s.locked).forEach(s=>{const name=available.shift();Object.assign(s,{name,changed:s.changed||s.name!==name});});

@@ -250,7 +250,7 @@ test("선수 Beta는 전체 메달, 배지, 전 종목 비교를 제공한다", 
   const source = fs.readFileSync(path.join(__dirname, "..", "static", "leaderboard.js"), "utf8");
   const styles = fs.readFileSync(path.join(__dirname, "..", "static", "style.css"), "utf8");
   const panel = html.match(/<section class="tab-panel" data-panel="athletes">([\s\S]*?)<section class="tab-panel" data-panel="request">/)[1];
-  assert.match(html, /data-tab="athletes"[^>]*>선수\(Beta\)<\/button>/);
+  assert.match(html, /data-tab="athletes"[^>]*>회원\(Beta\)<\/button>/);
   assert.match(panel, /id="athleteSearch"/);
   assert.match(panel, /data-athlete-view="card"/);
   assert.match(panel, /data-athlete-view="compare"/);

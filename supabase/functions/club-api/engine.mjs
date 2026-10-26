@@ -431,10 +431,10 @@ function savePlayerBirthYear_(p) {
 }
 
 function savePlayerBirthYears_(p) {
-  if (!Array.isArray(p.players) || !p.players.length || p.players.length > 1000) throw new Error('저장할 선수를 1~1000명 선택해 주세요.');
+  if (!Array.isArray(p.players) || !p.players.length || p.players.length > 1000) throw new Error('저장할 회원를 1~1000명 선택해 주세요.');
   const currentYear = Number(Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy'));
   const players = p.players.map(player => {
-    if (!player || typeof player !== 'object') throw new Error('선수 정보가 올바르지 않습니다.');
+    if (!player || typeof player !== 'object') throw new Error('회원 정보가 올바르지 않습니다.');
     const name = clean_(player.memberName), year = player.birthYear == null ? undefined : String(player.birthYear).trim();
     if (year && (!/^\d{4}$/.test(year) || Number(year) < 1900 || Number(year) > currentYear)) {
       throw new Error(name + ': 생년은 1900년부터 올해까지의 4자리 연도로 입력해 주세요.');
@@ -445,11 +445,11 @@ function savePlayerBirthYears_(p) {
     if (joinYear && (!/^\d{4}$/.test(joinYear) || Number(joinYear) < 1900 || Number(joinYear) > currentYear)) throw new Error(name + ': 가입연도는 1900년부터 올해까지의 4자리 연도로 입력해 주세요.');
     return { memberName: name, birthYear: year, joinYear, isDormant: player.isDormant };
   });
-  if (new Set(players.map(player => player.memberName)).size !== players.length) throw new Error('중복된 선수가 있습니다.');
+  if (new Set(players.map(player => player.memberName)).size !== players.length) throw new Error('중복된 회원가 있습니다.');
   const lock = storageLock_(); lock.waitLock(30000);
   try {
     const names = new Set(playerBirthYears_().map(player => player.memberName));
-    if (players.some(player => !player.memberName || !names.has(player.memberName))) throw new Error('등록된 선수를 선택해 주세요.');
+    if (players.some(player => !player.memberName || !names.has(player.memberName))) throw new Error('등록된 회원를 선택해 주세요.');
     const sheet = birthYearSheet_(true), previous = sheet.getDataRange().getDisplayValues().slice(1);
     const saved = new Map(previous.filter(row => row[0]).map(row => [row[0], row]));
     const now = new Date().toISOString();
@@ -1231,7 +1231,7 @@ function raceLineupPlayers_(race){
 function raceLineupParticipants_(p){
   if(!Array.isArray(p.names)||p.names.length>500||p.names.some(n=>typeof n!=='string'))throw new Error('참가자를 확인해 주세요.');
   const available=new Set(playerBirthYears_().filter(v=>!v.isDormant).map(v=>v.memberName));
-  if(p.names.some(n=>!available.has(n)))throw new Error('선수 정보에 등록된 활동 선수를 선택해 주세요.');
+  if(p.names.some(n=>!available.has(n)))throw new Error('회원 정보에 등록된 활동 회원를 선택해 주세요.');
   return raceLineupLocked_(p,r=>{
     r.participants=[...new Set(p.names)].sort((a,b)=>a.localeCompare(b,'ko'));r.participantsConfirmed=true;
     const names=new Set(r.participants);r.groups.forEach(g=>g.slots.forEach(s=>{if(s.name&&!names.has(s.name))Object.assign(s,{name:'',locked:false,changed:true});}));
@@ -1362,7 +1362,7 @@ var RaceLineupPlan=(()=>{
       const result=status(g,players,year);
       if(result.known&&result.complete&&!result.within)throw new Error(g.teamName+': 콕스·후보 제외 합계 나이가 나이대에 맞지 않습니다.');
       if(g.max!==null&&result.sum>g.max)throw new Error(g.teamName+': 합계 나이가 상한을 초과합니다.');
-      if(complete&&!result.valid)throw new Error(g.teamName+': 출전 슬롯과 선수 생년·합계 나이를 확인해 주세요.');
+      if(complete&&!result.valid)throw new Error(g.teamName+': 출전 슬롯과 회원 생년·합계 나이를 확인해 주세요.');
     });return groups;
   }
   function normalise(input,players,year,events,divisions,complete=false){
@@ -1375,7 +1375,7 @@ var RaceLineupPlan=(()=>{
   function setSlot(original,id,index,name,players,year){
     const groups=copy(original),g=groups.find(g=>g.id===id),slot=g?.slots[index];if(!slot)throw new Error('좌석을 찾을 수 없습니다.');
     if(slot.locked)throw new Error('고정을 해제한 뒤 변경해 주세요.');
-    if(name){const other=groups.flatMap(v=>v.eventId===g.eventId?v.slots:[]).find(s=>s.name===name);if(other===slot)return groups;if(other)throw new Error('이미 이 종목에 배정된 선수입니다. 기존 슬롯을 먼저 비워 주세요.');}
+    if(name){const other=groups.flatMap(v=>v.eventId===g.eventId?v.slots:[]).find(s=>s.name===name);if(other===slot)return groups;if(other)throw new Error('이미 이 종목에 배정된 회원입니다. 기존 슬롯을 먼저 비워 주세요.');}
     Object.assign(slot,{name,changed:true,locked:false});return validate(groups,players,year);
   }
   function shuffle(values,rng){const a=values.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
@@ -1390,9 +1390,9 @@ var RaceLineupPlan=(()=>{
     const used=new Set(groups.flatMap(v=>v.eventId!==g.eventId?[]:v===g?v.slots.filter(s=>s.locked||s.kind==='reserve').map(s=>s.name):v.slots.map(s=>s.name)).filter(Boolean));
     const pool=players.filter(p=>!used.has(p.memberName)&&!reserves.has(p.memberName));
     const fixed=g.slots.filter(s=>s.kind==='rower'&&s.locked),count=g.slots.filter(s=>s.kind==='rower'&&!s.locked).length;
-    if(fixed.some(s=>age(players.find(p=>p.memberName===s.name),year)===null))throw new Error('고정된 선수의 생년을 확인해 주세요.');
+    if(fixed.some(s=>age(players.find(p=>p.memberName===s.name),year)===null))throw new Error('고정된 회원의 생년을 확인해 주세요.');
     const fixedSum=fixed.reduce((sum,s)=>sum+age(players.find(p=>p.memberName===s.name),year),0),cox=g.slots.find(s=>s.kind==='cox'&&!s.locked);
-    if(pool.length<count+(cox?1:0))throw new Error('후보와 다른 조의 선수를 제외하면 배정할 인원이 부족합니다.');
+    if(pool.length<count+(cox?1:0))throw new Error('후보와 다른 조의 회원를 제외하면 배정할 인원이 부족합니다.');
     const names=rowerSubset(pool,count,Math.max(0,g.min-fixedSum),(g.max===null?200*g.rowers:g.max)-fixedSum,year,rng);
     if(!names)throw new Error(g.teamName+': 나이대에 맞는 조합을 찾지 못했습니다.');
     const available=names.slice();g.slots.filter(s=>s.kind==='rower'&&!s.locked).forEach(s=>{const name=available.shift();Object.assign(s,{name,changed:s.changed||s.name!==name});});

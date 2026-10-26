@@ -13,5 +13,5 @@ test('Administrator navigation follows the verified account role and clears priv
  node('#adminContent').innerHTML='private';context.syncMemberAdministrator({detail:{member:null}});
  assert.equal(node('[data-tab="admin"]').hidden,true);assert.equal(node('#adminConsole').hidden,true);assert.equal(node('#adminContent').innerHTML,'');assert.equal(events.at(-1).detail.enabled,false);
  assert.ok(memberMenus.every(m=>m.hidden===true));assert.equal(node('#memberTools').hidden,true);assert.equal(context.canOpenClubTab('training'),false);assert.equal(clicks.at(-1),'[data-tab="home"]');
- const html=fs.readFileSync('index.html','utf8');assert.doesNotMatch(html,/id="adminLoginForm"|id="adminLogout"|>기록 관리</);assert.match(html,/>이력 관리</);assert.match(html,/data-admin-view="member-accounts">회원 관리/);
+ const html=fs.readFileSync('index.html','utf8');assert.doesNotMatch(html,/id="adminLoginForm"|id="adminLogout"|>기록 관리</);assert.match(html,/>이력 관리</);assert.match(html,/data-admin-view="member-info">회원 정보/);
 });

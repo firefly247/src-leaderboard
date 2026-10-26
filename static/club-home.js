@@ -25,7 +25,7 @@
     const target=document.querySelector('#clubHomeStats');if(!target)return;
     const summary=summarize(records,dates),range=summary.firstYear?`${summary.firstYear} — ${summary.lastYear}`:'대회 기록';
     document.querySelector('#clubHomeRange').textContent=range;
-    target.innerHTML=[[summary.editions,'대회 출전','회'],[summary.total,'함께 이룬 메달','개'],[summary.people,'대회에 함께한 선수','명']].map(([value,label,unit])=>`<div class="club-stat"><span>${label}</span><strong>${value}<small>${unit}</small></strong></div>`).join('');
+    target.innerHTML=[[summary.editions,'대회 출전','회'],[summary.total,'함께 이룬 메달','개'],[summary.people,'대회에 함께한 회원','명']].map(([value,label,unit])=>`<div class="club-stat"><span>${label}</span><strong>${value}<small>${unit}</small></strong></div>`).join('');
     document.querySelector('#clubHomeMedals').innerHTML=['gold','silver','bronze'].map((color,i)=>`<span><i class="club-medal-dot ${color}"></i>${['금','은','동'][i]} <strong>${summary.medals[color]}</strong></span>`).join('');
     document.querySelector('#clubHomeSeason').textContent=summary.lastYear?`${summary.lastYear} SEASON`:'';
     document.querySelector('#clubHomeRaces').innerHTML=summary.latest.length?summary.latest.map(e=>{

@@ -693,6 +693,14 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .reference-admin .birth-year-table .player-dormant-input { width: 18px; min-height: 18px; height: 18px; margin: 0; accent-color: var(--primary); }
 .birth-year-table td.is-dirty .player-dormant-input { outline: 2px solid var(--primary); outline-offset: 2px; }
 .player-dirty-badge { display: block; margin-top: 3px; color: var(--primary); font-size: 10px; font-weight: 700; white-space: nowrap; }
+.reference-admin .member-info-table { min-width:860px; }
+.reference-admin .member-info-table th:first-child { width:110px; }
+.reference-admin .member-info-table th:nth-child(2),.reference-admin .member-info-table th:nth-child(3) { width:130px; }
+.reference-admin .member-info-table th:nth-child(4) { width:80px; }
+.reference-admin .member-info-table th:nth-child(5) { width:140px; }
+.reference-admin .member-info-table th:nth-child(6) { width:160px; }
+.reference-admin .member-info-table th:last-child { width:110px; }
+.member-info-actions { display:flex; gap:4px; margin-top:6px; }
 .player-dirty-badge[hidden] { display: none; }
 .reference-admin .birth-year-control { display: flex; width: 100%; max-width: 186px; margin-inline: auto; justify-content: center; }
 .reference-admin .birth-year-stepper { flex: 0 0 22px; }

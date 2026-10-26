@@ -107,7 +107,7 @@ test("birth year admin view escapes names and keeps missing years empty and offe
   const context = vm.createContext({ document: { querySelector: () => container }, sessionStorage: { getItem: () => "" } });
   vm.runInContext(clientSource.slice(0, clientSource.indexOf('document.querySelectorAll(".tab-button")')), context);
   context.adminContent("player-birth-years", { players: [{ memberName: '<img src=x onerror="x">', birthYear: "1985" }] });
-  assert.match(container.innerHTML, /선수 정보/);
+  assert.match(container.innerHTML, /회원 정보/);
   assert.match(container.innerHTML, /value="1985"/);
   assert.match(container.innerHTML, /type="number" min="1900"/);
   assert.match(container.innerHTML, /id="birthYearBatchForm"/);
@@ -231,7 +231,7 @@ test("save sends only changed fields and rows, includes hidden edits, and confir
   vm.runInContext(clientSource.slice(0,clientSource.indexOf('document.querySelectorAll(".tab-button")')),context);
   await context.saveChangedPlayerYears(form);
   assert.deepEqual(sent[0].payload.players,[{memberName:"김선수",joinYear:"2021"},{memberName:"박선수",birthYear:"1991"}]);
-  assert.equal(popups[0],"2명의 선수 정보를 저장하고 확인했습니다.");assert.equal(button.textContent,"저장");assert.equal(rows[0].dataset.savedJoinYear,"2021");
+  assert.equal(popups[0],"2명의 회원 정보를 저장하고 확인했습니다.");assert.equal(button.textContent,"저장");assert.equal(rows[0].dataset.savedJoinYear,"2021");
   await context.saveChangedPlayerYears(form);assert.equal(sent.length,1,"unchanged rows must not be saved again");
   rows[0].querySelector(".join-year-input").value="2019";
   context.fetch=async()=>({ok:true,json:async()=>({ok:true,savedCount:1,players:[{memberName:"김선수",birthYear:"1985"}]})});

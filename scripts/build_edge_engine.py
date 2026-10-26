@@ -52,7 +52,7 @@ return {
 '''
     if re.search(r'UrlFetchApp|SpreadsheetApp|PropertiesService|CacheService|LockService|ContentService', text):
         raise RuntimeError('Google service reference survived extraction')
-    text = re.sub(r'(?m)^[ \t]+$', '', text)
+    text = re.sub(r'(?m)^[ \t]+$', '', text).replace('선수', '회원')
     TARGET.parent.mkdir(parents=True, exist_ok=True)
     TARGET.write_text(text, encoding='utf-8')
     print(f'Generated {TARGET.relative_to(ROOT)} ({len(text)} characters)')

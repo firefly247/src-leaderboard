@@ -75,9 +75,9 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
         return respond({ok:true,names});
       }
       if(action==='memberLinkRequest'){
-        await limited(request,action,10);if(member.player_name)throw new Error('이미 선수 정보가 연결되어 있습니다.');
-        if(typeof p.name!=='string'||p.name.length>30)throw new Error('선수 이름을 확인해 주세요.');
-        const matched=await Promise.all(['club_player_birth_years','club_records','club_competition_records','club_dormant_members'].map(n=>rest(n+'?select=member_name&member_name=eq.'+encodeURIComponent(p.name),undefined,'GET')));if(!matched.slice(0,3).some(rows=>rows.length)||matched[3].length)throw new Error('등록된 활동 선수를 선택해 주세요.');
+        await limited(request,action,10);if(member.player_name)throw new Error('이미 회원 정보가 연결되어 있습니다.');
+        if(typeof p.name!=='string'||p.name.length>30)throw new Error('회원 이름을 확인해 주세요.');
+        const matched=await Promise.all(['club_player_birth_years','club_records','club_competition_records','club_dormant_members'].map(n=>rest(n+'?select=member_name&member_name=eq.'+encodeURIComponent(p.name),undefined,'GET')));if(!matched.slice(0,3).some(rows=>rows.length)||matched[3].length)throw new Error('등록된 활동 회원를 선택해 주세요.');
         await rest('club_accounts?user_id=eq.'+encodeURIComponent(member.user_id),{requested_player_name:p.name,display_name:member.nickname},'PATCH');return respond({ok:true,requestedPlayerName:p.name});
       }
       const admin=ADMIN.has(action)&&member?.role==='admin';
@@ -93,7 +93,7 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
       if(action==='memberLinkList'){const links=await rest('club_accounts?select=user_id,player_name,requested_player_name,display_name,created_at&requested_player_name=not.is.null&order=created_at',undefined,'GET');return respond({ok:true,links});}
       if(action==='memberLinkReject'){if(typeof p.name!=='string'||typeof p.userId!=='string')throw new Error('연결 요청을 확인해 주세요.');const changed=await rest('club_accounts?user_id=eq.'+encodeURIComponent(p.userId)+'&requested_player_name=eq.'+encodeURIComponent(p.name),{requested_player_name:null},'PATCH',{Prefer:'return=representation'});if(!changed?.length)throw new Error('연결 요청이 변경되었습니다. 다시 조회해 주세요.');return respond({ok:true});}
       if(action==='memberLinkApprove'){await rpc('club_member_approve',{p_user_id:p.userId,p_player_name:p.name});return respond({ok:true});}
-      if(MEMBER.has(action)){if(!member)throw new Error('카카오 로그인 후 신청해 주세요.');if(!member.player_name)throw new Error('운영진이 선수 연결을 확인한 뒤 신청할 수 있습니다.');await limited(request,member.user_id+':'+action,30);}
+      if(MEMBER.has(action)){if(!member)throw new Error('카카오 로그인 후 신청해 주세요.');if(!member.player_name)throw new Error('운영진이 회원 연결을 확인한 뒤 신청할 수 있습니다.');await limited(request,member.user_id+':'+action,30);}
       if(p.photo&&action!=='requestAdd')throw new Error('이 요청에는 사진을 첨부할 수 없습니다.');
       const snapshot=await rpc('club_store_read'),photo=await photoInfo(p.photo);
       if(MEMBER.has(action)&&snapshot.tables.dormant_members.some(r=>r.member_name===member.player_name))throw new Error('휴면 상태입니다. 운영진에게 문의해 주세요.');

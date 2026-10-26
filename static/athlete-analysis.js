@@ -44,7 +44,7 @@ function analyzeAthletes(members, events, rankings, records, now = new Date()) {
     if(growing[0]?.growth>0) strengths.push(`${growing[0].name} 최초 기록 대비 ${growing[0].growth.toFixed(1)}% 향상됐습니다.`);
     const missing = stats.filter(s=>!s.pb);
     const goals = [];
-    if(missing.length) goals.push(`${missing.map(s=>s.name).join("·")} 기록을 등록하면 선수 분석이 더 정확해집니다.`);
+    if(missing.length) goals.push(`${missing.map(s=>s.name).join("·")} 기록을 등록하면 회원 분석이 더 정확해집니다.`);
     const reachable = stats.filter(s=>s.gap>0).sort((a,b)=>a.gap/a.pb.timeMs-b.gap/b.pb.timeMs)[0];
     if(reachable) goals.push(`${reachable.name}에서 ${(reachable.gap/1000).toFixed(1)}초 단축하면 바로 위 기록과 동률입니다.`);
     return {name:member.memberName,stats,tags,type,strengths:strengths.slice(0,2),goals,coverage:stats.filter(s=>s.pb).length,rivals:[]};
