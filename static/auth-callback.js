@@ -6,6 +6,6 @@
     const code=params.get('code');if(!code||!window.ClubApi?.client)throw new Error('로그인 요청을 확인하지 못했습니다. 사이트에서 다시 로그인해 주세요.');
     const {error}=await ClubApi.client.auth.exchangeCodeForSession(code);
     history.replaceState(null,'',location.pathname);if(error)throw new Error('로그인이 만료되었거나 요청이 일치하지 않습니다. 다시 로그인해 주세요.');
-    location.replace(new URL('../#training',location.href).href);
+    location.replace(new URL('../',location.href).href);
   }catch(error){history.replaceState(null,'',location.pathname);message.textContent=error.message;}
 })();

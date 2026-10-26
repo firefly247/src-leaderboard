@@ -170,16 +170,28 @@ test('typing or blurring a name preserves date button nodes so the first date cl
   const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8'),fn=source.match(/function syncChoices\(\)\{[\s\S]*?\n  \}/)[0];let buttons=[];
   const container={set innerHTML(html){buttons=[...html.matchAll(/data-participation-(date|status)="([^"]+)"/g)].map(([,kind,value])=>({dataset:kind==='date'?{participationDate:value}:{participationStatus:value},setAttribute(k,v){this[k]=v;}}));}};
   const hint={},submit={},form={elements:{name:{value:''}},querySelector:()=>submit};
-  const context=vm.createContext({form,busy:false,draftStatus:'',draftDates:new Set(),participationKey:null,signupSessions:()=>[{date:'2026-10-24'},{date:'2026-10-25'}],dayLabel:v=>v,esc:v=>v,el:s=>s==='#trainingParticipation'?container:hint,all:s=>buttons.filter(b=>s.includes('date')?b.dataset.participationDate:b.dataset.participationStatus)});
+  const context=vm.createContext({canVote:()=>true,form,busy:false,draftStatus:'',draftDates:new Set(),participationKey:null,signupSessions:()=>[{date:'2026-10-24'},{date:'2026-10-25'}],dayLabel:v=>v,esc:v=>v,el:s=>s==='#trainingParticipation'?container:hint,all:s=>buttons.filter(b=>s.includes('date')?b.dataset.participationDate:b.dataset.participationStatus)});
   vm.runInContext(fn,context);context.syncChoices();const first=buttons[0];form.elements.name.value='김선수';context.syncChoices();assert.equal(buttons[0],first);
   context.draftStatus='참석';context.draftDates.add('2026-10-24');context.syncChoices();assert.equal(buttons[0],first);assert.equal(first['aria-pressed'],'true');assert.equal(submit.disabled,false);
   context.draftDates.add('2026-10-25');context.syncChoices();assert.equal(buttons[1]['aria-pressed'],'true');assert.equal(buttons[0].disabled,false);assert.equal(buttons[1].disabled,false);
   for(const status of ['불참','미정']){context.draftStatus=status;context.draftDates.clear();context.syncChoices();assert.ok(buttons.filter(b=>b.dataset.participationDate).every(b=>b.disabled));for(const b of buttons.filter(b=>b.dataset.participationStatus))assert.equal(b.disabled,b.dataset.participationStatus!==status);}
   context.draftStatus='';context.syncChoices();assert.ok(buttons.every(b=>!b.disabled));assert.equal(submit.disabled,true);
+  context.canVote=()=>false;context.draftStatus='참석';context.syncChoices();assert.ok(buttons.every(b=>b.disabled));assert.equal(submit.disabled,true);
+});
+
+test('Training vote requires a signed-in linked member even if submission is triggered directly',async()=>{
+  const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8');
+  const gate=source.match(/function canVote\(\)\{[^\n]+/)[0],mutation=source.match(/async function mutate\(action,payload=\{\},admin=false\)\{[\s\S]*?\n  \}/)[0];
+  const calls=[],messages=[],context=vm.createContext({window:{ClubMembership:{member:null}},busy:false,sequence:0,rosterData:[],data:{opened:true,revision:1},selectedDate:'2026-10-24',signupSessions:()=>[{date:'2026-10-24'}],render(){},message:t=>messages.push(t),api:async(action)=>{calls.push(action);return {trainings:[]};},alert(){}});
+  vm.runInContext(gate+'\n'+mutation,context);
+  await context.mutate('trainingWeekJoin',{});assert.equal(calls.length,0);assert.match(messages.at(-1),/로그인/);
+  context.window.ClubMembership.member={requestedPlayerName:'김선수'};await context.mutate('trainingWeekJoin',{});assert.equal(calls.length,0);
+  context.window.ClubMembership.member={playerName:'김선수'};await context.mutate('trainingWeekJoin',{});assert.deepEqual(calls,['trainingWeekJoin']);
+  context.window.ClubMembership.member=null;await context.mutate('trainingWeekJoin',{});assert.equal(calls.length,1);
 });
 test('signup completion opens one popup after success and none after a failed save',async()=>{
   const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8'),fn=source.match(/async function mutate\(action,payload=\{\},admin=false\)\{[\s\S]*?\n  \}/)[0],popups=[],messages=[];
-  const context=vm.createContext({busy:false,sequence:0,rosterData:[],data:{opened:true,revision:1},selectedDate:'2026-10-24',signupSessions:()=>[{date:'2026-10-24'}],render(){},message:t=>messages.push(t),api:async()=>({trainings:[{date:'2026-10-24',revision:2}]}),alert:t=>popups.push(t)});
+  const context=vm.createContext({canVote:()=>true,busy:false,sequence:0,rosterData:[],data:{opened:true,revision:1},selectedDate:'2026-10-24',signupSessions:()=>[{date:'2026-10-24'}],render(){},message:t=>messages.push(t),api:async()=>({trainings:[{date:'2026-10-24',revision:2}]}),alert:t=>popups.push(t)});
   vm.runInContext(fn,context);await context.mutate('trainingWeekJoin',{});assert.deepEqual(popups,['참가 신청이 완료되었습니다.']);assert.equal(context.busy,false);assert.equal(messages.at(-1),'');
   context.api=async()=>{throw new Error('저장 실패');};await context.mutate('trainingWeekJoin',{});assert.equal(popups.length,1);assert.equal(messages.at(-1),'저장 실패');assert.equal(context.busy,false);
 });

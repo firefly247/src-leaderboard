@@ -62,13 +62,14 @@
   }
   function message(text,error=false){el('#trainingMessage').textContent=text;el('#trainingMessage').classList.toggle('is-error',error);}
   function setView(v){view=v;if(v!=='list')editTarget=null;const dates=el('#trainingBrowseDates');dates.hidden=v!=='crew';if(v==='crew')el('[data-screen="crew"] .panel').prepend(dates);all('[data-screen]').forEach(e=>e.hidden=e.dataset.screen!==v);all('[data-view]').forEach(e=>{e.classList.toggle('is-active',e.dataset.view===v);e.setAttribute('aria-pressed',String(e.dataset.view===v));});}
+  function canVote(){return Boolean(window.ClubMembership?.member?.playerName);}
   function syncChoices(){
     const key=signupSessions().map(s=>s.date).join(',');
     if(participationKey!==key){el('#trainingParticipation').innerHTML=signupSessions().map(s=>`<button type="button" data-participation-date="${esc(s.date)}" aria-pressed="false">${esc(dayLabel(s.date))}</button>`).join('')+['불참','미정'].map(v=>`<button type="button" data-participation-status="${v}" aria-pressed="false">${v}</button>`).join('');participationKey=key;}
-    const exclusive=draftStatus==='불참'||draftStatus==='미정';
-    all('[data-participation-date]').forEach(b=>{b.setAttribute('aria-pressed',String(draftStatus==='참석'&&draftDates.has(b.dataset.participationDate)));b.disabled=busy||exclusive;});all('[data-participation-status]').forEach(b=>{b.setAttribute('aria-pressed',String(draftStatus===b.dataset.participationStatus));b.disabled=busy||exclusive&&draftStatus!==b.dataset.participationStatus;});
+    const exclusive=draftStatus==='불참'||draftStatus==='미정',blocked=!canVote();
+    all('[data-participation-date]').forEach(b=>{b.setAttribute('aria-pressed',String(draftStatus==='참석'&&draftDates.has(b.dataset.participationDate)));b.disabled=blocked||busy||exclusive;});all('[data-participation-status]').forEach(b=>{b.setAttribute('aria-pressed',String(draftStatus===b.dataset.participationStatus));b.disabled=blocked||busy||exclusive&&draftStatus!==b.dataset.participationStatus;});
     el('#trainingSignupHint').textContent=!signupSessions().length?'이번 주에 개설된 훈련이 없습니다.':exclusive?'선택한 항목을 다시 누르면 다른 항목을 선택할 수 있습니다.':'참가 날짜는 복수 선택할 수 있습니다.';
-    form.querySelector('[type="submit"]').disabled=busy||!signupSessions().length||!draftStatus||!form.elements.name.value.trim();
+    form.querySelector('[type="submit"]').disabled=blocked||busy||!signupSessions().length||!draftStatus||!form.elements.name.value.trim();
   }
   function hydrateDraft(){const name=form.elements.name.value.trim(),entries=weekData.map(t=>({date:t.date,member:t.participants.find(m=>m.name===name)})).filter(e=>e.member);draftDates.clear();entries.filter(e=>e.member.status==='참석').forEach(e=>draftDates.add(e.date));draftStatus=draftDates.size?'참석':entries.some(e=>e.member.status==='미정')?'미정':entries.length?'불참':'';form.elements.comment.value=entries[0]?.member.comment||'';syncChoices();}
   function render(){
@@ -82,7 +83,7 @@
     if(window.ClubApi?.ready){form.elements.name.value=member?.playerName||'';form.elements.name.readOnly=true;}
 
     const admin=!!state.adminToken,opened=!!data?.opened;
-    el('#trainingOpening').hidden=!admin;el('#trainingOperator').hidden=!admin;el('#trainingAdminHint').hidden=admin;el('#trainingFormFields').disabled=busy||!catalogLoaded||!signupSessions().length;
+    el('#trainingOpening').hidden=!admin;el('#trainingOperator').hidden=!admin;el('#trainingAdminHint').hidden=admin;el('#trainingFormFields').disabled=!canVote()||busy||!catalogLoaded||!signupSessions().length;
     const days=weekDates();el('#trainingWeekLabel').textContent=`${dayLabel(days[0])} – ${dayLabel(days[1])}`;
     el('#trainingOpenDates').innerHTML=days.map(date=>{const exists=sessions.some(s=>s.date===date);return `<button type="button" data-open-date="${date}" aria-pressed="${openSelection.has(date)}" ${busy||exists?'disabled':''}>${dayLabel(date)}<small>${exists?'개설됨':'개설할 날짜 선택'}</small></button>`;}).join('');
     el('#trainingDates').innerHTML=sessions.map(s=>`<button type="button" data-date="${esc(s.date)}" aria-pressed="${selectedDate===s.date}" ${busy?'disabled':''}>${esc(dayLabel(s.date))}<small>OPEN</small></button>`).join('');el('#trainingNoDates').hidden=sessions.length>0;
@@ -106,6 +107,7 @@
     }catch(error){if(current!==sequence)return;const reason=/지원하지 않는 요청|관리자 인증/.test(error.message)?'훈련 서버 업데이트가 필요합니다. 운영진이 서버를 업데이트한 후 새로고침해 주세요.':error.message;if(!catalogLoaded)catalogError='서버 연결 실패로 개설할 수 없습니다. '+reason;render();message(reason,true);}
   }
   async function mutate(action,payload={},admin=false){
+    if(action==='trainingWeekJoin'&&!canVote()){message('로그인하고 선수 연결 승인을 받은 후 참가 신청할 수 있습니다.',true);return;}
     if(busy||action==='trainingWeekJoin'&&!signupSessions().length||!['trainingOpen','trainingWeekJoin'].includes(action)&&!data?.opened)return;busy=true;sequence++;render();message('저장 중입니다.');
     try{const result=await api(action,{...payload,date:selectedDate,revision:payload.revision??data?.revision},admin);
       if(action==='trainingOpen'){selectedDate=payload.dates[0];openSelection.clear();const snapshot=await api('trainingRoster');sessions=snapshot.sessions;rosterData=snapshot.trainings;rosterColumns=snapshot.rosterColumns;data=rosterData.find(t=>t.date===selectedDate);weekData=rosterData.filter(t=>t.date===signupWeek||t.date===signupSunday);message('훈련을 개설했습니다. 회원이 토·일 날짜를 선택할 수 있습니다.');}
