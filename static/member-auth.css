@@ -10,3 +10,8 @@
 .kakao-callback h1 { font-size:22px; }
 .kakao-callback p { line-height:1.6; }
 .kakao-callback a { display:inline-block; padding:12px 0; color:#234e8e; }
+.member-signup { width:min(440px,calc(100% - 32px)); box-sizing:border-box; }
+.member-signup [data-link-search] { width:100%; box-sizing:border-box; padding:12px; font:inherit; }
+.member-signup [data-link-names] { max-height:38vh; overflow-y:auto; margin-top:12px; }
+.member-signup [data-link-name][aria-pressed="true"] { border-color:#2463b5; background:#eaf2ff; color:#174b91; }
+.member-signup [data-signup-submit] { width:100%; min-height:44px; }

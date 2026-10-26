@@ -75,9 +75,10 @@
     const member=window.ClubMembership?.member;
     const gate=el('#trainingMemberGate');
     gate.hidden=Boolean(member?.playerName);
-    gate.querySelector('p').textContent=member?(member.requestedPlayerName?'운영진이 선수 연결을 확인하고 있습니다. 확인이 끝나면 참가 신청할 수 있습니다.':'본인 선수 정보를 연결한 뒤 참가 신청할 수 있습니다.'):'참가 신청은 카카오 로그인 후 이용할 수 있습니다.';
+    gate.querySelector('p').textContent=member?(member.requestedPlayerName?'가입 승인 대기 중입니다. 운영진 승인 후 참가 신청할 수 있습니다.':'본인 이름을 선택하고 가입 신청을 완료해 주세요.'):'참가 신청은 카카오 로그인 후 이용할 수 있습니다.';
     gate.querySelector('[data-member-login]').hidden=Boolean(member);
     gate.querySelector('[data-member-link]').hidden=!member;
+    gate.querySelector('[data-member-link]').textContent=member?.requestedPlayerName?'가입 신청 확인':'회원 가입 완료하기';
     if(window.ClubApi?.ready){form.elements.name.value=member?.playerName||'';form.elements.name.readOnly=true;}
 
     const admin=!!state.adminToken,opened=!!data?.opened;
