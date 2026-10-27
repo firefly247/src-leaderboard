@@ -239,3 +239,12 @@ test('Published crew uses compact seat rows and cycles attendance without changi
  for(const expected of ['출석','불참','미확인','출석']){status=context.nextTrainingCheck(status);assert.equal(status,expected);plan.checks.p0=status;const html=context.trainingCrewHtml(plan,true);assert.match(html,/--seat-count:5/);assert.equal((html.match(/data-check=/g)||[]).length,5);assert.match(html,/&lt;회원>/);if(status==='출석')assert.match(html,/is-present/);if(status==='불참')assert.match(html,/is-absent/);}
  assert.equal(JSON.stringify(plan.boats),boats);assert.doesNotMatch(context.trainingCrewHtml(plan,false),/<button|data-check=/);assert.match(context.trainingCrewHtml(plan,true,true),/disabled/);
 });
+test('Attendance cycles only in memory, independently by date and without any API call',()=>{
+ const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8');let renders=0;
+ const context=vm.createContext({state:{adminUserId:'admin'},data:{plan:{boats:[{seats:[{id:'one'}]}]}},selectedDate:'2026-10-31',localAttendance:new Map(),render:()=>renders++,api:()=>{throw new Error('Attendance must never call the server');}});
+ for(const name of ['nextTrainingCheck','cycleLocalAttendance'])vm.runInContext(source.match(new RegExp('function '+name+'\\([^\\n]*\\)\\{[\\s\\S]*?'+(name==='nextTrainingCheck'?'\\}':'\\n  \\}')))[0],context);
+ for(const expected of ['출석','불참','미확인']){context.cycleLocalAttendance('one');assert.equal(context.localAttendance.get('2026-10-31').one,expected);}
+ context.selectedDate='2026-11-01';context.cycleLocalAttendance('one');assert.equal(context.localAttendance.get('2026-11-01').one,'출석');assert.equal(context.localAttendance.get('2026-10-31').one,'미확인');
+ context.cycleLocalAttendance('unknown');context.state.adminUserId='';context.cycleLocalAttendance('one');assert.equal(renders,4);assert.equal(context.localAttendance.get('2026-11-01').one,'출석');
+ assert.doesNotMatch(source,/mutate\('trainingCheck'/);assert.match(source,/checks:localAttendance\.get\(selectedDate\)\|\|\{\}/);
+});
