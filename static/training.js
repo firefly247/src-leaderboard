@@ -4,13 +4,12 @@
   const panel=document.createElement('section');panel.className='tab-panel';panel.dataset.panel='training';
   panel.innerHTML=`<section class="competition-hero"><div><p class="eyebrow">WEEKEND ROWING</p><h1>주말 훈련 <small>Beta</small></h1><p>참가 신청부터 크루 확인, 당일 출석까지</p></div></section><div class="training-shell">
     <section id="trainingOpening" class="panel" hidden><h2>이번 주 훈련 개설</h2><div class="training-week-nav"><button type="button" data-action="previousWeek">← 이전 주</button><strong id="trainingWeekLabel"></strong><button type="button" data-action="nextWeek">다음 주 →</button></div><div id="trainingOpenDates" class="training-day-buttons"></div><button type="button" class="primary-button" data-action="open" aria-describedby="trainingOpenHint">선택한 날짜 개설</button><p id="trainingOpenHint" class="form-description" role="status"></p><p class="form-description">개설한 날짜만 회원에게 표시됩니다. 기존 날짜의 신청과 편성은 유지됩니다.</p></section>
-    <div id="trainingBrowseDates"><div class="training-date-heading"><h2>개설된 훈련</h2><button type="button" class="secondary-button" data-action="reload">새로고침</button></div><div id="trainingDates" class="training-day-buttons" aria-label="개설된 훈련 날짜"></div><p id="trainingNoDates" class="form-description">아직 개설된 훈련이 없습니다.</p></div>
-    <div class="training-tabs" aria-label="훈련 메뉴"><button type="button" data-view="join" class="is-active">참가 신청</button><button type="button" data-view="list">참가 명단</button><button type="button" data-view="crew">크루 편성</button></div><p id="trainingMessage" role="status" aria-live="polite"></p>
+    <div class="training-tabs" aria-label="훈련 메뉴"><button type="button" data-view="join" class="is-active">참가 신청</button><button type="button" data-view="list">참가 현황 · 크루 편성</button></div><p id="trainingMessage" role="status" aria-live="polite"></p>
     <section data-screen="join" class="panel"><div id="trainingMemberGate"><p>참가 신청은 회원 로그인 후 이용할 수 있습니다.</p><button type="button" class="primary-button" data-member-login>회원 로그인</button><button type="button" data-member-link hidden>회원 연결 확인</button></div><form id="trainingJoinForm"><fieldset id="trainingFormFields" disabled><label>이름<input name="name" maxlength="30" autocomplete="off" required placeholder="회원 이름"></label>
     <fieldset class="training-choice"><legend>참가 여부</legend><div id="trainingParticipation" class="training-buttons" aria-label="이번 주 참가 여부"></div><p id="trainingSignupHint" class="form-description"></p></fieldset>
     <label>코멘트<textarea name="comment" maxlength="1000" rows="4" placeholder="전달할 내용을 자유롭게 입력해 주세요."></textarea></label><button type="submit" class="primary-button">참가 신청</button></fieldset></form></section>
-    <section data-screen="list" hidden><div class="panel"><div class="section-heading"><h2>참가 명단</h2><strong id="trainingListCount"></strong></div><div id="trainingRoster"></div><div id="trainingOperator" hidden><p class="form-description">추천 조합을 수정한 뒤 편성 공개 버튼을 누르세요.</p></div><p id="trainingAdminHint" class="form-description">추천 편성은 관리자 로그인 후 사용할 수 있습니다.</p></div></section>
-    <section data-screen="crew" hidden><div class="panel"><div class="section-heading"><h2>크루 편성</h2><span id="trainingPublished"></span></div><p id="trainingCheckSummary"></p><p id="trainingPlanNotice" class="form-description"></p><div id="trainingBoats"></div><div id="trainingWait"></div></div></section></div>`;
+    <section data-screen="list" hidden><div class="panel"><div class="section-heading"><h2>참가 현황 · 크루 편성</h2><button type="button" class="secondary-button" data-action="reload">새로고침</button><strong id="trainingListCount"></strong></div><div id="trainingRoster"></div><div id="trainingOperator" hidden><p class="form-description">추천 조합을 수정한 뒤 편성 공개 버튼을 누르세요.</p></div><p id="trainingAdminHint" class="form-description">추천 편성은 관리자 로그인 후 사용할 수 있습니다.</p></div></section>
+    </div>`;
   document.querySelector('main').appendChild(panel);
   const el=s=>panel.querySelector(s),all=s=>panel.querySelectorAll(s),form=el('#trainingJoinForm');
   let data=null,sessions=[],selectedDate='',view='join',busy=false,sequence=0,catalogLoaded=false,catalogError='';
@@ -44,9 +43,13 @@
   function trainingRosterSectionsHtml(trainings,presetColumns,admin,busy){
     if(!trainings.length)return '<p class="form-description">아직 개설된 훈련이 없습니다.</p>';
     const columns=[...new Set([...presetColumns,...trainings.flatMap(t=>t.participants.map(m=>Number.isInteger(m.tenure)&&m.tenure>0?Number(t.date.slice(0,4))-m.tenure+1:null))])].sort((a,b)=>a===null?1:b===null?-1:a-b);
-    const dates=trainings.map(t=>`<section class="training-roster-section"><h3>${esc(dayLabel(t.date))}</h3>${trainingRosterHtml(t.participants.filter(m=>m.status==='참석'),t.date,columns)}${admin?`<button type="button" class="primary-button" data-recommend-date="${esc(t.date)}" ${busy?'disabled':''}>추천 조합</button><div data-draft-date="${esc(t.date)}"></div>`:''}</section>`).join('');
-    const other=trainingRosterPeople(trainings).filter(m=>m.status!=='참석');
-    return dates+`<section class="training-roster-section"><h3>불참/미정</h3>${trainingRosterHtml(other,trainings[0].date,columns)}</section>`;
+    return trainings.map(t=>`<section class="training-roster-section" data-training-date="${esc(t.date)}"><h3>${esc(dayLabel(t.date))}</h3>${trainingRosterHtml(t.participants,t.date,columns)}${trainingPublishedHtml(t,admin,busy)}${admin?`<button type="button" class="primary-button" data-recommend-date="${esc(t.date)}" ${busy?'disabled':''}>추천 조합</button><div data-draft-date="${esc(t.date)}"></div>`:''}</section>`).join('');
+  }
+  function trainingPublishedHtml(t,admin,saving){
+    const plan=t.plan?{...t.plan,checks:localAttendance.get(t.date)||{},boats:t.plan.boats.map(b=>({...b,seats:b.seats.filter(m=>!isDormantMember(m.name))})),wait:t.plan.wait.filter(m=>!isDormantMember(m.name))}:null;
+    if(!plan)return '<div class="training-published"><h4>크루 출석부</h4><p class="form-description">아직 공개된 편성이 없습니다.</p></div>';
+    const seats=plan.boats.flatMap(b=>b.seats),statuses=seats.map(m=>plan.checks[m.id]||'미확인');
+    return `<div class="training-published"><div class="section-heading"><h4>크루 출석부</h4><span>회원 공개 중 ${admin?`<button type="button" class="secondary-button" data-edit-plan="${esc(t.date)}" ${saving?'disabled':''}>편성 수정</button>`:''}</span></div><p class="training-check-summary">편성 ${seats.length}명 · 참석 ${statuses.filter(s=>s==='출석').length} · 불참 ${statuses.filter(s=>s==='불참').length} · 미확인 ${statuses.filter(s=>s==='미확인').length}</p>${plan.registrationRevision!==t.registrationRevision?'<p class="form-description">편성 후 신청 변경이 있습니다. 참가 명단을 확인해 주세요.</p>':''}${admin?'<p class="training-draft-hint">이름 클릭: 참석(파란색) → 불참(회색) → 미확인 · 화면에서만 표시</p>':''}${trainingCrewHtml(plan,admin,saving,t.date)}${plan.wait.length?`<p class="training-draft-hint">운영진 확인 필요: ${plan.wait.map(m=>esc(m.name)).join(', ')}</p>`:''}</div>`;
   }
   function trainingDraftHtml(t){
     const draft=t.draft;if(!draft)return '';
@@ -61,21 +64,22 @@
     return `<div class="training-draft"><div class="section-heading"><h3>추천 조합 <small>비공개 초안</small></h3><small role="status">${local?'미저장':'임시저장됨'}</small></div><div class="training-buttons training-add-boats">${[['4X+','쿼드'],['2X','더블'],['1X','싱글']].map(([type,label])=>`<button type="button" class="secondary-button" data-draft-operation="addBoat" data-type="${type}" data-draft-date-action="${t.date}" ${disabled}>${label} 추가</button>`).join('')}</div>${conflict?`<p class="training-draft-hint">명단이 변경되었습니다. <button type="button" class="secondary-button" data-refresh-draft="${t.date}" ${disabled}>최신 명단 반영</button></p>`:''}${boats}${!draft.boats.length?'<p class="training-draft-hint">배를 추가해 주세요.</p>':''}<p class="training-draft-hint">길게 눌러 고정/해제 · 파란 테두리: 변경됨</p>${draft.wait.length?`<p class="training-draft-hint">대기 ${draft.wait.length}명: ${draft.wait.map(m=>esc(m.name)).join(', ')}</p>`:''}<div class="training-buttons training-draft-actions"><button type="button" class="secondary-button" data-recommend-date="${t.date}" ${disabled}>추천 배정</button><button type="button" class="secondary-button" data-save-draft="${t.date}" ${busy||!local||conflict?'disabled':''}>임시저장</button><button type="button" class="primary-button" data-publish-date="${t.date}" ${busy||conflict||!seats.length||seats.some(m=>!m.id)?'disabled':''}>편성 공개</button></div></div>`;
   }
   function nextTrainingCheck(status){return status==='출석'?'불참':status==='불참'?'미확인':'출석';}
-  function cycleLocalAttendance(id){
-    if(!state.adminUserId||!data?.plan?.boats.some(b=>b.seats.some(m=>m.id===id)))return;
-    const checks=localAttendance.get(selectedDate)||{};
-    checks[id]=nextTrainingCheck(checks[id]);localAttendance.set(selectedDate,checks);render();
+  function cycleLocalAttendance(id,date=selectedDate){
+    const training=rosterData.find(t=>t.date===date);
+    if(!state.adminUserId||!training?.plan?.boats.some(b=>b.seats.some(m=>m.id===id)))return;
+    const checks=localAttendance.get(date)||{};
+    checks[id]=nextTrainingCheck(checks[id]);localAttendance.set(date,checks);render();
   }
-  function trainingCrewHtml(plan,admin,saving=false){
+  function trainingCrewHtml(plan,admin,saving=false,date=''){
     return plan.boats.map(b=>`<section class="training-boat-compact"><h4>${esc(b.name)}</h4><div class="training-boat-row"><div class="training-slots" style="--seat-count:${b.seats.length}">${b.seats.map(m=>{
       const status=plan.checks[m.id]||'미확인',label=status==='출석'?'참석':status;
       const classes=`training-member training-check-slot ${m.changed?'is-changed':''} ${status==='출석'?'is-present':status==='불참'?'is-absent':''}`;
       const content=`<small>${esc(m.seat)}</small><span>${esc(m.name)}</span>`;
-      return admin?`<button type="button" class="${classes}" data-check="${esc(m.id)}" data-value="${nextTrainingCheck(status)}" aria-label="${esc(m.name)}, ${esc(m.seat)}, ${label}. 누르면 ${nextTrainingCheck(status)==='출석'?'참석':nextTrainingCheck(status)}" ${saving?'disabled':''}>${content}</button>`:`<div class="${classes}" aria-label="${esc(m.name)}, ${esc(m.seat)}, ${label}">${content}</div>`;
+      return admin?`<button type="button" class="${classes}" data-check="${esc(m.id)}" data-check-date="${esc(date)}" data-value="${nextTrainingCheck(status)}" aria-label="${esc(m.name)}, ${esc(m.seat)}, ${label}. 누르면 ${nextTrainingCheck(status)==='출석'?'참석':nextTrainingCheck(status)}" ${saving?'disabled':''}>${content}</button>`:`<div class="${classes}" aria-label="${esc(m.name)}, ${esc(m.seat)}, ${label}">${content}</div>`;
     }).join('')}</div></div></section>`).join('');
   }
   function message(text,error=false){el('#trainingMessage').textContent=text;el('#trainingMessage').classList.toggle('is-error',error);}
-  function setView(v){view=v;if(v!=='list')editTarget=null;const dates=el('#trainingBrowseDates');dates.hidden=v!=='crew';if(v==='crew')el('[data-screen="crew"] .panel').prepend(dates);all('[data-screen]').forEach(e=>e.hidden=e.dataset.screen!==v);all('[data-view]').forEach(e=>{e.classList.toggle('is-active',e.dataset.view===v);e.setAttribute('aria-pressed',String(e.dataset.view===v));});}
+  function setView(v){v=v==='crew'?'list':v;view=v;if(v!=='list')editTarget=null;all('[data-screen]').forEach(e=>e.hidden=e.dataset.screen!==v);all('[data-view]').forEach(e=>{e.classList.toggle('is-active',e.dataset.view===v);e.setAttribute('aria-pressed',String(e.dataset.view===v));});}
   function canVote(){return Boolean(window.ClubMembership?.member?.playerName);}
   function syncChoices(){
     const key=signupSessions().map(s=>s.date).join(',');
@@ -100,18 +104,12 @@
     el('#trainingOpening').hidden=!admin;el('#trainingOperator').hidden=!admin;el('#trainingAdminHint').hidden=admin;el('#trainingFormFields').disabled=!canVote()||busy||!catalogLoaded||!signupSessions().length;
     const days=weekDates();el('#trainingWeekLabel').textContent=`${dayLabel(days[0])} – ${dayLabel(days[1])}`;
     el('#trainingOpenDates').innerHTML=days.map(date=>{const exists=sessions.some(s=>s.date===date);return `<button type="button" data-open-date="${date}" aria-pressed="${openSelection.has(date)}" ${busy||exists?'disabled':''}>${dayLabel(date)}<small>${exists?'개설됨':'개설할 날짜 선택'}</small></button>`;}).join('');
-    el('#trainingDates').innerHTML=sessions.map(s=>`<button type="button" data-date="${esc(s.date)}" aria-pressed="${selectedDate===s.date}" ${busy?'disabled':''}>${esc(dayLabel(s.date))}<small>OPEN</small></button>`).join('');el('#trainingNoDates').hidden=sessions.length>0;
     all('[data-action]').forEach(b=>b.disabled=busy||(b.dataset.action==='open'&&(!catalogLoaded||!openSelection.size))||(b.dataset.action==='recommend'&&!opened));syncChoices();
     el('#trainingOpenHint').textContent=busy?'저장 중입니다.':!catalogLoaded?(catalogError||'서버 연결을 확인하고 있습니다.') :!openSelection.size?'위의 토·일 날짜 버튼을 먼저 선택해 주세요.':'날짜 선택 완료 · 개설 버튼을 누르면 회원에게 공개됩니다.';
     const rosterWeek=trainingRosterWeek(rosterData,today).map(t=>({...t,...(admin&&localDrafts.has(t.date)?{draft:localDrafts.get(t.date).draft}:{}),participants:t.participants.filter(m=>!isDormantMember(m.name))})),members=trainingRosterPeople(rosterWeek);
     el('#trainingListCount').innerHTML=`<span class="training-status-attending">참석 ${members.filter(m=>m.status==='참석').length}</span> · <span class="training-status-absent">불참 ${members.filter(m=>m.status==='불참').length}</span> · <span class="training-status-tentative">미정 ${members.filter(m=>m.status==='미정').length}</span>`;
     el('#trainingRoster').innerHTML=trainingRosterSectionsHtml(rosterWeek,rosterColumns,admin,busy);
     if(admin)all('[data-draft-date]').forEach(node=>{const t=rosterWeek.find(t=>t.date===node.dataset.draftDate);node.innerHTML=trainingDraftHtml(t);});
-    const plan=data?.plan?{...data.plan,checks:localAttendance.get(selectedDate)||{},boats:data.plan.boats.map(b=>({...b,seats:b.seats.filter(m=>!isDormantMember(m.name))})),wait:data.plan.wait.filter(m=>!isDormantMember(m.name))}:null;
-    el('#trainingPublished').innerHTML=plan?`회원 공개 중${admin?` <button type="button" class="secondary-button" data-edit-plan="${esc(selectedDate)}" ${busy?'disabled':''}>편성 수정</button>`:''}`:'';el('#trainingPlanNotice').textContent=!plan?'아직 공개된 편성이 없습니다.':plan.registrationRevision!==data.registrationRevision?'편성 후 신청 변경이 있습니다. 운영진이 참가 명단을 확인해 주세요.':admin?'이름을 누르면 참석(파란색) → 불참(회색) → 미확인 순으로 바뀝니다. 이 화면에서만 표시되며 새로고침하면 초기화됩니다.':'운영진이 공개한 크루 편성입니다.';
-    const seats=plan?plan.boats.flatMap(b=>b.seats):[],statuses=seats.map(m=>plan.checks[m.id]||'미확인');el('#trainingCheckSummary').textContent=plan?`편성 ${seats.length}명 · 참석 ${statuses.filter(s=>s==='출석').length} · 불참 ${statuses.filter(s=>s==='불참').length} · 미확인 ${statuses.filter(s=>s==='미확인').length}`:'';
-    el('#trainingBoats').innerHTML=plan?trainingCrewHtml(plan,admin,busy):'';
-    el('#trainingWait').innerHTML=plan&&plan.wait.length?`<h3>운영진 확인 필요 · ${plan.wait.length}명</h3>${plan.wait.map(m=>`<p><strong>${esc(m.name)}</strong> · ${esc(m.reason)}</p>`).join('')}`:'';
   }
   async function load(quiet=false){
     if(busy||pressTimer||editTarget)return;const current=++sequence;
@@ -176,7 +174,7 @@
     if(b.dataset.participationStatus){draftDates.clear();draftStatus=draftStatus===b.dataset.participationStatus?'':b.dataset.participationStatus;syncChoices();return;}
     if(b.dataset.date){selectedDate=b.dataset.date;data=null;render();load();return;}
     if(b.dataset.openDate){if(openSelection.has(b.dataset.openDate))openSelection.delete(b.dataset.openDate);else openSelection.add(b.dataset.openDate);render();return;}
-    if(b.dataset.check){cycleLocalAttendance(b.dataset.check);return;}
+    if(b.dataset.check){cycleLocalAttendance(b.dataset.check,b.dataset.checkDate);return;}
     switch(b.dataset.action){case 'reload':load();break;case 'previousWeek':case 'nextWeek':week.setUTCDate(week.getUTCDate()+(b.dataset.action==='nextWeek'?7:-7));openSelection.clear();render();break;case 'open':if(state.adminUserId)mutate('trainingOpen',{dates:[...openSelection].sort()},true);break;case 'recommend':draftAction(selectedDate,'trainingRecommend');break;}
   });
   document.addEventListener('club-auth-changed',render);

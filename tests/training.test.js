@@ -213,21 +213,21 @@ test('participation roster follows player-info year columns, alphabetized names,
   assert.match(context.trainingRosterHtml([{name:'사년차',tenure:4,status:'참석'}],'2026-10-24'),/2023년/);
   assert.match(context.trainingRosterHtml([{name:'사년차',tenure:4,status:'참석'}],'2027-10-24'),/2024년/);
   assert.match(context.trainingRosterHtml([],'2026-10-24'),/아직 참가 신청이 없습니다/);
-  const css=fs.readFileSync(`${__dirname}/../static/training.css`,'utf8');for(const [status,color] of [['attending','#000'],['absent','#dc2626'],['tentative','#6b7280']])assert.ok(css.includes(`.training-status-${status} { color:${color}; }`));
+  const css=fs.readFileSync(`${__dirname}/../static/training.css`,'utf8');for(const [status,color] of [['attending','#000'],['absent','#9ca3af'],['tentative','#6b7280']])assert.ok(css.includes(`.training-status-${status} { color:${color}; }`));
 });
 test('public roster snapshot includes preset player-info columns and only opened sanitized sessions',()=>{
   const s=server();s.setYears([['김선수','2023'],['등록만된회원','2020'],['다른연차','2024'],['미입력','']]);
   s.call('trainingJoin',entry('김선수'));const result=s.call('trainingRoster');assert.deepEqual(result.rosterColumns,[2020,2023,2024,null]);assert.equal(result.trainings.length,1);assert.equal(result.trainings[0].date,'2026-10-24');
   assert.ok(!JSON.stringify(result).includes('1985'));assert.ok(!JSON.stringify(result).includes('editHash'));assert.ok(!JSON.stringify(result).includes('등록만된회원'));assert.ok(!JSON.stringify(result).includes('aaaa'));
 });
-test('roster stacks date tables and one deduplicated absence table with identical preset columns',()=>{
+test('roster stacks combined attendance tables and crew attendance for each date',()=>{
   const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8'),context=vm.createContext({esc:v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),dayLabel:d=>d==='2026-10-24'?'10/24(토)':'10/25(일)'});
-  for(const name of ['trainingRosterHtml','trainingRosterWeek','trainingRosterPeople','trainingRosterSectionsHtml'])vm.runInContext(source.match(new RegExp('function '+name+'\\([^\\n]*\\)\\{[\\s\\S]*?\\n  \\}'))[0],context);
+  for(const name of ['trainingRosterHtml','trainingRosterWeek','trainingRosterPeople','trainingRosterSectionsHtml','trainingPublishedHtml'])vm.runInContext(source.match(new RegExp('function '+name+'\\([^\\n]*\\)\\{[\\s\\S]*?\\n  \\}'))[0],context);
   const person=(name,status,tenure=4)=>({name,status,tenure});const trainings=[{date:'2026-10-24',opened:true,participants:[person('토참석','참석'),person('양일참석','참석',7),person('불참회원','불참'),person('미정회원','미정')]},{date:'2026-10-25',opened:true,participants:[person('토참석','불참'),person('양일참석','참석',7),person('불참회원','불참'),person('미정회원','미정')]}];
   const html=context.trainingRosterSectionsHtml(trainings,[2020,2023,2024,null],false,false);
-  assert.ok(html.indexOf('<h3>10/24(토)</h3>')<html.indexOf('<h3>10/25(일)</h3>'));assert.ok(html.indexOf('<h3>10/25(일)</h3>')<html.indexOf('<h3>불참/미정</h3>'));
-  assert.equal((html.match(/training-roster-table/g)||[]).length,3);assert.equal((html.match(/>토참석<\/span>/g)||[]).length,1);assert.equal((html.match(/>양일참석<\/span>/g)||[]).length,2);assert.equal((html.match(/>불참회원<\/span>/g)||[]).length,1);
-  assert.equal((html.match(/2024년<small>0명/g)||[]).length,3);assert.doesNotMatch(html,/년차|<strong|--training-roster-columns/);
+  assert.ok(html.indexOf('<h3>10/24(토)</h3>')<html.indexOf('<h3>10/25(일)</h3>'));assert.doesNotMatch(html,/<h3>불참\/미정<\/h3>/);assert.equal((html.match(/<h4>크루 출석부<\/h4>/g)||[]).length,2);
+  assert.equal((html.match(/training-roster-table/g)||[]).length,2);assert.equal((html.match(/>토참석<\/span>/g)||[]).length,2);assert.equal((html.match(/>양일참석<\/span>/g)||[]).length,2);assert.equal((html.match(/>불참회원<\/span>/g)||[]).length,2);
+  assert.equal((html.match(/2024년<small>0명/g)||[]).length,2);assert.doesNotMatch(html,/년차|<strong|--training-roster-columns/);
   assert.ok(!html.includes('data-recommend-date'));const admin=context.trainingRosterSectionsHtml(trainings,[2020,2023],true,false);assert.match(admin,/data-recommend-date="2026-10-24"/);assert.match(admin,/data-recommend-date="2026-10-25"/);
   assert.equal(context.trainingRosterWeek([...trainings,{date:'2026-10-31',opened:true,participants:[]}],'2026-10-25').length,2);
 });
@@ -241,10 +241,10 @@ test('Published crew uses compact seat rows and cycles attendance without changi
 });
 test('Attendance cycles only in memory, independently by date and without any API call',()=>{
  const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8');let renders=0;
- const context=vm.createContext({state:{adminUserId:'admin'},data:{plan:{boats:[{seats:[{id:'one'}]}]}},selectedDate:'2026-10-31',localAttendance:new Map(),render:()=>renders++,api:()=>{throw new Error('Attendance must never call the server');}});
+ const context=vm.createContext({state:{adminUserId:'admin'},rosterData:[{date:'2026-10-31',plan:{boats:[{seats:[{id:'one'}]}]}},{date:'2026-11-01',plan:{boats:[{seats:[{id:'one'}]}]}}],selectedDate:'2026-10-31',localAttendance:new Map(),render:()=>renders++,api:()=>{throw new Error('Attendance must never call the server');}});
  for(const name of ['nextTrainingCheck','cycleLocalAttendance'])vm.runInContext(source.match(new RegExp('function '+name+'\\([^\\n]*\\)\\{[\\s\\S]*?'+(name==='nextTrainingCheck'?'\\}':'\\n  \\}')))[0],context);
  for(const expected of ['출석','불참','미확인']){context.cycleLocalAttendance('one');assert.equal(context.localAttendance.get('2026-10-31').one,expected);}
  context.selectedDate='2026-11-01';context.cycleLocalAttendance('one');assert.equal(context.localAttendance.get('2026-11-01').one,'출석');assert.equal(context.localAttendance.get('2026-10-31').one,'미확인');
  context.cycleLocalAttendance('unknown');context.state.adminUserId='';context.cycleLocalAttendance('one');assert.equal(renders,4);assert.equal(context.localAttendance.get('2026-11-01').one,'출석');
- assert.doesNotMatch(source,/mutate\('trainingCheck'/);assert.match(source,/checks:localAttendance\.get\(selectedDate\)\|\|\{\}/);
+ assert.doesNotMatch(source,/mutate\('trainingCheck'/);assert.match(source,/checks:localAttendance\.get\(t.date\)\|\|\{\}/);
 });
