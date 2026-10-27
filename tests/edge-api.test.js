@@ -4,7 +4,7 @@ const layout=JSON.parse(fs.readFileSync('apps-script/StorageLayout.gs','utf8').m
 const blank=()=>Object.fromEntries(Object.keys(layout).map(k=>[k,[]]));
 async function fixture(){
  const {createHandler}=await import('../supabase/functions/club-api/handler.mjs');
- let snapshot={revision:1,tables:blank()},reads=0;const writes=[],uploads=[],roleWrites=[];
+ let snapshot={revision:1,tables:blank()},reads=0,conflict=null;const writes=[],uploads=[],roleWrites=[];
  snapshot.tables.events=[{event_id:'e1',event_name:'2000m'}];snapshot.tables.player_birth_years=[{member_name:'김선수',birth_year:'1980',join_year:'2023',updated_at:''}];
  const account={user_id:'00000000-0000-0000-0000-000000000001',player_name:'김선수',requested_player_name:null,role:'member'};
  const response=v=>new Response(v===undefined?'':JSON.stringify(v),{status:200});
@@ -21,6 +21,7 @@ async function fixture(){
   if(path==='rpc/club_public_read')return response({revision:snapshot.revision,tables:Object.fromEntries(Object.keys(layout).filter(k=>layout[k].path).map(k=>[k,snapshot.tables[k]]))});
   if(path==='rpc/club_store_read'){reads++;return response(snapshot);}
   if(path==='rpc/club_store_commit'){
+   if(conflict){const fn=conflict;conflict=null;fn(snapshot);snapshot.revision++;return new Response(JSON.stringify({message:'storage_revision_conflict'}),{status:409});}
    assert.equal(p.p_expected_revision,snapshot.revision);writes.push(p);
    for(const [name,delta] of Object.entries(p.p_changes)){const key=r=>JSON.stringify(layout[name].key.map(k=>r[k]));const rows=new Map(snapshot.tables[name].map(r=>[key(r),r]));delta.remove.forEach(r=>rows.delete(key(r)));delta.upsert.forEach(r=>rows.set(key(r),r));snapshot.tables[name]=[...rows.values()];}
    snapshot.revision++;return response({revision:snapshot.revision});
@@ -32,7 +33,7 @@ async function fixture(){
   const res=await handler(new Request('https://example.supabase.co/functions/v1/club-api',{method:'POST',headers:{'Content-Type':'application/json',...(accessToken?{Authorization:'Bearer '+accessToken}:{})},body:JSON.stringify({action,payload,adminToken})}));return res.json();
  };
  const adminCall=async(action,payload={})=>{const previous=account.role;account.role='admin';try{return await call(action,payload,'','verified');}finally{account.role=previous;}};
- return {call,adminCall,account,writes,uploads,roleWrites,get snapshot(){return snapshot;},get reads(){return reads;}};
+ return {call,adminCall,account,writes,uploads,roleWrites,conflictOnNextCommit(fn){conflict=fn;},get snapshot(){return snapshot;},get reads(){return reads;}};
 }
 test('Public landing data uses only the eight-table projection without private snapshot reads',async()=>{
  const f=await fixture(),out=await f.call('publicData');assert.equal(out.ok,true);assert.equal(Object.keys(out.files).length,8);assert.equal(f.reads,0);assert.ok(!JSON.stringify(out).includes('1980'));assert.ok(!JSON.stringify(out).includes('request_log'));
@@ -98,4 +99,22 @@ test('Record requester comes from the verified member, survives approval, and st
   const row=f.snapshot.tables.request_log[0],legacy=JSON.parse(row.source_json);delete legacy.__club_requester;row.source_json=JSON.stringify(legacy);
   assert.equal((await f.adminCall('adminList',{view:'history'})).requests[0].requester_name,'');
  }
+});
+test('Seat API is private, owns reservations, publishes through admin confirmation, and redacts legacy public views',async()=>{
+ const f=await fixture();assert.equal((await f.call('trainingSeats')).ok,false);assert.equal(f.reads,0);
+ await f.adminCall('trainingOpen',{dates:['2026-10-31']});
+ const claim={date:'2026-10-31',boatId:'1X-1',index:0};
+ assert.equal((await f.call('trainingBoatAdd',{date:claim.date,type:'1X'},'','verified')).ok,true);
+ const selected=await f.call('trainingSeatSelect',claim,'','verified');assert.equal(selected.ok,true,selected.message);assert.equal(selected.training.boats[0].seats[0].mine,true);assert.doesNotMatch(JSON.stringify(selected),/김선수|editHash|player_name/);
+ assert.equal((await f.call('trainingSeatConfirm',{date:claim.date},'','verified')).ok,false);
+ const confirmed=await f.adminCall('trainingSeatConfirm',{date:claim.date});assert.equal(confirmed.ok,true,confirmed.message);assert.equal(confirmed.training.boats[0].seats[0].name,'김선수');
+ assert.equal((await f.call('trainingSeatSelect',claim,'','verified')).ok,false);
+ for(const action of ['trainingRoster','trainingGet']){const read=await f.call(action,{date:claim.date});assert.equal(read.ok,true,read.message);assert.doesNotMatch(JSON.stringify(read),/김선수|editHash|seatBooking/);}
+ assert.equal((await f.call('trainingWeekJoin',{week:claim.date,dates:[claim.date],status:'참석'},'','verified')).ok,false);
+});
+test('Concurrent seat claims retry against fresh data and never overwrite the winning reservation',async()=>{
+ const f=await fixture();await f.adminCall('trainingOpen',{dates:['2026-10-31']});await f.call('trainingBoatAdd',{date:'2026-10-31',type:'1X'},'','verified');
+ f.conflictOnNextCommit(snapshot=>{const t=snapshot.tables.weekend_training[0].session_json;t.participants.push({id:'winner',name:'먼저신청',status:'참석'});t.seatBooking.boats[0].seats[0].memberId='winner';});
+ const result=await f.call('trainingSeatSelect',{date:'2026-10-31',boatId:'1X-1',index:0},'','verified');assert.equal(result.ok,false);assert.match(result.message,/먼저 선택/);
+ const t=f.snapshot.tables.weekend_training[0].session_json;assert.equal(t.seatBooking.boats[0].seats[0].memberId,'winner');assert.equal(t.participants.length,1);
 });

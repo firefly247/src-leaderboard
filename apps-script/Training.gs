@@ -25,8 +25,11 @@ function trainingWrite_(sheet,entry) {
   SpreadsheetApp.flush();
 }
 function trainingPublic_(s,admin) {
-  return {training:{date:s.date,opened:s.opened===true,revision:s.revision,registrationRevision:s.registrationRevision,
-    participants:s.opened?trainingTenures_(s.participants,s.date).map(p=>({id:p.id,name:p.name,status:p.status,comment:p.comment||'',canCox:p.canCox,canSmallBoat:p.canSmallBoat,tenure:p.tenure})):[],plan:s.opened?s.plan:null,...(admin?{draft:s.draft||null}:{})}};
+  const privateSeats=!!s.seatBooking;
+  const participants=s.opened?trainingTenures_(s.participants,s.date).map((p,index)=>({id:privateSeats&&!admin?'anonymous-'+index:p.id,name:privateSeats&&!admin?'신청 회원':p.name,status:p.status,comment:privateSeats&&!admin?'':p.comment||'',canCox:p.canCox,canSmallBoat:p.canSmallBoat,tenure:p.tenure})):[];
+  const plan=s.opened?s.plan:null;
+  const visiblePlan=privateSeats&&!s.seatBooking.confirmed?null:privateSeats&&!admin?(s.seatBooking.confirmed&&plan?{...plan,boats:plan.boats.map((b,bi)=>({...b,seats:b.seats.map((m,si)=>({...m,id:'anonymous-'+bi+'-'+si,name:'선택됨'}))})),wait:[],checks:{}}:null):plan;
+  return {training:{date:s.date,opened:s.opened===true,revision:s.revision,registrationRevision:s.registrationRevision,seatMode:privateSeats,participants,plan:visiblePlan,...(admin?{draft:privateSeats?null:s.draft||null}:{})}};
 }
 /** Derive seniority from the private joining-year column; never return birth/joining years. */
 function trainingTenures_(participants,date) {

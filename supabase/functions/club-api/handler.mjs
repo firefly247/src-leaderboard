@@ -1,9 +1,10 @@
 import { createEngine } from './engine.mjs';
 import { makeUtilities } from './utilities.mjs';
+import { SEAT_ACTIONS, FLEET, seatView, changeSeats } from './training-seats.mjs';
 
 const PUBLIC = new Set(['trainingGet','trainingList','trainingRoster','raceLineupList','raceLineupGet','pendingDeleteRecords']);
-const MEMBER = new Set(['trainingJoin','trainingWeekJoin','requestAdd','requestCompetitionAdd','requestDelete']);
-const ADMIN = new Set(['adminList','saveApprovedRecord','saveCompetitionDates','updateCompetitionRequests','savePlayerBirthYear','savePlayerBirthYears','processRequest','processAddRequests','processCompetitionAddRequests','processRejectRequests','manageEvent','manageCompetition','manageCompetitionEvent','manageCompetitionDivision','trainingOpen','trainingRecommend','trainingDraftGet','trainingDraftEdit','trainingDraftSave','trainingPublish','trainingCheck','trainingQualifications','raceLineupAdminData','raceLineupGetAdmin','raceLineupCreate','raceLineupParticipants','raceLineupSave','raceLineupFinalize','memberLinkList','memberLinkApprove','memberLinkReject','memberAccountList','memberAccountRole']);
+const MEMBER = new Set(['trainingJoin','trainingWeekJoin','requestAdd','requestCompetitionAdd','requestDelete','trainingSeats','trainingBoatAdd','trainingSeatSelect','trainingSeatStatus','trainingSeatComment']);
+const ADMIN = new Set(['trainingBoatRemove','trainingSeatConfirm','trainingSeatReopen','adminList','saveApprovedRecord','saveCompetitionDates','updateCompetitionRequests','savePlayerBirthYear','savePlayerBirthYears','processRequest','processAddRequests','processCompetitionAddRequests','processRejectRequests','manageEvent','manageCompetition','manageCompetitionEvent','manageCompetitionDivision','trainingOpen','trainingRecommend','trainingDraftGet','trainingDraftEdit','trainingDraftSave','trainingPublish','trainingCheck','trainingQualifications','raceLineupAdminData','raceLineupGetAdmin','raceLineupCreate','raceLineupParticipants','raceLineupSave','raceLineupFinalize','memberLinkList','memberLinkApprove','memberLinkReject','memberAccountList','memberAccountRole']);
 const clone=x=>structuredClone(x);
 const csv=value=>{const text=String(value??'');return /[",\r\n]/.test(text)?'"'+text.replace(/"/g,'""')+'"':text;};
 
@@ -11,7 +12,7 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
   const utilities=makeUtilities(hash), hex=v=>Array.from(hash(new TextEncoder().encode(v)),b=>b.toString(16).padStart(2,'0')).join('');
   async function rest(path,payload,method='POST',extra={}) {
     const res=await fetcher(url+'/rest/v1/'+path,{method,headers:{apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json',...extra},...(payload===undefined?{}:{body:JSON.stringify(payload)})});
-    if(!res.ok){const error=await res.json().catch(()=>({}));if(error.message?.includes('storage_revision_conflict'))throw new Error('다른 사람이 변경했습니다. 최신 내용을 불러온 뒤 다시 저장해 주세요.');throw new Error('데이터를 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.');}
+    if(!res.ok){const error=await res.json().catch(()=>({}));if(error.message?.includes('storage_revision_conflict'))throw Object.assign(new Error('다른 사람이 변경했습니다. 최신 내용을 불러온 뒤 다시 저장해 주세요.'),{code:'storage_revision_conflict'});throw new Error('데이터를 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.');}
     const text=await res.text();return text?JSON.parse(text):null;
   }
   const rpc=(name,p={})=>rest('rpc/'+name,p);
@@ -94,8 +95,22 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
       if(action==='memberLinkReject'){if(typeof p.name!=='string'||typeof p.userId!=='string')throw new Error('연결 요청을 확인해 주세요.');const changed=await rest('club_accounts?user_id=eq.'+encodeURIComponent(p.userId)+'&requested_player_name=eq.'+encodeURIComponent(p.name),{requested_player_name:null},'PATCH',{Prefer:'return=representation'});if(!changed?.length)throw new Error('연결 요청이 변경되었습니다. 다시 조회해 주세요.');return respond({ok:true});}
       if(action==='memberLinkApprove'){await rpc('club_member_approve',{p_user_id:p.userId,p_player_name:p.name});return respond({ok:true});}
       if(MEMBER.has(action)){if(!member)throw new Error('카카오 로그인 후 신청해 주세요.');if(!member.player_name)throw new Error('운영진이 회원 연결을 확인한 뒤 신청할 수 있습니다.');await limited(request,member.user_id+':'+action,30);}
+      if(SEAT_ACTIONS.has(action)){
+        for(let attempt=0;attempt<4;attempt++){
+          const snapshot=await rpc('club_store_read'),dormant=snapshot.tables.dormant_members.map(r=>r.member_name);
+          if(dormant.includes(member.player_name))throw new Error('휴면 상태입니다. 운영진에게 문의해 주세요.');
+          if(action==='trainingSeats')return respond({ok:true,fleet:FLEET,trainings:snapshot.tables.weekend_training.map(r=>r.session_json).filter(s=>s.opened).sort((a,b)=>a.date.localeCompare(b.date)).slice(-40).map(s=>seatView(s,member,member.role==='admin',dormant))});
+          const row=snapshot.tables.weekend_training.find(r=>r.date===p.date);
+          if(!row)throw new Error('개설된 훈련 날짜를 확인해 주세요.');
+          const session=changeSeats(row.session_json,action,p,member,{uuid:()=>utilities.getUuid(),dormant});
+          try{await rpc('club_store_commit',{p_expected_revision:snapshot.revision,p_changes:{weekend_training:{upsert:[{date:row.date,session_json:session}],remove:[]}}});}
+          catch(error){if(error.code==='storage_revision_conflict'&&attempt<3)continue;throw error;}
+          return respond({ok:true,training:seatView(session,member,member.role==='admin',dormant)});
+        }
+      }
       if(p.photo&&action!=='requestAdd')throw new Error('이 요청에는 사진을 첨부할 수 없습니다.');
       const snapshot=await rpc('club_store_read'),photo=await photoInfo(p.photo);
+      if(['trainingJoin','trainingWeekJoin','trainingRecommend','trainingDraftEdit','trainingDraftSave','trainingPublish'].includes(action)&&snapshot.tables.weekend_training.some(r=>r.session_json.seatBooking&&(p.date===r.date||p.week&&r.date>=p.week&&r.date<=new Date(Date.parse(p.week+'T00:00:00Z')+86400000).toISOString().slice(0,10))))throw new Error('좌석 신청 방식의 훈련입니다. 훈련 참석 현황에서 좌석을 선택하거나 확정해 주세요.');
       if(MEMBER.has(action)&&snapshot.tables.dormant_members.some(r=>r.member_name===member.player_name))throw new Error('휴면 상태입니다. 운영진에게 문의해 주세요.');
       const engine=createEngine(snapshot,{utilities,admin,photoUrl:photo?.url});
       const payload=clone(p);
