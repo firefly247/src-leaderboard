@@ -100,11 +100,15 @@ button.training-member { min-height:44px; cursor:pointer; user-select:none; -web
 .seat-boat-heading h4 { margin:0; font-size:13px; }
 .seat-boat-heading>span { font-size:11px; color:#64748b; }
 .seat-text-button { border:0; background:none; color:#64748b; text-decoration:underline; cursor:pointer; }
-.seat-boat-stage { position:relative; padding:15px 12px; }
+.seat-boat-stage { position:relative; height:105px; margin:0 auto; padding:34px 14%; box-sizing:border-box; }
+.boat-shape-single { width:55%; min-width:170px; }
+.boat-shape-double { width:72%; min-width:220px; }
+.boat-shape-four { width:92%; }
+.boat-shape-eight { width:100%; }
 .seat-boat-drawing { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
-.seat-boat-slots { position:relative; display:grid; grid-template-columns:repeat(var(--seat-count),minmax(0,1fr)); gap:4px; }
-.training-shell button.seat-place { display:grid; gap:4px; align-content:center; padding:5px 1px; min-height:54px; min-width:0; border:1px solid #8ba6bb; border-radius:7px; background:#fff; color:#334155; font:inherit; font-size:12px; cursor:pointer; }
-.training-shell button.seat-place small { font-size:10px; color:inherit; }
+.seat-boat-slots { position:relative; display:grid; grid-template-columns:repeat(var(--seat-count),minmax(0,1fr)); gap:3px; justify-items:center; }
+.training-shell button.seat-place { display:grid; gap:1px; align-content:center; padding:2px 1px; min-height:28px; min-width:0; width:100%; max-width:46px; border:1px solid #8ba6bb; border-radius:7px; background:#fff; color:#334155; font:inherit; font-size:10px; cursor:pointer; }
+.training-shell button.seat-place small { font-size:9px; color:inherit; }
 .training-shell button.seat-place span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .training-shell button.seat-place.is-cox { border:2px solid #c7983c; }
 .training-shell button.seat-place.is-taken { background:#cbd5e1; color:#5b6779; }
@@ -118,8 +122,15 @@ button.training-member { min-height:44px; cursor:pointer; user-select:none; -web
 .seat-confirm { margin-top:14px; padding-top:12px; border-top:1px solid #e2e8f0; }
 .seat-confirm button { width:100%; }
 .seat-admin-responses { font-size:12px; margin-top:12px; }
-@media(max-width:560px){.seat-boat-stage{padding:14px 8px}.seat-boat-slots{gap:2px}.training-shell button.seat-place{font-size:10px;min-height:50px}.training-shell button.seat-place small{font-size:8px}.seat-legend{font-size:11px;gap:12px}}
+@media(max-width:560px){.seat-boat-stage{height:96px;padding:31px 14%}.boat-shape-single{width:65%}.boat-shape-double{width:80%}.boat-shape-four{width:100%}.seat-boat-slots{gap:2px}.training-shell button.seat-place{font-size:9px;min-height:28px;max-width:40px}.training-shell button.seat-place small{font-size:8px}.seat-legend{font-size:11px;gap:12px}}
 
 .seat-comment { margin:12px 0; font-size:12px; }
 .seat-comment label { display:grid; gap:6px; margin:10px 0; }
 .training-shell button.seat-place.is-admin-seat span { white-space:normal; overflow-wrap:anywhere; }
+
+.seat-response-lists { margin:14px 0 8px; font-size:12px; }
+.seat-attendee-list,.seat-absence-list { display:flex; align-items:baseline; gap:10px; margin:7px 0; }
+.seat-response-lists strong { flex:0 0 42px; color:#53657d; }
+.seat-attendee-list>div { display:flex; gap:6px 12px; flex-wrap:wrap; }
+.seat-absence-list>div { min-width:0; overflow-x:auto; white-space:nowrap; color:#9ca3af; letter-spacing:0; word-spacing:0; }
+.seat-list-empty { color:#94a3b8; }

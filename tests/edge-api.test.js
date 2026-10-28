@@ -105,7 +105,7 @@ test('Seat API is private, owns reservations, publishes through admin confirmati
  await f.adminCall('trainingOpen',{dates:['2026-10-31']});
  const claim={date:'2026-10-31',boatId:'1X-1',index:0};
  assert.equal((await f.call('trainingBoatAdd',{date:claim.date,type:'1X'},'','verified')).ok,true);
- const selected=await f.call('trainingSeatSelect',claim,'','verified');assert.equal(selected.ok,true,selected.message);assert.equal(selected.training.boats[0].seats[0].mine,true);assert.doesNotMatch(JSON.stringify(selected),/김선수|editHash|player_name/);
+ const selected=await f.call('trainingSeatSelect',claim,'','verified');assert.equal(selected.ok,true,selected.message);assert.equal(selected.training.boats[0].seats[0].mine,true);assert.deepEqual(selected.training.attendees,['김선수']);assert.doesNotMatch(JSON.stringify(selected.training.boats),/김선수|editHash|player_name/);
  assert.equal((await f.call('trainingSeatConfirm',{date:claim.date},'','verified')).ok,false);
  const confirmed=await f.adminCall('trainingSeatConfirm',{date:claim.date});assert.equal(confirmed.ok,true,confirmed.message);assert.equal(confirmed.training.boats[0].seats[0].name,'김선수');
  assert.equal((await f.call('trainingSeatSelect',claim,'','verified')).ok,false);
