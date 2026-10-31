@@ -795,3 +795,5 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .reference-admin .player-join-table th,.reference-admin .player-join-table td { padding:6px 1px; }
   .reference-admin .player-join-table th { font-size:10px; letter-spacing:0; }
 }
+
+.reference-admin .player-join-table td.is-dormant { color:var(--muted); }

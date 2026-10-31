@@ -206,10 +206,11 @@ function result(selector,message,bad=false) { const e=$(selector);e.textContent=
 
 function playerJoinYearSummaryHtml(players) {
   players=players.filter(player=>!player.isCoach);
+  const dormant=new Set(players.filter(player=>player.isDormant).map(player=>player.memberName));
   const groups=new Map();players.forEach(player=>{const year=String(player.joinYear||"");if(!groups.has(year))groups.set(year,[]);groups.get(year).push(player.memberName);});
   const years=[...groups.keys()].sort((a,b)=>a===""?1:b===""?-1:Number(a)-Number(b)),height=Math.max(0,...[...groups.values()].map(names=>names.length));
   groups.forEach(names=>names.sort((a,b)=>a.localeCompare(b,"ko")));
-  return `<p class="player-summary-total">총 ${players.length}명</p><div class="table-wrap"><table class="player-join-table"><thead><tr>${years.map(year=>`<th>${year?esc(year)+"년":"미입력"}<small>${groups.get(year).length}명</small></th>`).join("")}</tr></thead><tbody>${Array.from({length:height},(_,index)=>`<tr>${years.map(year=>`<td>${esc(groups.get(year)[index]||"")}</td>`).join("")}</tr>`).join("")||'<tr><td class="empty-cell">등록된 회원가 없습니다.</td></tr>'}</tbody></table></div>`;
+  return `<p class="player-summary-total">총 ${players.length}명</p><div class="table-wrap"><table class="player-join-table"><thead><tr>${years.map(year=>`<th>${year?esc(year)+"년":"미입력"}<small>${groups.get(year).length}명</small></th>`).join("")}</tr></thead><tbody>${Array.from({length:height},(_,index)=>`<tr>${years.map(year=>`<td${dormant.has(groups.get(year)[index])?' class="is-dormant"':''}>${esc(groups.get(year)[index]||"")}</td>`).join("")}</tr>`).join("")||'<tr><td class="empty-cell">등록된 회원가 없습니다.</td></tr>'}</tbody></table></div>`;
 }
 function memberAccountCellsHtml(account,adminCount=0,actorId=''){
   if(!account)return '<td>—</td><td>미가입</td><td>—</td>';
@@ -229,7 +230,7 @@ async function refreshMemberAccountCells(container,isCurrent){
       const temporary=document.createElement('div');renderBirthYearAdmin(temporary,[player],true,true,accounts);
       row.replaceWith(temporary.querySelector('[data-birth-year-name]'));
       const summary=container.querySelector('#playerJoinYearSummary');
-      if(summary)summary.innerHTML=playerJoinYearSummaryHtml([...container.querySelectorAll('[data-birth-year-name]')].map(row=>({memberName:row.dataset.birthYearName,joinYear:row.dataset.savedJoinYear,isCoach:row.dataset.savedCoach==="true"})));
+      if(summary)summary.innerHTML=playerJoinYearSummaryHtml([...container.querySelectorAll('[data-birth-year-name]')].map(row=>({memberName:row.dataset.birthYearName,joinYear:row.dataset.savedJoinYear,isDormant:row.dataset.savedDormant==="true",isCoach:row.dataset.savedCoach==="true"})));
       return;
     }
     if(row.dataset?.accountOnlyName&&!account.requested_player_name&&!account.player_name){row.dataset.accountOnlyName='이름 미입력';row.querySelector('td').textContent='이름 미입력';row.children[1].textContent=row.children[2].textContent='—';}
@@ -260,14 +261,14 @@ async function addClubMember(form){
     const temporary=document.createElement('div');renderBirthYearAdmin(temporary,[player],true,true);
     const row=temporary.querySelector('[data-birth-year-name]'),body=$('#birthYearBatchForm tbody');
     body.querySelector('.empty-cell')?.closest('tr').remove();body.prepend(row);
-    $('#playerJoinYearSummary').innerHTML=playerJoinYearSummaryHtml([...body.querySelectorAll('[data-birth-year-name]')].map(row=>({memberName:row.dataset.birthYearName,joinYear:row.dataset.savedJoinYear,isCoach:row.dataset.savedCoach==="true"})));
+    $('#playerJoinYearSummary').innerHTML=playerJoinYearSummaryHtml([...body.querySelectorAll('[data-birth-year-name]')].map(row=>({memberName:row.dataset.birthYearName,joinYear:row.dataset.savedJoinYear,isDormant:row.dataset.savedDormant==="true",isCoach:row.dataset.savedCoach==="true"})));
     filterMemberInfo($('#birthYearSearch').value);form.reset();message.textContent=player.memberName+' 회원을 추가했습니다.';
   }catch(error){if(form.isConnected){message.textContent=error.message;message.classList.add('is-error');}}
   finally{button.disabled=false;}
 }
 function updateMemberJoinSummary(){
   const summary=$('#playerJoinYearSummary');if(!summary)return;
-  summary.innerHTML=playerJoinYearSummaryHtml([...document.querySelectorAll('[data-birth-year-name]')].map(row=>({memberName:row.dataset.birthYearName,joinYear:row.dataset.savedJoinYear,isCoach:row.querySelector('.player-coach-input')?.checked??row.dataset.savedCoach==='true'})));
+  summary.innerHTML=playerJoinYearSummaryHtml([...document.querySelectorAll('[data-birth-year-name]')].map(row=>({memberName:row.dataset.birthYearName,joinYear:row.dataset.savedJoinYear,isDormant:row.dataset.savedDormant==="true",isCoach:row.querySelector('.player-coach-input')?.checked??row.dataset.savedCoach==='true'})));
 }
 async function saveMemberCoach(input){
   const row=input.closest('[data-birth-year-name]'),previous=row.dataset.savedCoach==='true',value=input.checked,actor=state.adminUserId;
@@ -343,7 +344,7 @@ async function saveChangedPlayerYears(form) {
     if(state.adminUserId!==token)return;
     const confirmed=verifySavedPlayerYears(players,data);
     rows.forEach(row=>{const saved=confirmed.get(row.dataset.birthYearName);row.dataset.savedBirthYear=saved.birthYear;row.dataset.savedJoinYear=saved.joinYear;if(saved.isDormant!==undefined){row.dataset.savedDormant=String(saved.isDormant);row.querySelector(".player-dormant-input").checked=saved.isDormant;saved.isDormant?state.dormantMembers.add(saved.memberName):state.dormantMembers.delete(saved.memberName);}row.querySelector('.birth-year-input').value=saved.birthYear;row.querySelector('.join-year-input').value=saved.joinYear;if(form.isConnected)updatePlayerYearDirtyState(row);});
-    if(form.isConnected&&$("#playerJoinYearSummary"))$("#playerJoinYearSummary").innerHTML=playerJoinYearSummaryHtml([...form.querySelectorAll("[data-birth-year-name]")].map(row=>({memberName:row.dataset.birthYearName,joinYear:row.dataset.savedJoinYear,isCoach:row.dataset.savedCoach==="true"})));
+    if(form.isConnected&&$("#playerJoinYearSummary"))$("#playerJoinYearSummary").innerHTML=playerJoinYearSummaryHtml([...form.querySelectorAll("[data-birth-year-name]")].map(row=>({memberName:row.dataset.birthYearName,joinYear:row.dataset.savedJoinYear,isDormant:row.dataset.savedDormant==="true",isCoach:row.dataset.savedCoach==="true"})));
     if(players.some(player=>player.isDormant!==undefined)){build();render();applyDormantMemberVisibility();}
     alert(`${players.length}명의 회원 정보를 저장하고 확인했습니다.`);
   }catch(error){if(state.adminUserId===token)alert(error.message);}
