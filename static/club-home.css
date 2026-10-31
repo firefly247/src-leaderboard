@@ -1,6 +1,6 @@
 .site-header .brand { flex-direction:row; align-items:center; gap:10px; }
 .site-header .brand span:last-child { font-size:18px; letter-spacing:-.04em; }
-.club-brand-mark { width:28px; height:28px; }
+.club-brand-mark { display:block; width:44px; height:44px; object-fit:contain; border-radius:6px; flex-shrink:0; }
 .member-tools { display:grid; gap:4px; }
 .member-tools[hidden],.tab-button[hidden],.club-home [hidden] { display:none; }
 .club-home { --club-ink:#09253b; --club-blue:#1428a0; --club-paper:#f6f3ed; }
