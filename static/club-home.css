@@ -95,7 +95,7 @@
 .club-history ul { margin:0; padding-left:19px; }
 .club-history li+li { margin-top:8px; }
 .club-history p { margin:0; }
-.club-history strong { color:var(--club-ink); font-weight:650; }
+.club-history strong { color:var(--club-ink); font-weight:700; }
 .club-joining { grid-template-columns:1fr 1.2fr; }
 .club-joining h3 { margin-top:0; }
 @media(max-width:760px){
@@ -146,3 +146,6 @@
 .club-home .club-history article { padding-block:var(--club-inner-gap); }
 .club-home .club-introduction p { max-width:850px; }
 @media(max-width:760px){ .club-home { --club-gutter:12px; --club-section-gap:28px; --club-inner-gap:16px; } }
+
+.club-history article.club-history-single { grid-template-columns:max-content minmax(0,1fr); column-gap:16px; align-items:baseline; }
+@media(max-width:760px){ .club-history article.club-history-single { column-gap:12px; } }
