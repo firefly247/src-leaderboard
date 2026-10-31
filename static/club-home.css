@@ -170,14 +170,14 @@
  .club-home .club-record-bottom { margin-top:14px; padding-top:12px; }
 }
 
-.club-home > section.club-recent-records { padding:20px var(--club-gutter); border:1px solid #d9e2e5; border-radius:18px; background:white; }
-.club-recent-records .club-section-heading { margin-bottom:16px; }
-.club-recent-records .club-races { gap:0; }
+.club-home > section.club-recent-records { padding:0; }
+.club-recent-records .club-section-heading { margin-bottom:16px; padding-inline:var(--club-gutter); }
+.club-recent-records .club-races { gap:0; padding:20px var(--club-gutter); border:1px solid #d9e2e5; border-radius:18px; background:white; }
 .club-recent-records .club-race { min-width:0; padding:0 20px; border:0; border-left:1px solid #e4e9ed; border-radius:0; background:transparent; }
 .club-recent-records .club-race:first-child { padding-left:0; border-left:0; }
 .club-recent-records .club-race:last-child { padding-right:0; }
 @media(max-width:760px){
- .club-home > section.club-recent-records { padding-block:18px; }
+ .club-recent-records .club-races { padding-block:18px; }
  .club-recent-records .club-section-heading { margin-bottom:14px; }
  .club-recent-records .club-race { padding-inline:10px; }
  .club-recent-records .club-race:first-child { padding-left:0; }
