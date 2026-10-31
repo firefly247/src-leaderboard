@@ -98,11 +98,11 @@ test('Approving a signup updates account cells without refreshing the admin sess
 test('Account refresh replaces only the three account cells and leaves member inputs intact',async()=>{
   const source=fs.readFileSync(require('node:path').join(__dirname,'../static/leaderboard.js'),'utf8');
   const fn=source.match(/async function refreshMemberAccountCells\([^\n]*\)\{[\s\S]*?\n\}/)[0];
-  const input={value:'1990'},cells=[input,{},{},{}],row={get lastElementChild(){return {remove(){cells.pop();}};},insertAdjacentHTML(position,html){cells.push(html);}};
+  const input={value:'1990'},cells=[input,{},{},{}],row={dataset:{birthYearName:'김기현'},get lastElementChild(){return {remove(){cells.pop();}};},insertAdjacentHTML(position,html){cells.push(html);}};
   const cell={dataset:{memberAccount:'target'},parentElement:row};
   const context=vm.createContext({api:async()=>({accounts:[{user_id:'target',player_name:'김기현',role:'member'}]}),state:{adminUserId:'actor'},memberAccountCellsHtml:account=>account.player_name});
   vm.runInContext(fn,context);
-  await context.refreshMemberAccountCells({querySelectorAll:()=>[cell]},()=>true);
+  await context.refreshMemberAccountCells({querySelector:()=>null,querySelectorAll:()=>[row]},()=>true);
   assert.equal(cells[0],input);assert.equal(input.value,'1990');assert.equal(cells[1],'김기현');
 });
 

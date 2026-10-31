@@ -8,8 +8,8 @@ test('Member info combines reference years and every Kakao account without dupli
  const headers=[...table.matchAll(/<th>([\s\S]*?)<\/th>/g)].map(m=>m[1].replace(/<br\s*\/?>/g,' '));assert.deepEqual(headers,['회원 이름','출생연도','가입연도','휴면회원','코치','카카오 닉네임','가입 상태','관리자']);
  assert.equal((table.match(/data-birth-year-name="김회원"/g)||[]).length,1);
  assert.match(table,/&lt;관리자&gt;/);assert.doesNotMatch(table,/<관리자>/);assert.match(table,/data-account-user="admin"[^>]*checked[^>]*disabled/);
- assert.match(table,/data-approve-user="pending"/);assert.match(table,/data-account-only-name="이름 미입력"/);assert.match(table,/미가입/);
- assert.equal((table.match(/data-account-user=/g)||[]).length,3);
+ assert.match(container.innerHTML,/data-approve-user="pending"/);assert.doesNotMatch(table,/data-approve-user|data-reject-user/);assert.match(table,/data-account-only-name="이름 미입력"/);assert.match(table,/미가입/);
+ assert.equal((table.match(/data-account-user=/g)||[]).length,2);
  const html=fs.readFileSync('index.html','utf8');assert.match(html,/data-admin-view="member-info">회원 정보/);assert.doesNotMatch(html,/data-admin-view="member-accounts"|data-admin-view="player-birth-years"/);assert.doesNotMatch(html.slice(html.indexOf('data-panel="ergo"')),/선수/);
 });
 test('Member account reload restores only unsaved year/dormancy changes and search without changing baselines',()=>{
@@ -37,12 +37,12 @@ test('New membership requests display submitted years for administrator review',
  assert.match(container.innerHTML,/<td>신규회원<\/td><td>1984<\/td><td>2013<\/td>/);assert.match(container.innerHTML,/data-approve-user="new"/);
 });
 
-test('Approving a new applicant replaces the pending row with editable member fields without reloading the table',async()=>{
- const ctx=client(),player={memberName:'신규회원',birthYear:'1984',joinYear:'2013'},account={user_id:'new',player_name:'신규회원',role:'member'},editable={dataset:{birthYearName:'신규회원',savedJoinYear:'2013'}},summary={innerHTML:''};let replaced=false;
- const row={dataset:{accountOnlyName:'신규회원'},replaceWith(value){assert.equal(value,editable);replaced=true;}},cell={dataset:{memberAccount:'new'},parentElement:row};
- ctx.api=async action=>action==='memberAccountList'?{accounts:[account]}:{players:[player]};ctx.renderBirthYearAdmin=()=>{};ctx.document.createElement=()=>({querySelector:()=>editable});
- const container={querySelector:()=>summary,querySelectorAll:selector=>selector==='[data-member-account]'?[cell]:[editable]};
- await ctx.refreshMemberAccountCells(container,()=>true);assert.equal(replaced,true);assert.match(summary.innerHTML,/2013/);assert.match(summary.innerHTML,/신규회원/);
+test('Approving a new applicant appends editable fields and removes the pending request without reloading',async()=>{
+ const ctx=client(),player={memberName:'신규회원',birthYear:'1984',joinYear:'2013'},account={user_id:'new',player_name:'신규회원',role:'member'},editable={dataset:{birthYearName:'신규회원',savedJoinYear:'2013'}},requests={innerHTML:'old request'};let appended=false,summaryUpdates=0;
+ const body={querySelector:()=>null,append(value){assert.equal(value,editable);appended=true;},querySelectorAll:()=>[]};
+ ctx.api=async action=>action==='memberAccountList'?{accounts:[account]}:{players:[player]};ctx.renderBirthYearAdmin=()=>{};ctx.document.createElement=()=>({querySelector:()=>editable});ctx.updateMemberJoinSummary=()=>summaryUpdates++;
+ const container={querySelector:selector=>selector==='#birthYearBatchForm tbody'?body:selector==='#memberJoinRequests'?requests:null,querySelectorAll:()=>[]};
+ await ctx.refreshMemberAccountCells(container,()=>true);assert.equal(appended,true);assert.equal(summaryUpdates,1);assert.match(requests.innerHTML,/대기 중인 가입 요청이 없습니다/);
 });
 
 test('Coach members stay editable but are excluded from join-year columns and totals',()=>{
@@ -56,4 +56,17 @@ test('Coach checkbox updates the summary without reloading, persists, and rolls 
  await ctx.saveMemberCoach(input);assert.equal(row.dataset.savedCoach,'true');assert.equal(input.disabled,false);assert.equal(summaries,2);
  const alerts=[];ctx.alert=message=>alerts.push(message);ctx.api=async()=>{throw new Error('연결 실패');};input.checked=false;
  await ctx.saveMemberCoach(input);assert.equal(input.checked,true);assert.equal(row.dataset.savedCoach,'true');assert.equal(input.disabled,false);assert.deepEqual(alerts,['연결 실패']);
+});
+
+test('Pending applicants appear above the cohort summary and outside the editable roster',()=>{
+ const ctx=client(),container={};ctx.renderBirthYearAdmin(container,[{memberName:'기존회원',birthYear:'1984',joinYear:'2013'}],true,true,[{user_id:'new',requested_player_name:'신규회원',requested_birth_year:1994,requested_join_year:2026,display_name:'새별명',role:'member'},{user_id:'existing',requested_player_name:'기존회원',display_name:'기존별명',role:'member'}]);
+ const html=container.innerHTML,requestHtml=html.slice(html.indexOf('id="memberJoinRequests"'),html.indexOf('class="player-join-summary"'));
+ assert.match(requestHtml,/<td>신규회원<\/td><td>1994<\/td><td>2026<\/td>/);assert.match(requestHtml,/<td>기존회원<\/td><td>1984<\/td><td>2013<\/td>/);assert.equal((html.match(/data-approve-user=/g)||[]).length,2);
+ assert.doesNotMatch(html.slice(html.indexOf('class="admin-table birth-year-table')),/data-account-only-name="신규회원"|data-approve-user/);
+});
+test('Member information is a top-level admin tab with no reference submenu',()=>{
+ const html=fs.readFileSync('index.html','utf8'),tabs=html.match(/<div class="admin-group-tabs"[\s\S]*?<\/div>/)[0],reference=html.match(/data-admin-group-panel="references"[\s\S]*?<\/div>/)[0];
+ assert.match(tabs,/data-admin-group="members" data-admin-view="member-info">회원 정보/);assert.doesNotMatch(reference,/member-info/);
+ const buttons=['records','references','members'].map(group=>({dataset:{adminGroup:group},classList:{toggle(name,value){this.active=value;}}})),panels=['records','references'].map(group=>({dataset:{adminGroupPanel:group}}));
+ const ctx=client({querySelector:()=>({classList:{toggle(){}}}),querySelectorAll:selector=>selector==='[data-admin-group]'?buttons:panels});ctx.showAdminGroup('member-info');assert.equal(buttons[2].classList.active,true);assert.equal(buttons[0].classList.active,false);assert.equal(panels.every(panel=>panel.hidden),true);
 });

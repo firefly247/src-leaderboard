@@ -168,7 +168,7 @@ tbody tr:hover { background: #f8fbff; }
 .form-result { min-height: 20px; margin: 0; color: #137333; font-weight: 700; }
 .form-result.is-error { color: var(--danger); }
 .admin-console-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-.admin-group-tabs { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); flex: 1; border-bottom: 1px solid var(--line); background: white; }
+.admin-group-tabs { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); flex: 1; border-bottom: 1px solid var(--line); background: white; }
 .admin-group-tabs button { min-height: 54px; border: 0; border-bottom: 3px solid transparent; border-radius: 0; padding: 12px 8px 10px; background: transparent; color: var(--muted); font: inherit; font-weight: 900; cursor: pointer; }
 .admin-group-tabs button.is-active { border-bottom-color: var(--text); background: transparent; color: var(--text); box-shadow: none; }
 .admin-subtabs { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); margin-bottom: 16px; background: transparent; }
@@ -796,4 +796,20 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .reference-admin .player-join-table th { font-size:10px; letter-spacing:0; }
 }
 
-.reference-admin .player-join-table td.is-dormant { color:var(--muted); }
+.reference-admin .player-join-table td.is-dormant { color:#a8afb9; }
+
+.member-join-requests { margin:20px 0 24px; }
+.member-join-requests h3 small { margin-left:6px; color:var(--muted); font-size:12px; font-weight:400; }
+.reference-admin .member-join-request-table { width:100%; min-width:0; table-layout:fixed; font-size:12px; }
+.reference-admin .member-join-request-table th,.reference-admin .member-join-request-table td { white-space:normal; overflow-wrap:anywhere; }
+.member-join-request-table th:nth-child(1) { width:16%; }
+.member-join-request-table th:nth-child(2),.member-join-request-table th:nth-child(3) { width:14%; }
+.member-join-request-table th:nth-child(4) { width:24%; }
+.member-join-request-table th:nth-child(5) { width:32%; }
+.member-join-request-actions { display:flex; justify-content:center; flex-wrap:wrap; gap:4px; }
+@media(max-width:600px){
+ .reference-admin .member-join-request-table { font-size:11px; }
+ .reference-admin .member-join-request-table th,.reference-admin .member-join-request-table td { padding:5px 2px; }
+ .reference-admin .member-join-request-table th { font-size:10px; letter-spacing:0; }
+ .reference-admin .member-join-request-table button { min-width:0; padding:6px; font-size:11px; }
+}
