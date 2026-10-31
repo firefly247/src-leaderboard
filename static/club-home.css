@@ -143,7 +143,7 @@
 .club-home .club-content .club-kicker,.club-home .club-about .club-kicker { margin-bottom:10px; }
 .club-home .club-source-links { margin-top:var(--club-inner-gap); }
 .club-home .club-schedule { margin:var(--club-inner-gap) 0 0; }
-.club-home .club-history article { padding-block:var(--club-inner-gap); }
+.club-home .club-history article { padding-block:12px; }
 .club-home .club-introduction p { max-width:850px; }
 @media(max-width:760px){ .club-home { --club-gutter:12px; --club-section-gap:28px; --club-inner-gap:16px; } }
 
@@ -183,3 +183,6 @@
  .club-recent-records .club-race:first-child { padding-left:0; }
  .club-recent-records .club-race:last-child { padding-right:0; }
 }
+
+.club-history li+li { margin-top:5px; }
+@media(max-width:760px){ .club-home .club-history article { padding-block:10px; } .club-history li+li { margin-top:4px; } }
