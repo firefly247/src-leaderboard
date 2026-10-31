@@ -165,7 +165,11 @@ function memberNameMatches(name,query) {
   const nameInitials=name=>[...name].map(char=>{const code=char.codePointAt(0)-0xac00;return code>=0&&code<11172?"ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ"[Math.floor(code/588)]:char;}).join("");
   return initialsOnly?nameInitials(name).includes(normalized):competitionMemberSearchKey(name).includes(normalized);
 }
-async function api(action,payload={},admin=false) { return window.ClubApi.call(action,payload); }
+async function api(action,payload={},admin=false) {
+  const result=await window.ClubApi.call(action,payload);
+  if(action.startsWith('process')||['memberLinkApprove','memberLinkReject','requestAdd','requestCompetitionAdd'].includes(action))document.dispatchEvent(new Event('club-admin-requests-changed'));
+  return result;
+}
 async function compress(file) {
   if(!file)return null;
   if(file.size>10*1024*1024)throw new Error("증빙사진은 원본 파일 기준 10MB 이하여야 합니다.");
@@ -361,12 +365,12 @@ function showAdminGroup(view) { $("#adminContent").classList.toggle("reference-a
 let adminLoadSequence=0;
 let memberInfoDraft=null;
 function canOpenClubTab(tab){return ['home','ergo','competition','athletes','training','race-lineup','request','admin'].includes(tab)&&(tab==='home'||Boolean(state.memberUserId)&&(tab!=='admin'||Boolean(state.adminUserId)));}
-function openClubTab(tab){
+function openClubTab(tab,adminView='add'){
   if(!canOpenClubTab(tab))return;
   setHeaderMenuOpen(false);
   document.querySelectorAll('.tab-button').forEach(button=>button.classList.toggle('is-active',button.dataset.tab===tab));
   document.querySelectorAll('.tab-panel').forEach(panel=>panel.classList.toggle('is-active',panel.dataset.panel===tab));
-  history.replaceState(null,'','#'+tab);if(tab==='admin')loadAdmin('add');
+  history.replaceState(null,'','#'+tab);if(tab==='admin')return loadAdmin(adminView);
 }
 function syncClubRoute(){
   const requested=location.hash.slice(1)||'home',tab=canOpenClubTab(requested)?requested:'home';
