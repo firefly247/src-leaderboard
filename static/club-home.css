@@ -64,7 +64,7 @@
  .club-stat { padding:0 13px; }.club-stat>span { min-height:28px; font-size:10px; word-break:keep-all; }.club-stat>strong { font-size:31px; }.club-stat small { font-size:10px; margin-left:3px; }
  .club-record-bottom { margin-top:18px; padding-top:14px; gap:11px; }.club-medal-totals { gap:19px; font-size:11px; }.club-home-note { font-size:9px; }
  .club-section-heading { margin-bottom:17px; }.club-section-heading h2 { font-size:23px; }.club-season { font-size:9px; }
- .club-races { grid-template-columns:1fr; gap:9px; }.club-race { padding:14px 16px; }.club-race h3 { margin-top:10px; font-size:21px; }.club-race-result { margin-top:10px; padding-top:8px; }
+ .club-races { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }.club-race { min-width:0; padding:12px 8px; border-radius:10px; }.club-race-meta { flex-direction:column; gap:3px; font-size:9px; }.club-race h3 { margin-top:10px; font-size:16px; overflow-wrap:anywhere; }.club-race p { font-size:10px; overflow-wrap:anywhere; }.club-race-result { margin-top:10px; padding-top:8px; gap:6px; font-size:10px; }.club-race-medal { gap:4px; }
  .club-about { grid-template-columns:1fr; margin-top:37px; padding:28px 24px; gap:28px; }.club-about h2 { font-size:26px; }.club-practices { grid-template-columns:1fr; gap:20px; }.club-practices article { display:grid; grid-template-columns:80px 1fr; column-gap:12px; }.club-practice-number { grid-column:1/-1; font-size:9px; margin-bottom:7px; }.club-practices h3 { font-size:12px; margin:0; }.club-practices p { font-size:12px; }
 }
 @media(prefers-reduced-motion:reduce){.club-home *{scroll-behavior:auto;}}
