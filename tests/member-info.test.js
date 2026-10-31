@@ -5,7 +5,7 @@ test('Member info combines reference years and every Kakao account without dupli
  const ctx=client(),container={},players=[{memberName:'김회원',birthYear:'1980',joinYear:'2023'},{memberName:'기존회원',birthYear:'',joinYear:''}],accounts=[{user_id:'pending',requested_player_name:'김회원',display_name:'신청자',role:'member'},{user_id:'admin',player_name:'김회원',display_name:'<관리자>',role:'admin'},{user_id:'unnamed',display_name:'새 계정',role:'member'}];
  ctx.renderBirthYearAdmin(container,players,true,true,accounts);
  const table=container.innerHTML.slice(container.innerHTML.indexOf('class="admin-table birth-year-table'));
- const headers=[...table.matchAll(/<th>([^<]+)<\/th>/g)].map(m=>m[1]);assert.deepEqual(headers,['회원 이름','출생연도','가입연도','휴면회원','카카오 닉네임','가입 상태','관리자']);
+ const headers=[...table.matchAll(/<th>([\s\S]*?)<\/th>/g)].map(m=>m[1].replace(/<br\s*\/?>/g,' '));assert.deepEqual(headers,['회원 이름','출생연도','가입연도','휴면회원','카카오 닉네임','가입 상태','관리자']);
  assert.equal((table.match(/data-birth-year-name="김회원"/g)||[]).length,1);
  assert.match(table,/&lt;관리자&gt;/);assert.doesNotMatch(table,/<관리자>/);assert.match(table,/data-account-user="admin"[^>]*checked[^>]*disabled/);
  assert.match(table,/data-approve-user="pending"/);assert.match(table,/data-account-only-name="이름 미입력"/);assert.match(table,/미가입/);
