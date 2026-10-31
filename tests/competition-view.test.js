@@ -206,14 +206,12 @@ test("대회 일괄 등록은 반응형 팀 입력과 회원 검색 선택을 �
 test("에르고 등록은 종목과 장소를 한 행에 두고 직접 입력 전환을 지원한다", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
   const source = fs.readFileSync(path.join(__dirname, "..", "static", "leaderboard.js"), "utf8");
-  assert.match(html, /form-grid ergo-meta-grid[^>]*>.*id="requestEvent".*id="competitionSelect"/);
   assert.match(html, /form-grid ergo-meta-grid[^>]*>.*id="bulkRequestEvent".*id="bulkCompetitionSelect"/);
   assert.doesNotMatch(html, /id="(?:bulk)?CompetitionInput"[^>]*value="용인 훈련장"/);
   assert.match(source, /const DEFAULT_ERGO_PLACE="용인 훈련장"/);
-  assert.match(source, /setSwapSelectValue\("#competitionSelect","#competitionInput",DEFAULT_ERGO_PLACE\)/);
-  assert.match(source, /bindSwapSelect\("#requestEvent","#eventNameInput"/);
   assert.match(source, /bindSwapSelect\("#bulkRequestEvent","#bulkEventNameInput"/);
-  assert.match(html, /id="memberNameInput"[^>]*autocomplete="off"/);
+  assert.doesNotMatch(html, /id="recordRequestForm"|data-registration-mode|등록 방식/);
+  assert.match(html, /request-view is-active" data-request-panel="ergo"/);
   assert.doesNotMatch(html, /ergoMemberSuggestions/);
   assert.match(source, /class="batch-member-input ergo-member-input"/);
   assert.doesNotMatch(source, /batchMemberOptions|bindBatchMember|batch-member-select/);
