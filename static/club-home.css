@@ -108,3 +108,8 @@
 }
 
 .club-about.club-location,.club-about.club-coach { background:transparent; }
+
+.club-race-photo { max-width:900px; margin:32px auto 0; }
+.club-race-photo img { display:block; width:100%; height:auto; border-radius:12px; }
+.club-race-photo figcaption { margin-top:8px; font-size:11px; color:#647787; text-align:center; }
+.club-about.club-location { grid-template-columns:1fr; }
