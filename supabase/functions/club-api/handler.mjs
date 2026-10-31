@@ -77,13 +77,21 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
       }
       if(action==='memberLinkRequest'){
         await limited(request,action,10);if(member.player_name)throw new Error('이미 회원 정보가 연결되어 있습니다.');
-        if(typeof p.name!=='string'||p.name.length>30)throw new Error('회원 이름을 확인해 주세요.');
-        const matched=await Promise.all(['club_player_birth_years','club_records','club_competition_records','club_dormant_members'].map(n=>rest(n+'?select=member_name&member_name=eq.'+encodeURIComponent(p.name),undefined,'GET')));if(!matched.slice(0,3).some(rows=>rows.length)||matched[3].length)throw new Error('등록된 활동 회원를 선택해 주세요.');
-        await rest('club_accounts?user_id=eq.'+encodeURIComponent(member.user_id),{requested_player_name:p.name,display_name:member.nickname},'PATCH');return respond({ok:true,requestedPlayerName:p.name});
+        const name=typeof p.name==='string'?p.name.trim():'';
+        if(!name||name.length>30||/[\u0000-\u001f\u007f]/.test(name))throw new Error('회원 이름을 1~30자로 입력해 주세요.');
+        const matched=await Promise.all(['club_player_birth_years','club_records','club_competition_records','club_dormant_members'].map(n=>rest(n+'?select=member_name&member_name=eq.'+encodeURIComponent(name),undefined,'GET')));
+        if(matched[3].length)throw new Error('휴면 회원입니다. 운영진에게 문의해 주세요.');
+        const isNew=!matched.slice(0,3).some(rows=>rows.length);let birthYear=null,joinYear=null;
+        if(isNew){
+          const currentYear=Number(new Intl.DateTimeFormat('en',{timeZone:'Asia/Seoul',year:'numeric'}).format(new Date()));
+          const year=(value,label)=>{const text=String(value??'').trim();if(!/^\d{4}$/.test(text)||Number(text)<1900||Number(text)>currentYear)throw new Error(label+'는 1900년부터 올해까지 입력해 주세요.');return Number(text);};
+          birthYear=year(p.birthYear,'출생연도');joinYear=year(p.joinYear,'가입연도');if(joinYear<birthYear)throw new Error('가입연도는 출생연도 이후로 입력해 주세요.');
+        }
+        await rest('club_accounts?user_id=eq.'+encodeURIComponent(member.user_id),{requested_player_name:name,requested_birth_year:birthYear,requested_join_year:joinYear,display_name:member.nickname},'PATCH');return respond({ok:true,requestedPlayerName:name});
       }
       const admin=ADMIN.has(action)&&member?.role==='admin';
       if(ADMIN.has(action)&&!admin)throw new Error('관리자 인증이 만료되었습니다.');
-      if(action==='memberAccountList'){const accounts=await rest('club_accounts?select=user_id,player_name,requested_player_name,display_name,role,created_at,linked_at&order=created_at',undefined,'GET');return respond({ok:true,accounts});}
+      if(action==='memberAccountList'){const accounts=await rest('club_accounts?select=user_id,player_name,requested_player_name,requested_birth_year,requested_join_year,display_name,role,created_at,linked_at&order=created_at',undefined,'GET');return respond({ok:true,accounts});}
       if(action==='memberAccountRole'){
         if(typeof p.userId!=='string'||!['member','admin'].includes(p.role))throw new Error('회원과 권한을 확인해 주세요.');
         // Last-admin protection and the actor's current role are rechecked atomically.
@@ -92,7 +100,7 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
         return respond({ok:true});
       }
       if(action==='memberLinkList'){const links=await rest('club_accounts?select=user_id,player_name,requested_player_name,display_name,created_at&requested_player_name=not.is.null&order=created_at',undefined,'GET');return respond({ok:true,links});}
-      if(action==='memberLinkReject'){if(typeof p.name!=='string'||typeof p.userId!=='string')throw new Error('연결 요청을 확인해 주세요.');const changed=await rest('club_accounts?user_id=eq.'+encodeURIComponent(p.userId)+'&requested_player_name=eq.'+encodeURIComponent(p.name),{requested_player_name:null},'PATCH',{Prefer:'return=representation'});if(!changed?.length)throw new Error('연결 요청이 변경되었습니다. 다시 조회해 주세요.');return respond({ok:true});}
+      if(action==='memberLinkReject'){if(typeof p.name!=='string'||typeof p.userId!=='string')throw new Error('연결 요청을 확인해 주세요.');const changed=await rest('club_accounts?user_id=eq.'+encodeURIComponent(p.userId)+'&requested_player_name=eq.'+encodeURIComponent(p.name),{requested_player_name:null,requested_birth_year:null,requested_join_year:null},'PATCH',{Prefer:'return=representation'});if(!changed?.length)throw new Error('연결 요청이 변경되었습니다. 다시 조회해 주세요.');return respond({ok:true});}
       if(action==='memberLinkApprove'){await rpc('club_member_approve',{p_user_id:p.userId,p_player_name:p.name});return respond({ok:true});}
       if(MEMBER.has(action)){if(!member)throw new Error('카카오 로그인 후 신청해 주세요.');if(!member.player_name)throw new Error('운영진이 회원 연결을 확인한 뒤 신청할 수 있습니다.');await limited(request,member.user_id+':'+action,30);}
       if(SEAT_ACTIONS.has(action)){

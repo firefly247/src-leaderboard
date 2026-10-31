@@ -18,3 +18,9 @@
 .admin-table .member-admin-checkbox input[type="checkbox"] { width:18px; min-width:18px; height:18px; margin:0; accent-color:#165dff; }
 
 .member-signup .member-signup-cancel { width:100%; min-height:40px; margin-top:8px; }
+
+.member-signup [data-new-member-years] { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:0 0 16px; padding:12px; border:1px solid var(--line,#d8dfe9); border-radius:8px; min-width:0; }
+.member-signup [data-new-member-years][hidden] { display:none; }
+.member-signup [data-new-member-years] legend { padding:0 4px; font-size:12px; }
+.member-signup [data-new-member-years] label { min-width:0; margin:0; }
+.member-signup [data-new-member-years] input { width:100%; min-width:0; padding:10px 6px; border:1px solid var(--line,#d8dfe9); border-radius:6px; font:inherit; }

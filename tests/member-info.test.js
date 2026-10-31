@@ -31,3 +31,16 @@ test('Adding a member inserts only the new row and keeps the current editable ta
  vm.runInContext("state.adminUserId='actor'",ctx);await ctx.addClubMember(form);
  assert.equal(rows[0],added);assert.equal(rows[1],existing);assert.equal(existing.input.value,'1991');assert.equal(button.disabled,false);assert.equal(form.resetCalled,true);assert.match(message.textContent,/새회원/);
 });
+
+test('New membership requests display submitted years for administrator review',()=>{
+ const ctx=client(),container={};ctx.renderBirthYearAdmin(container,[],true,true,[{user_id:'new',requested_player_name:'신규회원',requested_birth_year:1984,requested_join_year:2013,display_name:'닉네임',role:'member'}]);
+ assert.match(container.innerHTML,/<td>신규회원<\/td><td>1984<\/td><td>2013<\/td>/);assert.match(container.innerHTML,/data-approve-user="new"/);
+});
+
+test('Approving a new applicant replaces the pending row with editable member fields without reloading the table',async()=>{
+ const ctx=client(),player={memberName:'신규회원',birthYear:'1984',joinYear:'2013'},account={user_id:'new',player_name:'신규회원',role:'member'},editable={dataset:{birthYearName:'신규회원',savedJoinYear:'2013'}},summary={innerHTML:''};let replaced=false;
+ const row={dataset:{accountOnlyName:'신규회원'},replaceWith(value){assert.equal(value,editable);replaced=true;}},cell={dataset:{memberAccount:'new'},parentElement:row};
+ ctx.api=async action=>action==='memberAccountList'?{accounts:[account]}:{players:[player]};ctx.renderBirthYearAdmin=()=>{};ctx.document.createElement=()=>({querySelector:()=>editable});
+ const container={querySelector:()=>summary,querySelectorAll:selector=>selector==='[data-member-account]'?[cell]:[editable]};
+ await ctx.refreshMemberAccountCells(container,()=>true);assert.equal(replaced,true);assert.match(summary.innerHTML,/2013/);assert.match(summary.innerHTML,/신규회원/);
+});

@@ -139,3 +139,19 @@ test('Member creation allows missing years, rejects invalid values and preserves
  assert.equal((await f.adminCall('memberCreate',{memberName:'동시등록'})).ok,false);
  assert.equal(f.snapshot.tables.player_birth_years.filter(p=>p.member_name==='동시등록').length,1);
 });
+
+test('New applicants submit private birth/join years without entering the member catalog before approval',async()=>{
+ const f=await fixture();f.account.player_name=null;
+ const request=await f.call('memberLinkRequest',{name:' 신규회원 ',birthYear:'1984',joinYear:'2013'},'','verified');
+ assert.equal(request.ok,true,request.message);assert.equal(f.account.requested_player_name,'신규회원');assert.equal(f.account.requested_birth_year,1984);assert.equal(f.account.requested_join_year,2013);
+ assert.equal(f.snapshot.tables.player_birth_years.some(p=>p.member_name==='신규회원'),false);assert.equal(f.writes.length,0);
+ assert.equal((await f.call('trainingJoin',{},'','verified')).ok,false);
+ assert.equal((await f.call('memberAccountList',{},'','verified')).ok,false);
+ await f.adminCall('memberLinkReject',{userId:f.account.user_id,name:'신규회원'});assert.equal(f.account.requested_player_name,null);assert.equal(f.account.requested_birth_year,null);assert.equal(f.account.requested_join_year,null);
+});
+test('New signup validates names and both years, while existing members never overwrite catalog years',async()=>{
+ const f=await fixture();f.account.player_name=null;
+ for(const payload of [{name:''},{name:'x'.repeat(31)},{name:'a\nb',birthYear:1984,joinYear:2013},{name:'신규회원'},{name:'신규회원',birthYear:'1899',joinYear:'2013'},{name:'신규회원',birthYear:'1984',joinYear:'9999'},{name:'신규회원',birthYear:'2013',joinYear:'1984'}])assert.equal((await f.call('memberLinkRequest',payload,'','verified')).ok,false);
+ assert.equal(f.account.requested_player_name,null);
+ const existing=await f.call('memberLinkRequest',{name:'김선수',birthYear:1900,joinYear:1901},'','verified');assert.equal(existing.ok,true);assert.equal(f.account.requested_birth_year,null);assert.equal(f.account.requested_join_year,null);assert.equal(f.snapshot.tables.player_birth_years[0].birth_year,'1980');
+});

@@ -47,5 +47,25 @@ try{
  assert.equal((await db.query('select public.club_account_set_role($1,$2,$3) as v',[id,id,'member'])).rows[0].v,true);
  await assert.rejects(()=>db.query('select public.club_account_set_role($1,$2,$3)',[id,id,'admin']),/administrator_required/);
  await assert.rejects(()=>db.query('select public.club_account_set_role($1,$2,$3)',[second,second,'member']),/last_administrator/);
+ await db.exec('reset role;');await db.exec(await readFile('supabase/migrations/20261101020000_new_member_signup.sql','utf8'));
+ for(const role of ['anon','authenticated'])assert.equal((await db.query("select has_function_privilege($1,'public.club_member_approve(uuid,text)','execute') as v",[role])).rows[0].v,false);
+ const third='00000000-0000-0000-0000-000000000003';await db.query('insert into auth.users values($1)',[third]);await db.exec('set role service_role;');
+ await db.query("insert into public.club_accounts(user_id,requested_player_name,requested_birth_year,requested_join_year) values($1,'신규회원',1994,2026)",[third]);
+ assert.equal((await db.query("select count(*)::int as n from public.club_player_birth_years where member_name='신규회원'")).rows[0].n,0);
+ const revision=(await db.query('select revision from public.club_store_meta')).rows[0].revision;
+ assert.equal((await db.query('select public.club_member_approve($1,$2) as v',[third,'신규회원'])).rows[0].v,true);
+ assert.deepEqual((await db.query("select birth_year,join_year from public.club_player_birth_years where member_name='신규회원'")).rows[0],{birth_year:'1994',join_year:'2026'});
+ assert.equal(Number((await db.query('select revision from public.club_store_meta')).rows[0].revision),Number(revision)+1);
+ assert.deepEqual((await db.query('select player_name,role,requested_player_name,requested_birth_year,requested_join_year from public.club_accounts where user_id=$1',[third])).rows[0],{player_name:'신규회원',role:'member',requested_player_name:null,requested_birth_year:null,requested_join_year:null});
+ const fourth='00000000-0000-0000-0000-000000000004';await db.exec('reset role;');await db.query('insert into auth.users values($1)',[fourth]);await db.exec('set role service_role;');
+ await db.query("insert into public.club_accounts(user_id,requested_player_name) values($1,'정보부족')",[fourth]);
+ await assert.rejects(()=>db.query('select public.club_member_approve($1,$2)',[fourth,'정보부족']),/invalid_member_years/);
+ await db.query("update public.club_accounts set requested_birth_year=1994,requested_join_year=1990 where user_id=$1",[fourth]);
+ await assert.rejects(()=>db.query('select public.club_member_approve($1,$2)',[fourth,'정보부족']),/invalid_member_years/);
+ assert.equal((await db.query("select count(*)::int as n from public.club_player_birth_years where member_name='정보부족'")).rows[0].n,0);
+ await db.query("update public.club_accounts set requested_player_name='신규회원',requested_birth_year=1980,requested_join_year=2013 where user_id=$1",[fourth]);
+ await assert.rejects(()=>db.query('select public.club_member_approve($1,$2)',[fourth,'신규회원']),/unique/);
+ assert.deepEqual((await db.query("select birth_year,join_year from public.club_player_birth_years where member_name='신규회원'")).rows[0],{birth_year:'1994',join_year:'2026'});
+ console.log('New-member signup verified: private pending years; atomic approval/catalog insert; revision increment; missing/invalid years and duplicate-account rollback; no anonymous approval permission.');
  console.log('PostgreSQL verified: public projection and private permissions; member linking; administrator-only role changes and last-administrator protection.');
 }finally{await db.close();}

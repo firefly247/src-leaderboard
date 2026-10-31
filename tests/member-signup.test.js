@@ -124,3 +124,14 @@ test('Cancelling unfinished signup signs out, and a failed signout keeps signup 
  f.ctx.window.ClubApi.client.auth.signOut=async()=>{signouts++;return {};};
  await f.dialog.querySelector('[data-cancel-signup]').onclick();assert.equal(signouts,2);assert.equal(f.dialog.open,false);assert.equal(f.ctx.window.ClubMembership.member,null);assert.equal(f.events.at(-1).detail.member,null);
 });
+
+test('Unknown names reveal required years; validated new-member details are submitted for approval',async()=>{
+ const f=fixture();await settle();const birth=f.dialog.querySelector('[data-signup-birth-year]'),join=f.dialog.querySelector('[data-signup-join-year]'),years=f.dialog.querySelector('[data-new-member-years]'),submit=f.dialog.querySelector('[data-signup-submit]');
+ assert.equal(years.hidden,true);f.select('신규회원');assert.equal(years.hidden,false);assert.equal(birth.required,true);assert.equal(join.required,true);assert.equal(submit.disabled,true);
+ birth.value='1984';birth.oninput();join.value='2013';join.oninput();assert.equal(submit.disabled,false);
+ await f.submit();const request=f.calls.find(call=>call.action==='memberLinkRequest');assert.equal(request.data.name,'신규회원');assert.equal(request.data.birthYear,'1984');assert.equal(request.data.joinYear,'2013');assert.match(f.dialog.innerHTML,/가입 승인 대기/);
+});
+test('Switching back to a roster name hides new-member fields and omits submitted years',async()=>{
+ const f=fixture();await settle();f.select('신규회원');f.dialog.querySelector('[data-signup-birth-year]').value='1984';f.select('김기현');assert.equal(f.dialog.querySelector('[data-new-member-years]').hidden,true);assert.equal(f.dialog.querySelector('[data-signup-birth-year]').required,false);
+ await f.submit();assert.deepEqual(Object.keys(f.calls.find(call=>call.action==='memberLinkRequest').data),['name']);
+});
