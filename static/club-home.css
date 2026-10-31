@@ -128,5 +128,21 @@
  .club-hero-photo img { object-position:center 68%; }
 }
 
-.club-home .club-section-inset { padding-inline:20px; }
-@media(max-width:760px){ .club-home .club-section-inset { padding-inline:12px; } }
+
+
+/* Shared homepage spacing: one text edge and one rhythm between sections. */
+.club-home { --club-gutter:20px; --club-section-gap:40px; --club-inner-gap:20px; }
+.club-home > section:not(.club-hero),.club-home > figure { width:auto; max-width:none; margin:var(--club-section-gap) 0 0; padding:0 var(--club-gutter); }
+.club-home > .club-achievements,.club-home > .club-joining { padding:var(--club-gutter); }
+.club-home .club-hero-copy { padding-inline:var(--club-gutter); }
+.club-home .club-about,.club-home .club-videos { gap:var(--club-inner-gap); }
+.club-home .club-section-heading { margin-bottom:var(--club-inner-gap); }
+.club-home .club-content>p,.club-home .club-about p { margin-block:12px; }
+.club-home .club-content>p:first-child,.club-home .club-about>div>:first-child { margin-top:0; }
+.club-home .club-content>:last-child,.club-home .club-about>div>:last-child { margin-bottom:0; }
+.club-home .club-content .club-kicker,.club-home .club-about .club-kicker { margin-bottom:10px; }
+.club-home .club-source-links { margin-top:var(--club-inner-gap); }
+.club-home .club-schedule { margin:var(--club-inner-gap) 0 0; }
+.club-home .club-history article { padding-block:var(--club-inner-gap); }
+.club-home .club-introduction p { max-width:850px; }
+@media(max-width:760px){ .club-home { --club-gutter:12px; --club-section-gap:28px; --club-inner-gap:16px; } }
