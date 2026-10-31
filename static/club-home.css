@@ -83,7 +83,8 @@
 .club-about p,.club-about li { font-size:13px; line-height:1.9; color:#536472; word-break:keep-all; }
 .club-about h3 { color:var(--club-ink); font-size:18px; }
 .club-about a { font-size:12px; }
-.club-coach { grid-template-columns:1.1fr 1fr; }
+.club-coach { grid-template-columns:1fr; align-items:stretch; }
+.club-coach img { max-height:300px; object-fit:cover; object-position:center 65%; }
 .club-coach ul { padding-left:18px; }
 .club-schedule { margin:20px 0; }
 .club-schedule>div { display:grid; grid-template-columns:135px 1fr; gap:20px; padding:13px 0; border-bottom:1px solid #dce3e5; }
