@@ -107,7 +107,7 @@
  .club-history article { grid-template-columns:1fr; gap:9px; padding:20px 0; }.club-history h3 { font-size:18px; }.club-history li+li { margin-top:8px; }
 }
 
-.club-about.club-location,.club-about.club-coach { background:transparent; }
+.club-about.club-location,.club-about.club-coach,.club-about.club-joining { background:transparent; }
 
 .club-race-photo { max-width:900px; margin:32px auto 0; }
 .club-race-photo img { display:block; width:100%; height:auto; border-radius:12px; }
