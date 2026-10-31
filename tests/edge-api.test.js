@@ -118,3 +118,24 @@ test('Concurrent seat claims retry against fresh data and never overwrite the wi
  const result=await f.call('trainingSeatSelect',{date:'2026-10-31',boatId:'1X-1',index:0},'','verified');assert.equal(result.ok,false);assert.match(result.message,/먼저 선택/);
  const t=f.snapshot.tables.weekend_training[0].session_json;assert.equal(t.seatBooking.boats[0].seats[0].memberId,'winner');assert.equal(t.participants.length,1);
 });
+
+test('Only administrators create members; one-row commits feed signup options and reject duplicates',async()=>{
+ const f=await fixture(),payload={memberName:' 새회원 ',birthYear:'1995',joinYear:'2026'};
+ assert.equal((await f.call('memberCreate',payload)).ok,false);
+ assert.equal((await f.call('memberCreate',payload,'','verified')).ok,false);assert.equal(f.writes.length,0);
+ const out=await f.adminCall('memberCreate',payload);assert.equal(out.ok,true,out.message);assert.deepEqual(out.player,{memberName:'새회원',birthYear:'1995',joinYear:'2026'});
+ assert.deepEqual(Object.keys(f.writes[0].p_changes),['player_birth_years']);assert.equal(f.writes[0].p_changes.player_birth_years.upsert.length,1);
+ assert.equal((await f.call('memberLinkOptions',{},'','verified')).names.includes('새회원'),true);
+ const listed=await f.adminCall('adminList',{view:'player-birth-years'});assert.equal(listed.players.some(p=>p.memberName==='새회원'),true);
+ assert.equal((await f.adminCall('memberCreate',payload)).ok,false);assert.equal(f.writes.length,1);
+});
+test('Member creation allows missing years, rejects invalid values and preserves concurrent data',async()=>{
+ const f=await fixture();
+ for(const payload of [{memberName:''},{memberName:'x'.repeat(31)},{memberName:'a\nb'},{memberName:'새회원',birthYear:'1899'},{memberName:'새회원',joinYear:'9999'},{memberName:'새회원',birthYear:'1990.5'},{memberName:'김선수'}])assert.equal((await f.adminCall('memberCreate',payload)).ok,false);
+ assert.equal(f.writes.length,0);
+ assert.equal((await f.adminCall('memberCreate',{memberName:'연도미입력'})).ok,true);
+ assert.equal(f.snapshot.tables.player_birth_years.find(p=>p.member_name==='연도미입력').birth_year,'');
+ f.conflictOnNextCommit(snapshot=>snapshot.tables.player_birth_years.push({member_name:'동시등록',birth_year:'1991',join_year:'2026',updated_at:''}));
+ assert.equal((await f.adminCall('memberCreate',{memberName:'동시등록'})).ok,false);
+ assert.equal(f.snapshot.tables.player_birth_years.filter(p=>p.member_name==='동시등록').length,1);
+});

@@ -20,3 +20,14 @@ test('Member account reload restores only unsaved year/dormancy changes and sear
  const draft=ctx.captureMemberInfoDraft();row=makeRow();search.value='';ctx.updatePlayerYearDirtyState=r=>r.dirty=true;ctx.updatePlayerYearSaveState=()=>{};ctx.restoreMemberInfoDraft(draft);
  assert.equal(row.fields['.birth-year-input'].value,'1981');assert.equal(row.fields['.join-year-input'].value,'');assert.equal(row.fields['.player-dormant-input'].checked,true);assert.equal(row.dataset.savedBirthYear,'1980');assert.equal(row.dataset.savedJoinYear,'2023');assert.equal(row.dirty,true);assert.equal(search.value,'김');assert.equal(row.hidden,false);
 });
+
+test('Adding a member inserts only the new row and keeps the current editable table',async()=>{
+ const ctx=client(),existing={dataset:{birthYearName:'기존회원',savedJoinYear:'2023'},input:{value:'1991'}},added={dataset:{birthYearName:'새회원',savedJoinYear:'2026'}},rows=[existing];
+ const body={querySelector:()=>null,prepend:row=>rows.unshift(row),querySelectorAll:()=>rows},summary={innerHTML:''},search={value:''},button={disabled:false},message={classList:{remove(){},add(){}},textContent:''};
+ const form={isConnected:true,reportValidity:()=>true,querySelector:s=>s==='button[type="submit"]'?button:message,reset(){this.resetCalled=true;}};
+ ctx.FormData=class{*[Symbol.iterator](){yield ['memberName','새회원'];yield ['birthYear','1995'];yield ['joinYear','2026'];}};
+ ctx.document={querySelector:s=>({'#birthYearBatchForm tbody':body,'#playerJoinYearSummary':summary,'#birthYearSearch':search}[s]),createElement:()=>({querySelector:()=>added})};
+ ctx.renderBirthYearAdmin=()=>{};ctx.filterMemberInfo=()=>{};ctx.api=async(action,payload)=>{assert.equal(action,'memberCreate');assert.equal(payload.memberName,'새회원');return {player:{memberName:'새회원',birthYear:'1995',joinYear:'2026'}};};
+ vm.runInContext("state.adminUserId='actor'",ctx);await ctx.addClubMember(form);
+ assert.equal(rows[0],added);assert.equal(rows[1],existing);assert.equal(existing.input.value,'1991');assert.equal(button.disabled,false);assert.equal(form.resetCalled,true);assert.match(message.textContent,/새회원/);
+});

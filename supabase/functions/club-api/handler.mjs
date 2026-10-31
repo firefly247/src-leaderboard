@@ -4,7 +4,7 @@ import { SEAT_ACTIONS, FLEET, seatView, changeSeats } from './training-seats.mjs
 
 const PUBLIC = new Set(['trainingGet','trainingList','trainingRoster','raceLineupList','raceLineupGet','pendingDeleteRecords']);
 const MEMBER = new Set(['trainingJoin','trainingWeekJoin','requestAdd','requestCompetitionAdd','requestDelete','trainingSeats','trainingBoatAdd','trainingSeatSelect','trainingSeatStatus','trainingSeatComment']);
-const ADMIN = new Set(['trainingBoatRemove','trainingSeatConfirm','trainingSeatReopen','adminList','saveApprovedRecord','saveCompetitionDates','updateCompetitionRequests','savePlayerBirthYear','savePlayerBirthYears','processRequest','processAddRequests','processCompetitionAddRequests','processRejectRequests','manageEvent','manageCompetition','manageCompetitionEvent','manageCompetitionDivision','trainingOpen','trainingRecommend','trainingDraftGet','trainingDraftEdit','trainingDraftSave','trainingPublish','trainingCheck','trainingQualifications','raceLineupAdminData','raceLineupGetAdmin','raceLineupCreate','raceLineupParticipants','raceLineupSave','raceLineupFinalize','memberLinkList','memberLinkApprove','memberLinkReject','memberAccountList','memberAccountRole']);
+const ADMIN = new Set(['trainingBoatRemove','trainingSeatConfirm','trainingSeatReopen','adminList','saveApprovedRecord','saveCompetitionDates','updateCompetitionRequests','savePlayerBirthYear','savePlayerBirthYears','processRequest','processAddRequests','processCompetitionAddRequests','processRejectRequests','manageEvent','manageCompetition','manageCompetitionEvent','manageCompetitionDivision','trainingOpen','trainingRecommend','trainingDraftGet','trainingDraftEdit','trainingDraftSave','trainingPublish','trainingCheck','trainingQualifications','raceLineupAdminData','raceLineupGetAdmin','raceLineupCreate','raceLineupParticipants','raceLineupSave','raceLineupFinalize','memberLinkList','memberLinkApprove','memberLinkReject','memberAccountList','memberAccountRole','memberCreate']);
 const clone=x=>structuredClone(x);
 const csv=value=>{const text=String(value??'');return /[",\r\n]/.test(text)?'"'+text.replace(/"/g,'""')+'"':text;};
 
@@ -112,6 +112,18 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
       const snapshot=await rpc('club_store_read'),photo=await photoInfo(p.photo);
       if(['trainingJoin','trainingWeekJoin','trainingRecommend','trainingDraftEdit','trainingDraftSave','trainingPublish'].includes(action)&&snapshot.tables.weekend_training.some(r=>r.session_json.seatBooking&&(p.date===r.date||p.week&&r.date>=p.week&&r.date<=new Date(Date.parse(p.week+'T00:00:00Z')+86400000).toISOString().slice(0,10))))throw new Error('좌석 신청 방식의 훈련입니다. 훈련 참석 현황에서 좌석을 선택하거나 확정해 주세요.');
       if(MEMBER.has(action)&&snapshot.tables.dormant_members.some(r=>r.member_name===member.player_name))throw new Error('휴면 상태입니다. 운영진에게 문의해 주세요.');
+      if(action==='memberCreate'){
+        const name=typeof p.memberName==='string'?p.memberName.trim():'';
+        if(!name||name.length>30||/[\u0000-\u001f\u007f]/.test(name))throw new Error('회원 이름을 1~30자로 입력해 주세요.');
+        const currentYear=Number(new Intl.DateTimeFormat('en',{timeZone:'Asia/Seoul',year:'numeric'}).format(new Date()));
+        const year=(value,label)=>{const text=value==null?'':String(value).trim();if(text&&(!/^\d{4}$/.test(text)||Number(text)<1900||Number(text)>currentYear))throw new Error(label+'는 1900년부터 올해까지 입력해 주세요.');return text;};
+        const birthYear=year(p.birthYear,'출생연도'),joinYear=year(p.joinYear,'가입연도');
+        const existing=createEngine(snapshot,{utilities,admin}).dispatch('adminList',{view:'player-birth-years'}).players;
+        if(existing.some(player=>player.memberName===name))throw new Error('이미 등록된 회원 이름입니다. 기존 회원 정보를 확인해 주세요.');
+        const row={member_name:name,birth_year:birthYear,join_year:joinYear,updated_at:new Date().toISOString()};
+        await rpc('club_store_commit',{p_expected_revision:snapshot.revision,p_changes:{player_birth_years:{upsert:[row],remove:[]}}});
+        return respond({ok:true,player:{memberName:name,birthYear,joinYear}});
+      }
       const engine=createEngine(snapshot,{utilities,admin,photoUrl:photo?.url});
       const payload=clone(p);
       if(['trainingJoin','trainingWeekJoin'].includes(action)) {
