@@ -186,3 +186,24 @@
 
 .club-history li+li { margin-top:5px; }
 @media(max-width:760px){ .club-home .club-history article { padding-block:10px; } .club-history li+li { margin-top:4px; } }
+
+/* Compact mobile rhythm without reducing reading size or tap targets. */
+@media(max-width:760px){
+ .club-home { --club-section-gap:20px; --club-inner-gap:12px; }
+ .club-home .club-hero { min-height:350px; }
+ .club-home .club-hero-copy { padding-top:26px; padding-bottom:32px; }
+ .club-home .club-hero-description { margin-top:14px; margin-bottom:18px; line-height:1.75; }
+ .club-home .club-content,.club-home .club-about p,.club-home .club-about li { line-height:1.75; }
+ .club-home .club-content>p,.club-home .club-about p { margin-block:8px; }
+ .club-home .club-content>p:first-child,.club-home .club-about>div>:first-child { margin-top:0; }
+ .club-home .club-content>:last-child,.club-home .club-about>div>:last-child { margin-bottom:0; }
+ .club-home .club-content .club-kicker,.club-home .club-about .club-kicker { margin-bottom:7px; }
+ .club-home .club-section-heading { margin-bottom:12px; }
+ .club-home > section.club-achievements,.club-home .club-recent-records .club-races { padding-block:14px; }
+ .club-home .club-record-label { margin-bottom:10px; }
+ .club-home .club-record-bottom { margin-top:10px; padding-top:10px; }
+ .club-home .club-race-photo img,.club-home .club-coach img { max-height:190px; object-fit:cover; object-position:center 65%; }
+ .club-home .club-videos { gap:10px; }
+ .club-home .club-schedule>div { padding-block:9px; }
+ .club-home .club-history article { padding-block:8px; row-gap:6px; }
+}
