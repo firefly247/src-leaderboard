@@ -45,9 +45,9 @@
   if(api?.client)api.client.auth.onAuthStateChange(()=>{setTimeout(refresh,0);});
   window.ClubMembership={get member(){return profile;},login,refresh,bindMemberAccounts(container,isCurrent=()=>true,onSaved=async()=>{}){
     const previous=container._clubAccountHandlers;if(previous){container.removeEventListener('change',previous.change);container.removeEventListener('click',previous.click);}
-    const changed=async()=>{await refresh();if(profile?.role==='admin'&&isCurrent())await onSaved();};
+    const changed=async(refreshSelf=false)=>{if(refreshSelf)await refresh();if(profile?.role==='admin'&&isCurrent())await onSaved();};
     const change=async event=>{const selected=event.target.closest('[data-account-user]');if(!selected||selected.disabled||!isCurrent())return;selected.disabled=true;
-      try{await window.api('memberAccountRole',{userId:selected.dataset.accountUser,role:selected.checked?'admin':'member'},true);selected.dataset.accountRole=selected.checked?'admin':'member';await changed();}
+      try{await window.api('memberAccountRole',{userId:selected.dataset.accountUser,role:selected.checked?'admin':'member'},true);selected.dataset.accountRole=selected.checked?'admin':'member';await changed(selected.dataset.accountUser===profile?.userId);}
       catch(error){selected.checked=selected.dataset.accountRole==='admin';if(isCurrent())alert(error.message);}
       finally{if(isCurrent())selected.disabled=false;}
     };

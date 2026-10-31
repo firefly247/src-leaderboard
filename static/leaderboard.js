@@ -214,7 +214,18 @@ function memberAccountCellsHtml(account,adminCount=0,actorId=''){
   if(!account)return '<td>—</td><td>미가입</td><td>—</td>';
   const name=account.player_name||account.requested_player_name||account.display_name||'회원';
   const actions=account.requested_player_name?`<div class="member-info-actions"><button type="button" data-approve-user="${esc(account.user_id)}" data-player-name="${esc(account.requested_player_name)}">가입 승인</button><button type="button" data-reject-user="${esc(account.user_id)}" data-player-name="${esc(account.requested_player_name)}">거절</button></div>`:'';
-  return `<td>${esc(account.display_name||'회원')}${account.user_id===actorId?' <small>(나)</small>':''}</td><td>${account.player_name?'승인 완료':account.requested_player_name?'승인 대기':'이름 입력 전'}${actions}</td><td><label class="member-admin-checkbox"><input type="checkbox" data-account-user="${esc(account.user_id)}" data-account-role="${esc(account.role)}" aria-label="${esc(name)} 관리자 권한" ${account.role==='admin'?'checked':''} ${account.role==='admin'&&adminCount===1?'disabled title="마지막 관리자는 해제할 수 없습니다."':''}><span>관리자</span></label></td>`;
+  return `<td data-member-account="${esc(account.user_id)}">${esc(account.display_name||'회원')}${account.user_id===actorId?' <small>(나)</small>':''}</td><td>${account.player_name?'승인 완료':account.requested_player_name?'승인 대기':'이름 입력 전'}${actions}</td><td><label class="member-admin-checkbox"><input type="checkbox" data-account-user="${esc(account.user_id)}" data-account-role="${esc(account.role)}" aria-label="${esc(name)} 관리자 권한" ${account.role==='admin'?'checked':''} ${account.role==='admin'&&adminCount===1?'disabled title="마지막 관리자는 해제할 수 없습니다."':''}></label></td>`;
+}
+async function refreshMemberAccountCells(container,isCurrent){
+  const {accounts=[]}=await api('memberAccountList',{},true);
+  if(!isCurrent())return;
+  const byId=new Map(accounts.map(account=>[account.user_id,account])),adminCount=accounts.filter(account=>account.role==='admin').length;
+  container.querySelectorAll('[data-member-account]').forEach(cell=>{
+    const account=byId.get(cell.dataset.memberAccount);if(!account)return;
+    const row=cell.parentElement;
+    for(let i=0;i<3;i++)row.lastElementChild.remove();
+    row.insertAdjacentHTML('beforeend',memberAccountCellsHtml(account,adminCount,state.adminUserId));
+  });
 }
 function memberAccountAssignments(players,accounts){
   const names=new Set(players.map(p=>p.memberName)),primary=new Map();
@@ -401,7 +412,7 @@ async function loadAdmin(view) {
   try{
     if(view==='member-info'){
       const [data,{accounts}]=await Promise.all([api('adminList',{view:'player-birth-years'},true),api('memberAccountList',{},true)]);
-      if(sequence===adminLoadSequence&&state.adminUserId===token){adminContent(view,{...data,accounts});restoreMemberInfoDraft(draft);memberInfoDraft=null;window.ClubMembership.bindMemberAccounts($('#adminContent'),()=>sequence===adminLoadSequence&&state.adminUserId===token,()=>loadAdmin('member-info'));}
+      if(sequence===adminLoadSequence&&state.adminUserId===token){adminContent(view,{...data,accounts});restoreMemberInfoDraft(draft);memberInfoDraft=null;window.ClubMembership.bindMemberAccounts($('#adminContent'),()=>sequence===adminLoadSequence&&state.adminUserId===token,()=>refreshMemberAccountCells($('#adminContent'),()=>sequence===adminLoadSequence&&state.adminUserId===token));}
       return;
     }
     const data=await api("adminList",{view},true);

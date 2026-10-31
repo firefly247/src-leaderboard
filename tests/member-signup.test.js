@@ -83,3 +83,25 @@ test('Administrator checkboxes grant and revoke roles; failed saves restore the 
   checkbox.disabled=false;checkbox.checked=false;await listeners.change(event);assert.equal(writes[1].role,'member');assert.equal(refreshed,2);
   fail=true;checkbox.disabled=false;checkbox.checked=true;await listeners.change(event);assert.equal(checkbox.checked,false);assert.equal(checkbox.disabled,false);assert.deepEqual(alerts,['저장 실패']);
 });
+
+test('Approving a signup updates account cells without refreshing the admin session',async()=>{
+  const f=fixture({userId:'actor',role:'admin',playerName:'장진구'});await settle();
+  const before=f.calls.filter(call=>call.action==='memberSession').length,writes=[],listeners={};let updates=0;
+  f.ctx.window.api=async(action,payload)=>{writes.push({action,payload});return {ok:true};};
+  const container={addEventListener(type,fn){listeners[type]=fn;},removeEventListener(){}};
+  f.ctx.window.ClubMembership.bindMemberAccounts(container,()=>true,async()=>updates++);
+  const selected={disabled:false,dataset:{approveUser:'target',playerName:'김기현'}};
+  await listeners.click({target:{closest:()=>selected}});
+  assert.equal(writes[0].action,'memberLinkApprove');assert.equal(updates,1);
+  assert.equal(f.calls.filter(call=>call.action==='memberSession').length,before);
+});
+test('Account refresh replaces only the three account cells and leaves member inputs intact',async()=>{
+  const source=fs.readFileSync(require('node:path').join(__dirname,'../static/leaderboard.js'),'utf8');
+  const fn=source.match(/async function refreshMemberAccountCells\([^\n]*\)\{[\s\S]*?\n\}/)[0];
+  const input={value:'1990'},cells=[input,{},{},{}],row={get lastElementChild(){return {remove(){cells.pop();}};},insertAdjacentHTML(position,html){cells.push(html);}};
+  const cell={dataset:{memberAccount:'target'},parentElement:row};
+  const context=vm.createContext({api:async()=>({accounts:[{user_id:'target',player_name:'김기현',role:'member'}]}),state:{adminUserId:'actor'},memberAccountCellsHtml:account=>account.player_name});
+  vm.runInContext(fn,context);
+  await context.refreshMemberAccountCells({querySelectorAll:()=>[cell]},()=>true);
+  assert.equal(cells[0],input);assert.equal(input.value,'1990');assert.equal(cells[1],'김기현');
+});
