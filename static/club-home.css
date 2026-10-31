@@ -153,3 +153,19 @@
 .club-home .club-hero-title { font-size:clamp(30px,3.8vw,52px); }
 .club-home .club-hero-copy { padding-left:44px; padding-right:32px; }
 @media(max-width:760px){ .club-home .club-hero-title { font-size:36px; } .club-home .club-hero-copy { padding-left:32px; padding-right:24px; } }
+
+/* Keep the summary card's vertical inset above the shared section reset. */
+.club-home > section.club-achievements { padding:20px var(--club-gutter); }
+.club-home .club-record-label { margin-bottom:16px; }
+.club-home .club-stat { min-width:0; padding-inline:20px; }
+.club-home .club-stat:first-child { padding-left:0; }
+.club-home .club-stat:last-child { padding-right:0; }
+.club-home .club-record-bottom { margin-top:16px; padding-top:12px; }
+@media(max-width:760px){
+ .club-home > section.club-achievements { padding-block:18px; }
+ .club-home .club-record-label { margin-bottom:14px; }
+ .club-home .club-stat { padding-inline:10px; }
+ .club-home .club-stat:first-child { padding-left:0; }
+ .club-home .club-stat:last-child { padding-right:0; }
+ .club-home .club-record-bottom { margin-top:14px; padding-top:12px; }
+}
