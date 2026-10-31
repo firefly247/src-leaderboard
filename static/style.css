@@ -784,3 +784,11 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .member-add-form label { display:grid; gap:4px; font-size:12px; flex:1 1 100px; min-width:0; }
 .member-add-form input { width:100%; min-width:0; min-height:36px; padding:7px; border:1px solid var(--line); border-radius:6px; font:inherit; }
 .member-add-form [role="status"] { flex-basis:100%; margin:0; }
+
+.reference-admin .player-join-table { width:100%; min-width:0; table-layout:fixed; }
+.reference-admin .player-join-table th,.reference-admin .player-join-table td { min-width:0; padding:6px 3px; white-space:normal; overflow-wrap:anywhere; }
+@media (max-width:600px) {
+  .reference-admin .player-join-table { font-size:11px; }
+  .reference-admin .player-join-table th,.reference-admin .player-join-table td { padding:6px 1px; }
+  .reference-admin .player-join-table th { font-size:10px; letter-spacing:0; }
+}
