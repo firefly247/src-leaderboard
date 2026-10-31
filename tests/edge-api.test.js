@@ -4,7 +4,7 @@ const layout=JSON.parse(fs.readFileSync('apps-script/StorageLayout.gs','utf8').m
 const blank=()=>Object.fromEntries(Object.keys(layout).map(k=>[k,[]]));
 async function fixture(){
  const {createHandler}=await import('../supabase/functions/club-api/handler.mjs');
- let snapshot={revision:1,tables:blank()},reads=0,conflict=null;const writes=[],uploads=[],roleWrites=[];
+ let snapshot={revision:1,tables:blank()},reads=0,conflict=null;const writes=[],uploads=[],roleWrites=[],coaches=new Set();
  snapshot.tables.events=[{event_id:'e1',event_name:'2000m'}];snapshot.tables.player_birth_years=[{member_name:'김선수',birth_year:'1980',join_year:'2023',updated_at:''}];
  const account={user_id:'00000000-0000-0000-0000-000000000001',player_name:'김선수',requested_player_name:null,role:'member'};
  const response=v=>new Response(v===undefined?'':JSON.stringify(v),{status:200});
@@ -13,6 +13,11 @@ async function fixture(){
   if(url.includes('/storage/v1/object/')){uploads.push(url);return response({});}
   const path=url.split('/rest/v1/')[1],p=options.body?JSON.parse(options.body):{};
   if(path==='club_accounts')return response();if(path.startsWith('club_accounts?')){if(options.method==='PATCH')Object.assign(account,p);return response([account]);}
+  if(path.split('?')[0]==='club_coaches'){
+   if(options.method==='POST'){coaches.add(p.member_name);return response();}
+   if(options.method==='DELETE'){coaches.delete(decodeURIComponent(path.split('member_name=eq.')[1]));return response();}
+   return response([...coaches].map(member_name=>({member_name})));
+  }
   const table=path.split('?')[0];if(['club_player_birth_years','club_records','club_competition_records','club_dormant_members'].includes(table)){
    const exact=path.match(/member_name=eq\.([^&]+)/)?.[1];return response(snapshot.tables[table.slice(5)].filter(r=>!exact||r.member_name===decodeURIComponent(exact)).map(r=>({member_name:r.member_name})));
   }
@@ -154,4 +159,18 @@ test('New signup validates names and both years, while existing members never ov
  for(const payload of [{name:''},{name:'x'.repeat(31)},{name:'a\nb',birthYear:1984,joinYear:2013},{name:'신규회원'},{name:'신규회원',birthYear:'1899',joinYear:'2013'},{name:'신규회원',birthYear:'1984',joinYear:'9999'},{name:'신규회원',birthYear:'2013',joinYear:'1984'}])assert.equal((await f.call('memberLinkRequest',payload,'','verified')).ok,false);
  assert.equal(f.account.requested_player_name,null);
  const existing=await f.call('memberLinkRequest',{name:'김선수',birthYear:1900,joinYear:1901},'','verified');assert.equal(existing.ok,true);assert.equal(f.account.requested_birth_year,null);assert.equal(f.account.requested_join_year,null);assert.equal(f.snapshot.tables.player_birth_years[0].birth_year,'1980');
+});
+
+test('Coach flags are administrator-only, persist separately from year edits, and can be removed',async()=>{
+ const f=await fixture();
+ assert.equal((await f.call('memberCoachSet',{memberName:'김선수',isCoach:true})).ok,false);
+ assert.equal((await f.call('memberCoachSet',{memberName:'김선수',isCoach:true},'','verified')).ok,false);
+ for(const payload of [{memberName:'없는회원',isCoach:true},{memberName:'김선수',isCoach:'true'},{memberName:'',isCoach:false}])assert.equal((await f.adminCall('memberCoachSet',payload)).ok,false);
+ const saved=await f.adminCall('memberCoachSet',{memberName:'김선수',isCoach:true});assert.equal(saved.ok,true,saved.message);assert.equal(saved.isCoach,true);
+ let list=await f.adminCall('adminList',{view:'player-birth-years'});assert.equal(list.players.find(p=>p.memberName==='김선수').isCoach,true);
+ await f.adminCall('savePlayerBirthYears',{players:[{memberName:'김선수',joinYear:'2024'}]});
+ list=await f.adminCall('adminList',{view:'player-birth-years'});assert.equal(list.players.find(p=>p.memberName==='김선수').isCoach,true);assert.equal(list.players.find(p=>p.memberName==='김선수').joinYear,'2024');
+ assert.equal((await f.adminCall('memberCoachSet',{memberName:'김선수',isCoach:false})).ok,true);
+ list=await f.adminCall('adminList',{view:'player-birth-years'});assert.equal(list.players.find(p=>p.memberName==='김선수').isCoach,false);
+ const published=await f.call('publicData');assert.ok(!JSON.stringify(published).includes('isCoach'));
 });

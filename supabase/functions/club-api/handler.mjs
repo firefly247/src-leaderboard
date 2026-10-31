@@ -4,7 +4,7 @@ import { SEAT_ACTIONS, FLEET, seatView, changeSeats } from './training-seats.mjs
 
 const PUBLIC = new Set(['trainingGet','trainingList','trainingRoster','raceLineupList','raceLineupGet','pendingDeleteRecords']);
 const MEMBER = new Set(['trainingJoin','trainingWeekJoin','requestAdd','requestCompetitionAdd','requestDelete','trainingSeats','trainingBoatAdd','trainingSeatSelect','trainingSeatStatus','trainingSeatComment']);
-const ADMIN = new Set(['trainingBoatRemove','trainingSeatConfirm','trainingSeatReopen','adminList','saveApprovedRecord','saveCompetitionDates','updateCompetitionRequests','savePlayerBirthYear','savePlayerBirthYears','processRequest','processAddRequests','processCompetitionAddRequests','processRejectRequests','manageEvent','manageCompetition','manageCompetitionEvent','manageCompetitionDivision','trainingOpen','trainingRecommend','trainingDraftGet','trainingDraftEdit','trainingDraftSave','trainingPublish','trainingCheck','trainingQualifications','raceLineupAdminData','raceLineupGetAdmin','raceLineupCreate','raceLineupParticipants','raceLineupSave','raceLineupFinalize','memberLinkList','memberLinkApprove','memberLinkReject','memberAccountList','memberAccountRole','memberCreate']);
+const ADMIN = new Set(['trainingBoatRemove','trainingSeatConfirm','trainingSeatReopen','adminList','saveApprovedRecord','saveCompetitionDates','updateCompetitionRequests','savePlayerBirthYear','savePlayerBirthYears','processRequest','processAddRequests','processCompetitionAddRequests','processRejectRequests','manageEvent','manageCompetition','manageCompetitionEvent','manageCompetitionDivision','trainingOpen','trainingRecommend','trainingDraftGet','trainingDraftEdit','trainingDraftSave','trainingPublish','trainingCheck','trainingQualifications','raceLineupAdminData','raceLineupGetAdmin','raceLineupCreate','raceLineupParticipants','raceLineupSave','raceLineupFinalize','memberLinkList','memberLinkApprove','memberLinkReject','memberAccountList','memberAccountRole','memberCreate','memberCoachSet']);
 const clone=x=>structuredClone(x);
 const csv=value=>{const text=String(value??'');return /[",\r\n]/.test(text)?'"'+text.replace(/"/g,'""')+'"':text;};
 
@@ -91,6 +91,15 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
       }
       const admin=ADMIN.has(action)&&member?.role==='admin';
       if(ADMIN.has(action)&&!admin)throw new Error('관리자 인증이 만료되었습니다.');
+      if(action==='memberCoachSet'){
+        const name=typeof p.memberName==='string'?p.memberName.trim():'';
+        if(!name||name.length>30||typeof p.isCoach!=='boolean')throw new Error('회원 이름과 코치 여부를 확인해 주세요.');
+        const snapshot=await rpc('club_store_read'),players=createEngine(snapshot,{utilities,admin}).dispatch('adminList',{view:'player-birth-years'}).players;
+        if(!players.some(player=>player.memberName===name))throw new Error('등록된 회원을 선택해 주세요.');
+        if(p.isCoach)await rest('club_coaches',{member_name:name},'POST',{Prefer:'resolution=ignore-duplicates'});
+        else await rest('club_coaches?member_name=eq.'+encodeURIComponent(name),undefined,'DELETE');
+        return respond({ok:true,memberName:name,isCoach:p.isCoach});
+      }
       if(action==='memberAccountList'){const accounts=await rest('club_accounts?select=user_id,player_name,requested_player_name,requested_birth_year,requested_join_year,display_name,role,created_at,linked_at&order=created_at',undefined,'GET');return respond({ok:true,accounts});}
       if(action==='memberAccountRole'){
         if(typeof p.userId!=='string'||!['member','admin'].includes(p.role))throw new Error('회원과 권한을 확인해 주세요.');
@@ -156,6 +165,10 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
         const requester=JSON.parse(request.source_json).__club_requester;
         return {...request,requester_name:typeof requester?.name==='string'?requester.name:''};
       });
+      if(action==='adminList'&&p.view==='player-birth-years'&&Array.isArray(result.players)){
+        const coaches=new Set((await rest('club_coaches?select=member_name',undefined,'GET')).map(row=>row.member_name));
+        result.players=result.players.map(player=>({...player,isCoach:coaches.has(player.memberName)}));
+      }
       const changes=engine.changes();
       if(photo)await upload(photo);
       if(Object.keys(changes).length)await rpc('club_store_commit',{p_expected_revision:snapshot.revision,p_changes:changes});

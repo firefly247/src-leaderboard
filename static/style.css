@@ -689,16 +689,18 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .join-year-input::-webkit-inner-spin-button, .join-year-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .birth-year-table td.is-dirty input { border: 2px solid var(--primary); }
 .reference-admin .birth-year-table th:last-child { width: 52px; }
-.reference-admin .birth-year-table .player-dormant-input { width: 18px; min-height: 18px; height: 18px; margin: 0; accent-color: var(--primary); }
+.reference-admin .birth-year-table .player-dormant-input,.reference-admin .member-info-table .player-coach-input { width: 18px; min-height: 18px; height: 18px; margin: 0; accent-color: var(--primary); }
 .birth-year-table td.is-dirty .player-dormant-input { outline: 2px solid var(--primary); outline-offset: 2px; }
 .player-dirty-badge { display: block; margin-top: 3px; color: var(--primary); font-size: 10px; font-weight: 700; white-space: nowrap; }
 /* Fill the available panel width; each column scales with the viewport. */
 .reference-admin .member-info-table { width:100%; min-width:0; table-layout:fixed; font-size:12px; }
 .reference-admin .member-info-table th,.reference-admin .member-info-table td { padding:5px 4px; white-space:normal; overflow-wrap:anywhere; }
 .reference-admin .member-info-table th:first-child { width:14%; }
-.reference-admin .member-info-table th:nth-child(2),.reference-admin .member-info-table th:nth-child(3) { width:16%; }
-.reference-admin .member-info-table th:nth-child(4) { width:10%; }
-.reference-admin .member-info-table th:nth-child(5),.reference-admin .member-info-table th:nth-child(6) { width:18%; }
+.reference-admin .member-info-table th:nth-child(2),.reference-admin .member-info-table th:nth-child(3) { width:14%; }
+.reference-admin .member-info-table th:nth-child(4) { width:8%; }
+.reference-admin .member-info-table th:nth-child(5) { width:7%; }
+.reference-admin .member-info-table th:nth-child(6) { width:18%; }
+.reference-admin .member-info-table th:nth-child(7) { width:17%; }
 .reference-admin .member-info-table th:last-child { width:8%; }
 .reference-admin .member-info-table .birth-year-control { width:100%; max-width:146px; }
 .reference-admin .member-info-table .birth-year-input,.reference-admin .member-info-table .join-year-input { flex:1 1 0; min-width:0; width:100%; max-width:120px; }
@@ -707,15 +709,16 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .reference-admin .member-info-table { font-size:11px; }
   .reference-admin .member-info-table th,.reference-admin .member-info-table td { padding:5px 2px; }
   .reference-admin .member-info-table th { font-size:10px; letter-spacing:0; }
-  .reference-admin .member-info-table th:first-child { width:15%; }
-  .reference-admin .member-info-table th:nth-child(2),.reference-admin .member-info-table th:nth-child(3) { width:15%; }
-  .reference-admin .member-info-table th:nth-child(5) { width:20%; }
+  .reference-admin .member-info-table th:first-child { width:14%; }
+  .reference-admin .member-info-table th:nth-child(2),.reference-admin .member-info-table th:nth-child(3) { width:14%; }
+  .reference-admin .member-info-table th:nth-child(5) { width:8%; }
   .reference-admin .member-info-table th:nth-child(6) { width:17%; }
+  .reference-admin .member-info-table th:nth-child(7) { width:17%; }
   .reference-admin .member-info-table th:last-child { width:8%; }
   .reference-admin .member-info-table .birth-year-stepper { display:none; }
   .reference-admin .member-info-table .birth-year-input,.reference-admin .member-info-table .join-year-input { padding:5px 1px; font-size:11px; }
   .reference-admin .member-info-table .member-info-actions button { min-width:0; padding:5px 3px; font-size:10px; white-space:normal; }
-  .reference-admin .member-info-table .player-dormant-input,.reference-admin .member-info-table .member-admin-checkbox input[type="checkbox"] { width:16px; min-width:16px; height:16px; min-height:16px; }
+  .reference-admin .member-info-table .player-dormant-input,.reference-admin .member-info-table .player-coach-input,.reference-admin .member-info-table .member-admin-checkbox input[type="checkbox"] { width:16px; min-width:16px; height:16px; min-height:16px; }
 }
 .player-dirty-badge[hidden] { display: none; }
 .reference-admin .birth-year-control { display: flex; width: 100%; max-width: 186px; margin-inline: auto; justify-content: center; }

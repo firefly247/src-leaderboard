@@ -67,5 +67,11 @@ try{
  await assert.rejects(()=>db.query('select public.club_member_approve($1,$2)',[fourth,'신규회원']),/unique/);
  assert.deepEqual((await db.query("select birth_year,join_year from public.club_player_birth_years where member_name='신규회원'")).rows[0],{birth_year:'1994',join_year:'2026'});
  console.log('New-member signup verified: private pending years; atomic approval/catalog insert; revision increment; missing/invalid years and duplicate-account rollback; no anonymous approval permission.');
+ await db.exec('reset role;');await db.exec(await readFile('supabase/migrations/20261101030000_member_coaches.sql','utf8'));
+ for(const role of ['anon','authenticated']){const access=(await db.query("select has_table_privilege($1,'public.club_coaches','select') as read,has_table_privilege($1,'public.club_coaches','insert') as write",[role])).rows[0];assert.deepEqual(access,{read:false,write:false});}
+ await db.exec("set role service_role;insert into public.club_coaches values('김선수');");assert.equal((await db.query('select count(*)::int as n from public.club_coaches')).rows[0].n,1);
+ assert.equal(Object.hasOwn((await db.query('select public.club_store_read() as v')).rows[0].v.tables,'coaches'),false);
+ await db.exec("delete from public.club_coaches where member_name='김선수';");assert.equal((await db.query('select count(*)::int as n from public.club_coaches')).rows[0].n,0);
+ console.log('Coach flags verified: service-only storage, independent from catalog snapshots, set and unset.');
  console.log('PostgreSQL verified: public projection and private permissions; member linking; administrator-only role changes and last-administrator protection.');
 }finally{await db.close();}

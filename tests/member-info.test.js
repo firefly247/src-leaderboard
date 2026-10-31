@@ -5,7 +5,7 @@ test('Member info combines reference years and every Kakao account without dupli
  const ctx=client(),container={},players=[{memberName:'김회원',birthYear:'1980',joinYear:'2023'},{memberName:'기존회원',birthYear:'',joinYear:''}],accounts=[{user_id:'pending',requested_player_name:'김회원',display_name:'신청자',role:'member'},{user_id:'admin',player_name:'김회원',display_name:'<관리자>',role:'admin'},{user_id:'unnamed',display_name:'새 계정',role:'member'}];
  ctx.renderBirthYearAdmin(container,players,true,true,accounts);
  const table=container.innerHTML.slice(container.innerHTML.indexOf('class="admin-table birth-year-table'));
- const headers=[...table.matchAll(/<th>([\s\S]*?)<\/th>/g)].map(m=>m[1].replace(/<br\s*\/?>/g,' '));assert.deepEqual(headers,['회원 이름','출생연도','가입연도','휴면회원','카카오 닉네임','가입 상태','관리자']);
+ const headers=[...table.matchAll(/<th>([\s\S]*?)<\/th>/g)].map(m=>m[1].replace(/<br\s*\/?>/g,' '));assert.deepEqual(headers,['회원 이름','출생연도','가입연도','휴면회원','코치','카카오 닉네임','가입 상태','관리자']);
  assert.equal((table.match(/data-birth-year-name="김회원"/g)||[]).length,1);
  assert.match(table,/&lt;관리자&gt;/);assert.doesNotMatch(table,/<관리자>/);assert.match(table,/data-account-user="admin"[^>]*checked[^>]*disabled/);
  assert.match(table,/data-approve-user="pending"/);assert.match(table,/data-account-only-name="이름 미입력"/);assert.match(table,/미가입/);
@@ -43,4 +43,17 @@ test('Approving a new applicant replaces the pending row with editable member fi
  ctx.api=async action=>action==='memberAccountList'?{accounts:[account]}:{players:[player]};ctx.renderBirthYearAdmin=()=>{};ctx.document.createElement=()=>({querySelector:()=>editable});
  const container={querySelector:()=>summary,querySelectorAll:selector=>selector==='[data-member-account]'?[cell]:[editable]};
  await ctx.refreshMemberAccountCells(container,()=>true);assert.equal(replaced,true);assert.match(summary.innerHTML,/2013/);assert.match(summary.innerHTML,/신규회원/);
+});
+
+test('Coach members stay editable but are excluded from join-year columns and totals',()=>{
+ const ctx=client(),container={},players=[{memberName:'코치회원',birthYear:'1980',joinYear:'2013',isCoach:true},{memberName:'일반회원',birthYear:'1990',joinYear:'2026'}];
+ const summary=ctx.playerJoinYearSummaryHtml(players);assert.match(summary,/총 1명/);assert.match(summary,/일반회원/);assert.doesNotMatch(summary,/코치회원|2013년/);
+ ctx.renderBirthYearAdmin(container,players,true,true);assert.match(container.innerHTML,/aria-label="코치회원 코치" checked/);assert.match(container.innerHTML,/data-birth-year-name="코치회원"/);
+});
+test('Coach checkbox updates the summary without reloading, persists, and rolls back failed saves',async()=>{
+ const ctx=client(),row={dataset:{birthYearName:'회원',savedCoach:'false'}},input={dataset:{},checked:true,disabled:false,closest:()=>row};let summaries=0;
+ vm.runInContext("state.adminUserId='actor'",ctx);ctx.updateMemberJoinSummary=()=>summaries++;ctx.api=async(action,payload)=>{assert.equal(action,'memberCoachSet');return {memberName:payload.memberName,isCoach:payload.isCoach};};
+ await ctx.saveMemberCoach(input);assert.equal(row.dataset.savedCoach,'true');assert.equal(input.disabled,false);assert.equal(summaries,2);
+ const alerts=[];ctx.alert=message=>alerts.push(message);ctx.api=async()=>{throw new Error('연결 실패');};input.checked=false;
+ await ctx.saveMemberCoach(input);assert.equal(input.checked,true);assert.equal(row.dataset.savedCoach,'true');assert.equal(input.disabled,false);assert.deepEqual(alerts,['연결 실패']);
 });
