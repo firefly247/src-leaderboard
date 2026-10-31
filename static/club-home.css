@@ -106,3 +106,5 @@
  .club-coach img { order:2; }.club-schedule>div { grid-template-columns:105px 1fr; gap:12px; }
  .club-history article { grid-template-columns:1fr; gap:9px; padding:20px 0; }.club-history h3 { font-size:18px; }.club-history li+li { margin-top:8px; }
 }
+
+.club-about.club-location,.club-about.club-coach { background:transparent; }
