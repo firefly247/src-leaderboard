@@ -692,13 +692,15 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 .reference-admin .birth-year-table .player-dormant-input { width: 18px; min-height: 18px; height: 18px; margin: 0; accent-color: var(--primary); }
 .birth-year-table td.is-dirty .player-dormant-input { outline: 2px solid var(--primary); outline-offset: 2px; }
 .player-dirty-badge { display: block; margin-top: 3px; color: var(--primary); font-size: 10px; font-weight: 700; white-space: nowrap; }
-.reference-admin .member-info-table { width:620px; min-width:620px; font-size:12px; }
+.reference-admin .member-info-table { width:max-content; min-width:0; table-layout:auto; font-size:12px; }
 .reference-admin .member-info-table th,.reference-admin .member-info-table td { padding:5px 4px; }
 .reference-admin .member-info-table th:first-child { width:88px; }
 .reference-admin .member-info-table th:nth-child(2),.reference-admin .member-info-table th:nth-child(3) { width:94px; }
 .reference-admin .member-info-table th:nth-child(4) { width:62px; }
-.reference-admin .member-info-table th:nth-child(5) { width:110px; }
-.reference-admin .member-info-table th:nth-child(6) { width:112px; }
+.reference-admin .member-info-table th:nth-child(5),.reference-admin .member-info-table th:nth-child(6) { width:auto; }
+.reference-admin .member-info-table th:nth-child(5),.reference-admin .member-info-table td:nth-child(5),.reference-admin .member-info-table th:nth-child(6),.reference-admin .member-info-table td:nth-child(6) { white-space:nowrap; }
+.reference-admin .member-info-table .birth-year-control { width:82px; max-width:82px; }
+.reference-admin .member-info-table .birth-year-input,.reference-admin .member-info-table .join-year-input { flex:0 0 56px; width:56px; max-width:56px; }
 .reference-admin .member-info-table th:last-child { width:60px; }
 .member-info-actions { display:flex; gap:4px; margin-top:6px; }
 .player-dirty-badge[hidden] { display: none; }
