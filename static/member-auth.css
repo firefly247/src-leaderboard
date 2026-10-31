@@ -16,3 +16,5 @@
 .member-signup [data-signup-submit] { width:100%; min-height:44px; }
 .member-admin-checkbox { display:inline-flex; align-items:center; gap:8px; white-space:nowrap; cursor:pointer; }
 .admin-table .member-admin-checkbox input[type="checkbox"] { width:18px; min-width:18px; height:18px; margin:0; accent-color:#165dff; }
+
+.member-signup .member-signup-cancel { width:100%; min-height:40px; margin-top:8px; }

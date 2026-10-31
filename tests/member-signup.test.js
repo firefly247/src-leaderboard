@@ -2,7 +2,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const source=fs.readFileSync('static/supabase-member-auth.js','utf8');
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
 function fixture(member={nickname:'카카오 별명',playerName:null,requestedPlayerName:null}){
-  const calls=[],elements=new Map();let dialog,request=async()=>{};
+  const calls=[],events=[],elements=new Map();let dialog,request=async()=>{};
   class Element {
     constructor(){this.value='';this.textContent='';this.open=false;this.nodes=new Map();this.buttons=[];}
     set innerHTML(value){this.html=value;this.nodes.clear();}
@@ -14,13 +14,13 @@ function fixture(member={nickname:'카카오 별명',playerName:null,requestedPl
     querySelectorAll(){return this.buttons;}
     setAttribute(){}
     showModal(){this.open=true;}
-    close(){this.open=false;}
+    close(){this.open=false;this.onclose?.();}
   }
-  const ctx={window:{ClubApi:{ready:true,client:{auth:{getSession:async()=>({data:{session:{access_token:'token'}}}),onAuthStateChange(){},signInWithOAuth:async options=>{calls.push({action:typeof options.provider==='string'?'oauth':'invalid',options});return {};},signOut:async()=>({})}},call:async(action,data)=>{calls.push({action,data});if(action==='memberSession')return {member:{...member}};if(action==='memberLinkOptions')return {names:['김기현','이찬희']};if(action==='memberLinkRequest'){await request(data);member.requestedPlayerName=data.name;return {ok:true};}throw new Error('Unexpected action');}}},document:{querySelector:selector=>{if(!elements.has(selector))elements.set(selector,new Element());return elements.get(selector);},createElement:()=>dialog=new Element(),body:{appendChild(){}},dispatchEvent(){},addEventListener(){}},CustomEvent:class{},setTimeout,URL,location:{href:'https://club.example/'}};
+  const ctx={window:{ClubApi:{ready:true,client:{auth:{getSession:async()=>({data:{session:{access_token:'token'}}}),onAuthStateChange(){},signInWithOAuth:async options=>{calls.push({action:typeof options.provider==='string'?'oauth':'invalid',options});return {};},signOut:async()=>({})}},call:async(action,data)=>{calls.push({action,data});if(action==='memberSession')return {member:{...member}};if(action==='memberLinkOptions')return {names:['김기현','이찬희']};if(action==='memberLinkRequest'){await request(data);member.requestedPlayerName=data.name;return {ok:true};}throw new Error('Unexpected action');}}},document:{querySelector:selector=>{if(!elements.has(selector))elements.set(selector,new Element());return elements.get(selector);},createElement:()=>dialog=new Element(),body:{appendChild(){}},dispatchEvent(event){events.push(event);},addEventListener(){}},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}},setTimeout,URL,location:{href:'https://club.example/'}};
   ctx.window.setupCompetitionMemberInput=(input,names)=>{input._memberAutocompleteNames=names;};
   ctx.window.closeCompetitionMemberMenu=()=>{};
   vm.createContext(ctx);vm.runInContext(source,ctx);
-  return {ctx,calls,elements,get dialog(){return dialog;},set request(handler){request=handler;},select(name){const input=dialog.querySelector('[data-link-search]');if(input.disabled)return;input.value=name;input.oninput();},submit(){return dialog.querySelector('[data-signup-form]').onsubmit({preventDefault(){}});}};
+  return {ctx,calls,events,elements,get dialog(){return dialog;},set request(handler){request=handler;},select(name){const input=dialog.querySelector('[data-link-search]');if(input.disabled)return;input.value=name;input.oninput();},submit(){return dialog.querySelector('[data-signup-form]').onsubmit({preventDefault(){}});}};
 }
 test('First Kakao login opens signup; selecting a name does not save until explicit submission',async()=>{
   const f=fixture();await settle();assert.equal(f.dialog.open,true);assert.match(f.dialog.innerHTML,/회원 가입/);
@@ -104,4 +104,23 @@ test('Account refresh replaces only the three account cells and leaves member in
   vm.runInContext(fn,context);
   await context.refreshMemberAccountCells({querySelectorAll:()=>[cell]},()=>true);
   assert.equal(cells[0],input);assert.equal(input.value,'1990');assert.equal(cells[1],'김기현');
+});
+
+test('A Kakao session without a submitted member name cannot enter member menus or dismiss signup',async()=>{
+ const f=fixture({userId:'new-user',role:'member',playerName:null,requestedPlayerName:null});await settle();
+ assert.equal(f.ctx.window.ClubMembership.member,null);assert.equal(f.events.at(-1).detail.member,null);
+ assert.doesNotMatch(f.dialog.innerHTML,/data-close-link/);assert.match(f.dialog.innerHTML,/data-cancel-signup/);
+ let prevented=false;f.dialog.oncancel({preventDefault(){prevented=true;}});assert.equal(prevented,true);
+ f.dialog.close();assert.equal(f.dialog.open,true);
+ f.select('');await f.submit();assert.equal(f.calls.some(call=>call.action==='memberLinkRequest'),false);
+ f.select('김기현');assert.equal(f.ctx.window.ClubMembership.member,null);
+ await f.submit();assert.equal(f.events.at(-1).detail.member.requestedPlayerName,'김기현');
+ f.dialog.close();assert.equal(f.dialog.open,false);
+});
+test('Cancelling unfinished signup signs out, and a failed signout keeps signup required',async()=>{
+ const f=fixture();await settle();let signouts=0;
+ f.ctx.window.ClubApi.client.auth.signOut=async()=>{signouts++;return {error:new Error('offline')};};
+ await f.dialog.querySelector('[data-cancel-signup]').onclick();assert.equal(signouts,1);assert.equal(f.dialog.open,true);assert.equal(f.ctx.window.ClubMembership.member,null);assert.match(f.dialog.querySelector('[data-link-message]').textContent,/로그아웃하지 못했습니다/);
+ f.ctx.window.ClubApi.client.auth.signOut=async()=>{signouts++;return {};};
+ await f.dialog.querySelector('[data-cancel-signup]').onclick();assert.equal(signouts,2);assert.equal(f.dialog.open,false);assert.equal(f.ctx.window.ClubMembership.member,null);assert.equal(f.events.at(-1).detail.member,null);
 });
