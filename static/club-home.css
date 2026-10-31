@@ -149,3 +149,7 @@
 
 .club-history article.club-history-single { grid-template-columns:max-content minmax(0,1fr); column-gap:16px; align-items:baseline; }
 @media(max-width:760px){ .club-history article.club-history-single { column-gap:12px; } }
+
+.club-home .club-hero-title { font-size:clamp(30px,3.8vw,52px); }
+.club-home .club-hero-copy { padding-left:44px; padding-right:32px; }
+@media(max-width:760px){ .club-home .club-hero-title { font-size:36px; } .club-home .club-hero-copy { padding-left:32px; padding-right:24px; } }
