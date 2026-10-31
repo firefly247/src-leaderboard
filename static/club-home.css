@@ -127,3 +127,6 @@
  .club-hero-copy { padding:34px 26px 88px; }
  .club-hero-photo img { object-position:center 68%; }
 }
+
+.club-home .club-section-inset { padding-inline:20px; }
+@media(max-width:760px){ .club-home .club-section-inset { padding-inline:12px; } }
