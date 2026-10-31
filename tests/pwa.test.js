@@ -2,10 +2,10 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 function app(userAgent='Android',matches=false){
   const listeners={},elements={},windowEvents={};let closedMenu=false;
-  for(const id of ['appInstallButton','appInstallDialog','appInstallSteps','appInstallClose','headerMenuToggle','androidDownloadButton','appInstallTitle','appInstallIntro','apkDownloadLink','apkCompatibility'])elements[id]={textContent:'',disabled:false,open:false,addEventListener(type,fn){(listeners[id]??={})[type]=fn;},showModal(){this.open=true;},close(){this.open=false;},replaceChildren(...items){this.items=items;},focus(){}};
+  for(const id of ['appInstallButton','appInstallDialog','appInstallSteps','appInstallClose','headerMenuToggle','appInstallTitle','appInstallIntro'])elements[id]={textContent:'',disabled:false,open:false,addEventListener(type,fn){(listeners[id]??={})[type]=fn;},showModal(){this.open=true;},close(){this.open=false;},replaceChildren(...items){this.items=items;},focus(){}};
   const context=vm.createContext({document:{querySelector:selector=>elements[selector.slice(1)],createElement:()=>({textContent:''})},navigator:{userAgent,platform:'',maxTouchPoints:0},window:{matchMedia:()=>({matches,addEventListener(){}}),addEventListener:(type,fn)=>windowEvents[type]=fn},setHeaderMenuOpen:()=>{closedMenu=true;}});
   vm.runInContext(fs.readFileSync(path.join(__dirname,'../static/pwa.js'),'utf8'),context);
-  return {elements,windowEvents,click:()=>listeners.appInstallButton.click(),download:()=>listeners.androidDownloadButton.click(),menuClosed:()=>closedMenu};
+  return {elements,windowEvents,click:()=>listeners.appInstallButton.click(),menuClosed:()=>closedMenu};
 }
 test('install guidance covers iPhone and Android when no browser prompt is available',async()=>{
   for(const [agent,expected] of [['iPhone','共有'],['Android','Chrome']]){
@@ -35,9 +35,6 @@ test('manifest targets the project root and references deployable PNG icons',()=
   assert.equal(new URL(manifest.start_url,url).pathname,'/src-leaderboard/');assert.equal(new URL(manifest.scope,url).pathname,'/src-leaderboard/');assert.equal(manifest.display,'standalone');
   for(const icon of manifest.icons){const bytes=fs.readFileSync(path.join(__dirname,'../static',icon.src));assert.equal(bytes.readUInt32BE(16),Number(icon.sizes.split('x')[0]));}
 });
-test('APK download is separate from home-screen installation and hidden on iOS or in the Android app',()=>{
-  const current=app();current.download();assert.equal(current.elements.appInstallDialog.open,true);assert.equal(current.elements.apkDownloadLink.hidden,false);assert.equal(current.elements.apkCompatibility.hidden,false);
-  assert.equal(current.elements.appInstallTitle.textContent,'Android 앱 다운로드');
-  assert.equal(app('iPhone').elements.androidDownloadButton.hidden,true);
-  const native=app('Android SamsungRowingClubAndroid/1.0.0');assert.equal(native.elements.androidDownloadButton.hidden,true);assert.equal(native.elements.appInstallButton.hidden,true);
+test('home-screen installation stays hidden in the native Android app',()=>{
+  assert.equal(app('Android SamsungRowingClubAndroid/1.0.0').elements.appInstallButton.hidden,true);
 });
