@@ -593,7 +593,7 @@ function setHeaderMenuOpen(open,restoreFocus=false) {
 $("#headerMenuToggle").onclick=()=>setHeaderMenuOpen($("#mainNavigation").hidden);
 document.addEventListener("click",event=>{if(!event.target.closest(".site-header"))setHeaderMenuOpen(false);});
 document.addEventListener("keydown",event=>{if(event.key==="Escape"&&!$("#mainNavigation").hidden)setHeaderMenuOpen(false,true);});
-$(".brand").onclick=event=>{event.preventDefault();document.querySelector('.tab-button[data-tab="home"]').click();};
+$(".brand").onclick=event=>{if(event.button>0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;event.preventDefault();setHeaderMenuOpen(false);history.replaceState(null,"","#home");window.scrollTo(0,0);location.reload();};
 let activeRequestView="ergo";
 function showRequestPanel() { document.querySelectorAll("[data-request-view]").forEach(button=>button.classList.toggle("is-active",button.dataset.requestView===activeRequestView));document.querySelectorAll("[data-request-panel]").forEach(panel=>panel.classList.toggle("is-active",panel.dataset.requestPanel===activeRequestView));closeAllDropdowns(); }
 document.querySelectorAll("[data-request-view]").forEach(button=>button.onclick=()=>{activeRequestView=button.dataset.requestView;showRequestPanel();});
