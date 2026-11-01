@@ -46,6 +46,24 @@ function build() {
   state.clubMedals={gold:0,silver:0,bronze:0};clubMedalKeys.forEach(key=>{const color=key.split("\0").pop();state.clubMedals[color]++;});
 }
 
+let proofPhotoSequence=0;
+function resetProofPhoto(){
+  const dialog=$('#photoDialog');if(dialog.open)return;
+  proofPhotoSequence++;
+  const image=$('#proofPhotoImage');image.hidden=true;image.onload=image.onerror=null;image.removeAttribute('src');
+  $('#proofPhotoStatus').hidden=true;dialog.removeAttribute('aria-busy');
+}
+function openProofPhoto(url){
+  const dialog=$('#photoDialog'),status=$('#proofPhotoStatus'),image=document.createElement('img'),sequence=++proofPhotoSequence;
+  image.id='proofPhotoImage';image.alt='기록 증빙사진';image.hidden=true;image.decoding='async';
+  // A fresh element prevents the previous image bitmap from remaining visible while loading.
+  $('#proofPhotoImage').replaceWith(image);
+  status.hidden=false;status.textContent='사진을 불러오는 중입니다.';dialog.setAttribute('aria-busy','true');
+  const current=()=>sequence===proofPhotoSequence&&dialog.open&&$('#proofPhotoImage')===image;
+  image.onload=async()=>{try{await image.decode?.();}catch{}if(!current())return;image.hidden=false;status.hidden=true;dialog.removeAttribute('aria-busy');};
+  image.onerror=()=>{if(!current())return;status.hidden=false;status.textContent='사진을 불러오지 못했습니다. 잠시 후 다시 눌러 주세요.';dialog.removeAttribute('aria-busy');};
+  image.src=url;if(!dialog.open)dialog.showModal();
+}
 function recordTime(r) { return r.proof_photo_url?`<button class="photo-link" type="button" data-photo-url="${esc(r.proof_photo_url)}">${esc(r.timeDisplay)}</button>`:esc(r.timeDisplay); }
 function deleteControl(r) { return state.pendingDeleteIds.has(r.record_id)?'<button class="pending-delete-button" type="button" disabled>pending</button>':`<button class="delete-request-button" data-record-id="${esc(r.record_id)}">삭제요청</button>`; }
 function eventSection(e) { const rows=state.rankings[e.event_id]||[],podium=[2,1,3].map(n=>{const r=rows[n-1],name=r?r.memberName:"기록 없음",competition=r?r.competition:"기록을 기다리고 있습니다.";return `<article class="podium-card podium-${n}"><div class="medal">${n}</div><h3 title="${esc(name)}">${esc(name)}</h3><div class="record-time">${r?recordTime(r):"-"}</div><p>${esc(competition)}</p><small>${esc(r?r.competition_date:"")}</small></article>`;}).join("");const body=rows.map(r=>`<tr><td><span class="rank-badge">${r.rank}</span></td><td class="member-name">${esc(r.memberName)}</td><td class="time-cell">${recordTime(r)}</td></tr>`).join("")||'<tr><td colspan="3" class="empty-cell">등록된 기록이 없습니다.</td></tr>';return `<section class="event-section"><h2 class="event-title">${esc(e.event_name)}</h2><section class="podium-section"><div class="section-heading event-heading"><p class="eyebrow">TOP 3</p></div><div class="podium-grid">${podium}</div></section><section class="panel"><div class="section-heading table-heading"><p class="eyebrow">RANKING</p></div><div class="table-wrap ranking-scroll"><table id="ranking-${esc(e.event_id)}" class="ranking-table"><thead><tr><th>순위</th><th>이름</th><th>PB</th></tr></thead><tbody>${body}</tbody></table></div></section></section>`; }
@@ -598,13 +616,14 @@ bindSwapSelect("#bulkRequestEvent","#bulkEventNameInput",id=>state.events.find(x
 $("#bulkCompetitionTypeSelect").addEventListener("change",()=>refreshCompetitionTeams(false));
 $("#addCompetitionTeam").onclick=()=>addCompetitionTeam();
 $("#addErgoBatchRow").onclick=()=>addBatchRow("ergo");$("#deleteErgoBatchRows").onclick=()=>deleteSelectedBatchRows("ergo");
+$("#photoDialog").addEventListener("close",resetProofPhoto);
 $("#dialogCloseButton").onclick=()=>$("#memberDialog").close();$("#memberDialog").onclick=e=>{if(e.target===e.currentTarget)e.currentTarget.close();};
 $("#batchProgressDialog").addEventListener("cancel",event=>event.preventDefault());
 $("#batchProgressConfirm").onclick=()=>{const action=batchProgressConfirmAction;batchProgressConfirmAction=null;$("#batchProgressDialog").close();action?.();};
 
 document.addEventListener("click",async e=>{
   const badgeName=e.target.closest(".athlete-badge-name"),badgeCard=badgeName?.closest(".athlete-badge"),willOpen=badgeCard&&!badgeCard.classList.contains("is-explaining");document.querySelectorAll(".athlete-badge.is-explaining").forEach(card=>{card.classList.remove("is-explaining");card.querySelector(".athlete-badge-name")?.setAttribute("aria-expanded","false");});if(badgeName){if(willOpen){badgeCard.classList.add("is-explaining");badgeName.setAttribute("aria-expanded","true");}return;}
-  const photo=e.target.closest("[data-photo-url]");if(photo){$("#proofPhotoImage").src=photo.dataset.photoUrl;$("#photoDialog").showModal();return;}if(e.target.closest("[data-close-photo]"))$("#photoDialog").close();
+  const photo=e.target.closest("[data-photo-url]");if(photo){openProofPhoto(photo.dataset.photoUrl);return;}if(e.target.closest("[data-close-photo]"))$("#photoDialog").close();
   const del=e.target.closest("[data-record-id]");if(del){const r=state.records.find(x=>x.record_id===del.dataset.recordId),reason=prompt("삭제 사유를 입력하세요.");if(reason?.trim())try{await api("requestDelete",{recordId:r.record_id,reason:reason.trim()});state.pendingDeleteIds.add(r.record_id);del.disabled=true;del.textContent="pending";}catch(x){alert(x.message);}}
   const action=e.target.closest(".admin-action");if(action)try{await api("processRequest",{requestId:action.dataset.id,decision:action.dataset.decision},true);await loadAdmin("history");await refresh();}catch(x){alert(x.message);}
   const batchApprove=e.target.closest("#adminBatchApprove");if(batchApprove){const requestIds=[...document.querySelectorAll(".admin-request-check:checked")].map(x=>x.value),view=batchApprove.dataset.requestView,noun=view==="competition-add"?"대회 기록":"에르고 기록";if(requestIds.length&&confirm(`선택한 ${noun} ${requestIds.length}건을 모두 승인할까요?`))try{batchApprove.disabled=true;batchApprove.textContent="승인 처리 중...";const data=view==="competition-add"?await processSelectedCompetitionRequests(requestIds):await processSelectedAddRequests(requestIds);await loadAdmin(view);await refresh();alert(`${data.processedCount}건을 승인했습니다.`);}catch(x){await loadAdmin(view);alert(x.message);}}
