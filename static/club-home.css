@@ -210,3 +210,11 @@
 }
 
 .club-location h3 { margin:0 0 12px; color:var(--club-ink); font-size:18px; }
+
+/* One typographic style for the homepage's headline values and place names. */
+.club-home .club-stat>strong,.club-home .club-race h3,.club-home .club-location h3 {
+ font-family:inherit; font-size:24px; font-weight:700; line-height:1.35; letter-spacing:normal; font-variant-numeric:normal;
+}
+@media(max-width:760px){
+ .club-home .club-stat>strong,.club-home .club-race h3,.club-home .club-location h3 { font-size:18px; }
+}
