@@ -1,15 +1,15 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('static/leaderboard.js','utf8');
 function client(document={querySelector:()=>({}),querySelectorAll:()=>[]}){const ctx=vm.createContext({document,sessionStorage:{getItem:()=>''}});vm.runInContext(source.slice(0,source.indexOf('document.querySelectorAll(".tab-button")')),ctx);return ctx;}
-test('Member info combines reference years and every Kakao account without duplicating editable members',()=>{
+test('Member info shows the roster and submitted requests while excluding unfinished Kakao accounts',()=>{
  const ctx=client(),container={},players=[{memberName:'김회원',birthYear:'1980',joinYear:'2023'},{memberName:'기존회원',birthYear:'',joinYear:''}],accounts=[{user_id:'pending',requested_player_name:'김회원',display_name:'신청자',role:'member'},{user_id:'admin',player_name:'김회원',display_name:'<관리자>',role:'admin'},{user_id:'unnamed',display_name:'새 계정',role:'member'}];
  ctx.renderBirthYearAdmin(container,players,true,true,accounts);
  const table=container.innerHTML.slice(container.innerHTML.indexOf('class="admin-table birth-year-table'));
  const headers=[...table.matchAll(/<th>([\s\S]*?)<\/th>/g)].map(m=>m[1].replace(/<br\s*\/?>/g,' '));assert.deepEqual(headers,['회원 이름','출생연도','가입연도','휴면회원','코치','카카오 닉네임','가입 상태','관리자']);
  assert.equal((table.match(/data-birth-year-name="김회원"/g)||[]).length,1);
  assert.match(table,/&lt;관리자&gt;/);assert.doesNotMatch(table,/<관리자>/);assert.match(table,/data-account-user="admin"[^>]*checked[^>]*disabled/);
- assert.match(container.innerHTML,/data-approve-user="pending"/);assert.doesNotMatch(table,/data-approve-user|data-reject-user/);assert.match(table,/data-account-only-name="이름 미입력"/);assert.match(table,/미가입/);
- assert.equal((table.match(/data-account-user=/g)||[]).length,2);
+ assert.match(container.innerHTML,/data-approve-user="pending"/);assert.doesNotMatch(table,/data-approve-user|data-reject-user/);assert.doesNotMatch(container.innerHTML,/data-account-only-name="이름 미입력"|이름 입력 전|새 계정/);assert.match(table,/미가입/);
+ assert.equal((table.match(/data-account-user=/g)||[]).length,1);
  const html=fs.readFileSync('index.html','utf8');assert.match(html,/data-admin-view="member-info">회원 정보/);assert.doesNotMatch(html,/data-admin-view="member-accounts"|data-admin-view="player-birth-years"/);assert.doesNotMatch(html.slice(html.indexOf('data-panel="ergo"')),/선수/);
 });
 test('Member account reload restores only unsaved year/dormancy changes and search without changing baselines',()=>{
@@ -69,4 +69,17 @@ test('Member information is a top-level admin tab with no reference submenu',()=
  assert.match(tabs,/data-admin-group="members" data-admin-view="member-info">회원 정보/);assert.doesNotMatch(reference,/member-info/);
  const buttons=['records','references','members'].map(group=>({dataset:{adminGroup:group},classList:{toggle(name,value){this.active=value;}}})),panels=['records','references'].map(group=>({dataset:{adminGroupPanel:group}}));
  const ctx=client({querySelector:()=>({classList:{toggle(){}}}),querySelectorAll:selector=>selector==='[data-admin-group]'?buttons:panels});ctx.showAdminGroup('member-info');assert.equal(buttons[2].classList.active,true);assert.equal(buttons[0].classList.active,false);assert.equal(panels.every(panel=>panel.hidden),true);
+});
+
+test('A Kakao nickname matching a roster member never becomes a linked member without submitting a name',()=>{
+ const ctx=client(),container={};ctx.renderBirthYearAdmin(container,[{memberName:'기존회원',birthYear:'1984',joinYear:'2013'}],true,true,[{user_id:'unfinished',display_name:'기존회원',player_name:null,requested_player_name:null,role:'member'}]);
+ assert.match(container.innerHTML,/data-birth-year-name="기존회원"/);assert.match(container.innerHTML,/미가입/);assert.doesNotMatch(container.innerHTML,/data-account-user="unfinished"|data-account-only-name|이름 입력 전/);
+ assert.match(container.innerHTML,/대기 중인 가입 요청이 없습니다/);
+});
+test('Account refresh removes legacy unfinished rows without making them signup requests',async()=>{
+ const ctx=client(),account={user_id:'unfinished',display_name:'새 계정',role:'member'},requests={innerHTML:''};let removed=false;
+ const row={querySelector:()=>({dataset:{memberAccount:'unfinished'}}),remove(){removed=true;}},body={querySelectorAll:()=>[row]};
+ ctx.api=async action=>action==='memberAccountList'?{accounts:[account]}:{players:[]};
+ const container={querySelector:selector=>selector==='#birthYearBatchForm tbody'?body:selector==='#memberJoinRequests'?requests:null,querySelectorAll:()=>[]};
+ await ctx.refreshMemberAccountCells(container,()=>true);assert.equal(removed,true);assert.match(requests.innerHTML,/대기 중인 가입 요청이 없습니다/);assert.doesNotMatch(requests.innerHTML,/새 계정/);
 });
