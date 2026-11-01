@@ -215,10 +215,10 @@
 .club-home .club-stat>strong,.club-home .club-race h3,.club-home .club-location h3 {
  font-family:inherit; font-size:24px; font-weight:700; line-height:1.35; letter-spacing:normal; font-variant-numeric:normal;
 }
-.club-home .club-stat>strong { font-size:28px; }
-.club-home .club-race h3 { font-size:23px; }
+.club-home .club-stat>strong { font-size:32px; }
+.club-home .club-race h3 { font-size:21px; }
 @media(max-width:760px){
  .club-home .club-stat>strong,.club-home .club-race h3,.club-home .club-location h3 { font-size:18px; }
- .club-home .club-stat>strong { font-size:22px; }
- .club-home .club-race h3 { font-size:17px; }
+ .club-home .club-stat>strong { font-size:26px; }
+ .club-home .club-race h3 { font-size:15px; }
 }
