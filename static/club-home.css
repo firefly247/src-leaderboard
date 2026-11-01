@@ -8,7 +8,7 @@
 .club-hero-copy { padding:58px 20px 58px 48px; position:relative; z-index:1; }
 .club-kicker { margin:0 0 24px; font-size:11px; font-weight:750; letter-spacing:.2em; color:#a9bdff; }
 .club-hero h1 { margin:0 0 18px; font-size:14px; font-weight:650; color:#dbe4ff; }
-.club-hero-title { margin:0; font-size:clamp(36px,4.6vw,64px); line-height:1.2; letter-spacing:-.07em; font-weight:800; word-break:keep-all; }
+.club-hero-title { margin:0; font-size:clamp(36px,4.6vw,64px); line-height:1.2; letter-spacing:normal; font-weight:800; word-break:keep-all; }
 .club-hero-description { max-width:360px; margin:22px 0 28px; color:#bed0da; font-size:14px; line-height:1.9; word-break:keep-all; }
 .club-home-cta { display:inline-flex; align-items:center; justify-content:center; gap:14px; min-height:46px; padding:12px 19px; border:0; border-radius:8px; font:inherit; font-size:13px; font-weight:750; color:var(--club-ink); background:#f2c66b; cursor:pointer; }
 .club-home-cta:hover { background:#ffda8d; }
