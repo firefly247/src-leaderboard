@@ -208,3 +208,5 @@
  .club-home .club-schedule>div { padding-block:9px; }
  .club-home .club-history article { padding-block:8px; row-gap:6px; }
 }
+
+.club-location h3 { margin:0 0 12px; color:var(--club-ink); font-size:18px; }
