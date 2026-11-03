@@ -83,3 +83,9 @@ test('Account refresh removes legacy unfinished rows without making them signup 
  const container={querySelector:selector=>selector==='#birthYearBatchForm tbody'?body:selector==='#memberJoinRequests'?requests:null,querySelectorAll:()=>[]};
  await ctx.refreshMemberAccountCells(container,()=>true);assert.equal(removed,true);assert.match(requests.innerHTML,/대기 중인 가입 요청이 없습니다/);assert.doesNotMatch(requests.innerHTML,/새 계정/);
 });
+test('Approval refresh updates confirmed years while preserving an unsaved administrator edit',async()=>{
+ const ctx=client(),inputs=[{value:'1980'},{value:'2025'}],row={dataset:{birthYearName:'회원',savedBirthYear:'1980',savedJoinYear:'2023'},get lastElementChild(){return {remove(){}};},insertAdjacentHTML(){},querySelector:selector=>selector==='.birth-year-input'?inputs[0]:inputs[1]};let dirty=0;
+ ctx.api=async action=>action==='memberAccountList'?{accounts:[]}:{players:[{memberName:'회원',birthYear:'1981',joinYear:'2024'}]};ctx.updatePlayerYearDirtyState=()=>dirty++;
+ await ctx.refreshMemberAccountCells({querySelectorAll:()=>[row],querySelector:()=>null},()=>true);
+ assert.equal(inputs[0].value,'1981');assert.equal(inputs[1].value,'2025');assert.equal(row.dataset.savedJoinYear,'2024');assert.equal(dirty,1);
+});

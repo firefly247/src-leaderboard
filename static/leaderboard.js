@@ -247,7 +247,18 @@ async function refreshMemberAccountCells(container,isCurrent){
   const byName=new Map(accounts.slice().sort((a,b)=>Number(Boolean(a.player_name))-Number(Boolean(b.player_name))).map(account=>[account.player_name||account.requested_player_name,account]));
   const updateCells=(row,account)=>{for(let i=0;i<3;i++)row.lastElementChild.remove();row.insertAdjacentHTML('beforeend',memberAccountCellsHtml(account,adminCount,state.adminUserId));};
   const rows=[...container.querySelectorAll('[data-birth-year-name]')];
-  rows.forEach(row=>updateCells(row,byName.get(row.dataset.birthYearName)));
+  const playersByName=new Map(players.map(player=>[player.memberName,player]));let yearsChanged=false;
+  rows.forEach(row=>{
+    updateCells(row,byName.get(row.dataset.birthYearName));
+    const player=playersByName.get(row.dataset.birthYearName);if(!player)return;
+    let changed=false;
+    [['.birth-year-input','savedBirthYear','birthYear'],['.join-year-input','savedJoinYear','joinYear']].forEach(([selector,saved,key])=>{
+      const input=row.querySelector?.(selector),value=String(player[key]||'');if(!input||value===(row.dataset[saved]||''))return;
+      if(input.value===(row.dataset[saved]||''))input.value=value;
+      row.dataset[saved]=value;changed=true;
+    });
+    if(changed){yearsChanged=true;updatePlayerYearDirtyState(row);}
+  });
   const body=container.querySelector('#birthYearBatchForm tbody');
   if(body){
     const existing=new Set(rows.map(row=>row.dataset.birthYearName)),added=players.filter(player=>!existing.has(player.memberName));
@@ -257,7 +268,7 @@ async function refreshMemberAccountCells(container,isCurrent){
       if(!account?.player_name||players.some(player=>player.memberName===account.player_name)){row.remove();return;}
       updateCells(row,account);
     });
-    if(added.length){updateMemberJoinSummary();const search=container.querySelector('#birthYearSearch');if(search)filterMemberInfo(search.value);}
+    if(added.length||yearsChanged){updateMemberJoinSummary();const search=container.querySelector('#birthYearSearch');if(search)filterMemberInfo(search.value);}
   }
   const requests=container.querySelector('#memberJoinRequests');if(requests)requests.innerHTML=memberJoinRequestsHtml(accounts,players);
 }

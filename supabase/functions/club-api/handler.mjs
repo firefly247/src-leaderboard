@@ -69,7 +69,7 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
       if(typeof action!=='string'||!p||typeof p!=='object'||Array.isArray(p))throw new Error('요청 형식이 올바르지 않습니다.');
       if(action==='storageSource')return respond({ok:true,provider:'supabase',version:2});
       if(action==='publicData')return respond({ok:true,...await publicData()});
-      if(!PUBLIC.has(action)&&!MEMBER.has(action)&&!ADMIN.has(action)&&!['memberSession','memberLinkRequest','memberLinkOptions'].includes(action))throw new Error('지원하지 않는 요청입니다.');
+      if(!PUBLIC.has(action)&&!MEMBER.has(action)&&!ADMIN.has(action)&&!['memberSession','memberLinkRequest','memberLinkOptions','memberLinkDetails'].includes(action))throw new Error('지원하지 않는 요청입니다.');
       const token=request.headers.get('authorization')?.replace(/^Bearer\s+/i,'')||'';
       const member=token&&!PUBLIC.has(action)?await account(token):null;
       if(action.startsWith('member')&&!ADMIN.has(action)&&!member)throw new Error('카카오 로그인이 필요합니다.');
@@ -79,14 +79,23 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
         const dormant=new Set(tables[3].map(r=>r.member_name)),names=[...new Set(tables.slice(0,3).flatMap(rows=>rows.map(r=>r.member_name)))].filter(n=>n&&!dormant.has(n)).sort((a,b)=>a.localeCompare(b,'ko'));
         return respond({ok:true,names});
       }
+      if(action==='memberLinkDetails'){
+        await limited(request,member.user_id+':'+action,30);
+        const name=typeof p.name==='string'?p.name.trim():'';
+        if(!name||name.length>30)throw new Error('회원 이름을 확인해 주세요.');
+        const [rows,dormant]=await Promise.all([rest('club_player_birth_years?select=birth_year,join_year&member_name=eq.'+encodeURIComponent(name),undefined,'GET'),rest('club_dormant_members?select=member_name&member_name=eq.'+encodeURIComponent(name),undefined,'GET')]);
+        if(dormant.length)throw new Error('휴면 회원입니다. 운영진에게 문의해 주세요.');
+        return respond({ok:true,birthYear:rows[0]?.birth_year||'',joinYear:rows[0]?.join_year||''});
+      }
       if(action==='memberLinkRequest'){
         await limited(request,action,10);if(member.player_name)throw new Error('이미 회원 정보가 연결되어 있습니다.');
         const name=typeof p.name==='string'?p.name.trim():'';
         if(!name||name.length>30||/[\u0000-\u001f\u007f]/.test(name))throw new Error('회원 이름을 1~30자로 입력해 주세요.');
-        const matched=await Promise.all(['club_player_birth_years','club_records','club_competition_records','club_dormant_members'].map(n=>rest(n+'?select=member_name&member_name=eq.'+encodeURIComponent(name),undefined,'GET')));
-        if(matched[3].length)throw new Error('휴면 회원입니다. 운영진에게 문의해 주세요.');
-        const isNew=!matched.slice(0,3).some(rows=>rows.length);let birthYear=null,joinYear=null;
-        if(isNew){
+        const dormant=await rest('club_dormant_members?select=member_name&member_name=eq.'+encodeURIComponent(name),undefined,'GET');
+        if(dormant.length)throw new Error('휴면 회원입니다. 운영진에게 문의해 주세요.');
+        let birthYear=null,joinYear=null;
+        if(p.yearsConfirmed!==true)throw new Error('출생연도와 가입연도를 확인한 뒤 신청해 주세요.');
+        {
           const currentYear=Number(new Intl.DateTimeFormat('en',{timeZone:'Asia/Seoul',year:'numeric'}).format(new Date()));
           const year=(value,label)=>{const text=String(value??'').trim();if(!/^\d{4}$/.test(text)||Number(text)<1900||Number(text)>currentYear)throw new Error(label+'는 1900년부터 올해까지 입력해 주세요.');return Number(text);};
           birthYear=year(p.birthYear,'출생연도');joinYear=year(p.joinYear,'가입연도');if(joinYear<birthYear)throw new Error('가입연도는 출생연도 이후로 입력해 주세요.');

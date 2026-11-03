@@ -19,7 +19,7 @@ async function fixture(){
    return response([...coaches].map(member_name=>({member_name})));
   }
   const table=path.split('?')[0];if(['club_player_birth_years','club_records','club_competition_records','club_dormant_members'].includes(table)){
-   const exact=path.match(/member_name=eq\.([^&]+)/)?.[1];return response(snapshot.tables[table.slice(5)].filter(r=>!exact||r.member_name===decodeURIComponent(exact)).map(r=>({member_name:r.member_name})));
+   const exact=path.match(/member_name=eq\.([^&]+)/)?.[1];return response(snapshot.tables[table.slice(5)].filter(r=>!exact||r.member_name===decodeURIComponent(exact)).map(r=>path.includes('select=birth_year,join_year')?{birth_year:r.birth_year,join_year:r.join_year}:{member_name:r.member_name}));
   }
   if(path==='rpc/club_account_set_role'){roleWrites.push(p);return response(true);}
   if(path==='rpc/club_api_limit')return response(true);
@@ -76,7 +76,7 @@ test('Independent engine contains no Google service calls or source-server crede
 test('Membership selection includes legacy record-only athletes, deduplicates names, and excludes dormant members without exposing years',async()=>{
  const f=await fixture();f.snapshot.tables.records.push({record_id:'legacy',member_name:'기록선수'});f.snapshot.tables.competition_records.push({member_name:'기록선수'},{member_name:'휴면선수'});f.snapshot.tables.dormant_members.push({member_name:'휴면선수'});
  const out=await f.call('memberLinkOptions',{},'','verified');assert.equal(out.ok,true);assert.deepEqual(new Set(out.names),new Set(['김선수','기록선수']));assert.ok(!JSON.stringify(out).includes('1980'));
- f.account.player_name=null;const linked=await f.call('memberLinkRequest',{name:'기록선수'},'','verified');assert.equal(linked.ok,true);assert.equal(f.account.requested_player_name,'기록선수');assert.equal(f.account.role,'member');
+ f.account.player_name=null;const linked=await f.call('memberLinkRequest',{name:'기록선수',birthYear:1980,joinYear:2023,yearsConfirmed:true},'','verified');assert.equal(linked.ok,true);assert.equal(f.account.requested_player_name,'기록선수');assert.equal(f.account.role,'member');
  assert.equal((await f.call('memberLinkRequest',{name:'휴면선수'},'','verified')).ok,false);
 });
 test('Only a verified Kakao administrator can list accounts or change roles; legacy passwords/tokens do not authorize',async()=>{
@@ -153,18 +153,21 @@ test('Member creation allows missing years, rejects invalid values and preserves
 
 test('New applicants submit private birth/join years without entering the member catalog before approval',async()=>{
  const f=await fixture();f.account.player_name=null;
- const request=await f.call('memberLinkRequest',{name:' 신규회원 ',birthYear:'1984',joinYear:'2013'},'','verified');
+ const request=await f.call('memberLinkRequest',{name:' 신규회원 ',birthYear:'1984',joinYear:'2013',yearsConfirmed:true},'','verified');
  assert.equal(request.ok,true,request.message);assert.equal(f.account.requested_player_name,'신규회원');assert.equal(f.account.requested_birth_year,1984);assert.equal(f.account.requested_join_year,2013);
  assert.equal(f.snapshot.tables.player_birth_years.some(p=>p.member_name==='신규회원'),false);assert.equal(f.writes.length,0);
  assert.equal((await f.call('trainingJoin',{},'','verified')).ok,false);
  assert.equal((await f.call('memberAccountList',{},'','verified')).ok,false);
  await f.adminCall('memberLinkReject',{userId:f.account.user_id,name:'신규회원'});assert.equal(f.account.requested_player_name,null);assert.equal(f.account.requested_birth_year,null);assert.equal(f.account.requested_join_year,null);
 });
-test('New signup validates names and both years, while existing members never overwrite catalog years',async()=>{
+test('Signup requires confirmed valid years for all applicants and stages existing member corrections',async()=>{
  const f=await fixture();f.account.player_name=null;
  for(const payload of [{name:''},{name:'x'.repeat(31)},{name:'a\nb',birthYear:1984,joinYear:2013},{name:'신규회원'},{name:'신규회원',birthYear:'1899',joinYear:'2013'},{name:'신규회원',birthYear:'1984',joinYear:'9999'},{name:'신규회원',birthYear:'2013',joinYear:'1984'}])assert.equal((await f.call('memberLinkRequest',payload,'','verified')).ok,false);
  assert.equal(f.account.requested_player_name,null);
- const existing=await f.call('memberLinkRequest',{name:'김선수',birthYear:1900,joinYear:1901},'','verified');assert.equal(existing.ok,true);assert.equal(f.account.requested_birth_year,null);assert.equal(f.account.requested_join_year,null);assert.equal(f.snapshot.tables.player_birth_years[0].birth_year,'1980');
+ for(const years of [{birthYear:1899,joinYear:2013},{birthYear:1984,joinYear:9999},{birthYear:2013,joinYear:1984}])assert.equal((await f.call('memberLinkRequest',{name:'김선수',yearsConfirmed:true,...years},'','verified')).ok,false);
+ assert.equal((await f.call('memberLinkRequest',{name:'김선수',birthYear:1981,joinYear:2023},'','verified')).ok,false);
+ assert.equal((await f.call('memberLinkRequest',{name:'김선수',yearsConfirmed:true},'','verified')).ok,false);
+ const existing=await f.call('memberLinkRequest',{name:'김선수',birthYear:1981,joinYear:2023,yearsConfirmed:true},'','verified');assert.equal(existing.ok,true);assert.equal(f.account.requested_birth_year,1981);assert.equal(f.account.requested_join_year,2023);assert.equal(f.snapshot.tables.player_birth_years[0].birth_year,'1980');
 });
 
 test('Coach flags are administrator-only, persist separately from year edits, and can be removed',async()=>{
@@ -179,4 +182,10 @@ test('Coach flags are administrator-only, persist separately from year edits, an
  assert.equal((await f.adminCall('memberCoachSet',{memberName:'김선수',isCoach:false})).ok,true);
  list=await f.adminCall('adminList',{view:'player-birth-years'});assert.equal(list.players.find(p=>p.memberName==='김선수').isCoach,false);
  const published=await f.call('publicData');assert.ok(!JSON.stringify(published).includes('isCoach'));
+});
+
+test('Signup year lookup requires Kakao login and returns only the selected name, excluding dormant members',async()=>{
+ const f=await fixture();assert.equal((await f.call('memberLinkDetails',{name:'김선수'})).ok,false);
+ const out=await f.call('memberLinkDetails',{name:'김선수'},'','verified');assert.equal(out.birthYear,'1980');assert.equal(out.joinYear,'2023');assert.equal(out.players,undefined);
+ f.snapshot.tables.dormant_members.push({member_name:'김선수'});assert.equal((await f.call('memberLinkDetails',{name:'김선수'},'','verified')).ok,false);
 });

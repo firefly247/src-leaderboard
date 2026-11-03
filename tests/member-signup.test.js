@@ -16,15 +16,15 @@ function fixture(member={nickname:'카카오 별명',playerName:null,requestedPl
     showModal(){this.open=true;}
     close(){this.open=false;this.onclose?.();}
   }
-  const ctx={window:{ClubApi:{ready:true,client:{auth:{getSession:async()=>({data:{session:{access_token:'token'}}}),onAuthStateChange(){},signInWithOAuth:async options=>{calls.push({action:typeof options.provider==='string'?'oauth':'invalid',options});return {};},signOut:async()=>({})}},call:async(action,data)=>{calls.push({action,data});if(action==='memberSession')return {member:{...member}};if(action==='memberLinkOptions')return {names:['김기현','이찬희']};if(action==='memberLinkRequest'){await request(data);member.requestedPlayerName=data.name;return {ok:true};}throw new Error('Unexpected action');}}},document:{querySelector:selector=>{if(!elements.has(selector))elements.set(selector,new Element());return elements.get(selector);},createElement:()=>dialog=new Element(),body:{appendChild(){}},dispatchEvent(event){events.push(event);},addEventListener(){}},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}},setTimeout,URL,location:{href:'https://club.example/'}};
+  const ctx={window:{ClubApi:{ready:true,client:{auth:{getSession:async()=>({data:{session:{access_token:'token'}}}),onAuthStateChange(){},signInWithOAuth:async options=>{calls.push({action:typeof options.provider==='string'?'oauth':'invalid',options});return {};},signOut:async()=>({})}},call:async(action,data)=>{calls.push({action,data});if(action==='memberSession')return {member:{...member}};if(action==='memberLinkOptions')return {names:['김기현','이찬희']};if(action==='memberLinkDetails')return {birthYear:'1984',joinYear:'2024'};if(action==='memberLinkRequest'){await request(data);member.requestedPlayerName=data.name;return {ok:true};}throw new Error('Unexpected action');}}},document:{querySelector:selector=>{if(!elements.has(selector))elements.set(selector,new Element());return elements.get(selector);},createElement:()=>dialog=new Element(),body:{appendChild(){}},dispatchEvent(event){events.push(event);},addEventListener(){}},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}},setTimeout,URL,location:{href:'https://club.example/'}};
   ctx.window.setupCompetitionMemberInput=(input,names)=>{input._memberAutocompleteNames=names;};
   ctx.window.closeCompetitionMemberMenu=()=>{};
   vm.createContext(ctx);vm.runInContext(source,ctx);
-  return {ctx,calls,events,elements,get dialog(){return dialog;},set request(handler){request=handler;},select(name){const input=dialog.querySelector('[data-link-search]');if(input.disabled)return;input.value=name;input.oninput();},submit(){return dialog.querySelector('[data-signup-form]').onsubmit({preventDefault(){}});}};
+  return {ctx,calls,events,elements,get dialog(){return dialog;},set request(handler){request=handler;},async select(name,confirmed=true){const input=dialog.querySelector('[data-link-search]');if(input.disabled)return;input.value=name;await input.oninput();if(confirmed&&input._memberAutocompleteNames.includes(name.trim())){const checkbox=dialog.querySelector('[data-year-confirm]');checkbox.checked=true;checkbox.onchange();}},submit(){return dialog.querySelector('[data-signup-form]').onsubmit({preventDefault(){}});}};
 }
 test('First Kakao login opens signup; selecting a name does not save until explicit submission',async()=>{
   const f=fixture();await settle();assert.equal(f.dialog.open,true);assert.match(f.dialog.innerHTML,/회원 가입/);
-  f.select('김기현');assert.equal(f.calls.filter(c=>c.action==='memberLinkRequest').length,0);
+  await f.select('김기현');assert.equal(f.calls.filter(c=>c.action==='memberLinkRequest').length,0);
   assert.equal(f.dialog.querySelector('[data-link-search]').value,'김기현');
   await f.submit();assert.equal(f.calls.filter(c=>c.action==='memberLinkRequest').length,1);
   assert.equal(f.ctx.window.ClubMembership.member.requestedPlayerName,'김기현');
@@ -35,19 +35,19 @@ test('Signup shows one empty autocomplete input and accepts only complete regist
   assert.doesNotMatch(f.dialog.innerHTML,/data-link-names|data-link-selection|김기현|이찬희/);
   const input=f.dialog.querySelector('[data-link-search]'),submit=f.dialog.querySelector('[data-signup-submit]');
   assert.equal(input.value,'');assert.deepEqual(Array.from(input._memberAutocompleteNames),['김기현','이찬희']);
-  f.select('김');assert.equal(submit.disabled,true);await f.submit();assert.equal(f.calls.some(c=>c.action==='memberLinkRequest'),false);
-  f.select('미등록');await f.submit();assert.equal(f.calls.some(c=>c.action==='memberLinkRequest'),false);
-  f.select(' 김기현 ');assert.equal(submit.disabled,false);
-  f.select('');assert.equal(submit.disabled,true);
+  await f.select('김');assert.equal(submit.disabled,true);await f.submit();assert.equal(f.calls.some(c=>c.action==='memberLinkRequest'),false);
+  await f.select('미등록');await f.submit();assert.equal(f.calls.some(c=>c.action==='memberLinkRequest'),false);
+  await f.select(' 김기현 ');assert.equal(submit.disabled,false);
+  await f.select('');assert.equal(submit.disabled,true);
 });
 test('Signup blocks duplicate submission and selection changes while saving',async()=>{
   const f=fixture();await settle();let finish;f.request=()=>new Promise(resolve=>finish=resolve);
-  f.select('김기현');const saving=f.submit();f.select('이찬희');await f.submit();
+  await f.select('김기현');const saving=f.submit();await f.select('이찬희');await f.submit();
   assert.equal(f.calls.filter(c=>c.action==='memberLinkRequest').length,1);
   finish();await saving;assert.equal(f.ctx.window.ClubMembership.member.requestedPlayerName,'김기현');
 });
 test('Failed signup keeps selected name and permits retry',async()=>{
-  const f=fixture();await settle();f.select('이찬희');f.request=async()=>{throw new Error('연결 실패');};
+  const f=fixture();await settle();await f.select('이찬희');f.request=async()=>{throw new Error('연결 실패');};
   await f.submit();assert.equal(f.dialog.querySelector('[data-link-message]').textContent,'연결 실패');
   assert.equal(f.dialog.querySelector('[data-signup-submit]').disabled,false);
   f.request=async()=>{};await f.submit();assert.equal(f.ctx.window.ClubMembership.member.requestedPlayerName,'이찬희');
@@ -112,8 +112,8 @@ test('A Kakao session without a submitted member name cannot enter member menus 
  assert.doesNotMatch(f.dialog.innerHTML,/data-close-link/);assert.match(f.dialog.innerHTML,/data-cancel-signup/);
  let prevented=false;f.dialog.oncancel({preventDefault(){prevented=true;}});assert.equal(prevented,true);
  f.dialog.close();assert.equal(f.dialog.open,true);
- f.select('');await f.submit();assert.equal(f.calls.some(call=>call.action==='memberLinkRequest'),false);
- f.select('김기현');assert.equal(f.ctx.window.ClubMembership.member,null);
+ await f.select('');await f.submit();assert.equal(f.calls.some(call=>call.action==='memberLinkRequest'),false);
+ await f.select('김기현');assert.equal(f.ctx.window.ClubMembership.member,null);
  await f.submit();assert.equal(f.events.at(-1).detail.member.requestedPlayerName,'김기현');
  f.dialog.close();assert.equal(f.dialog.open,false);
 });
@@ -127,11 +127,17 @@ test('Cancelling unfinished signup signs out, and a failed signout keeps signup 
 
 test('Unknown names reveal required years; validated new-member details are submitted for approval',async()=>{
  const f=fixture();await settle();const birth=f.dialog.querySelector('[data-signup-birth-year]'),join=f.dialog.querySelector('[data-signup-join-year]'),years=f.dialog.querySelector('[data-new-member-years]'),submit=f.dialog.querySelector('[data-signup-submit]');
- assert.equal(years.hidden,true);f.select('신규회원');assert.equal(years.hidden,false);assert.equal(birth.required,true);assert.equal(join.required,true);assert.equal(submit.disabled,true);
+ assert.equal(years.hidden,true);await f.select('신규회원');assert.equal(years.hidden,false);assert.equal(birth.required,true);assert.equal(join.required,true);assert.equal(submit.disabled,true);
  birth.value='1984';birth.oninput();join.value='2013';join.oninput();assert.equal(submit.disabled,false);
  await f.submit();const request=f.calls.find(call=>call.action==='memberLinkRequest');assert.equal(request.data.name,'신규회원');assert.equal(request.data.birthYear,'1984');assert.equal(request.data.joinYear,'2013');assert.match(f.dialog.innerHTML,/가입 승인 대기/);
 });
-test('Switching back to a roster name hides new-member fields and omits submitted years',async()=>{
- const f=fixture();await settle();f.select('신규회원');f.dialog.querySelector('[data-signup-birth-year]').value='1984';f.select('김기현');assert.equal(f.dialog.querySelector('[data-new-member-years]').hidden,true);assert.equal(f.dialog.querySelector('[data-signup-birth-year]').required,false);
- await f.submit();assert.deepEqual(Object.keys(f.calls.find(call=>call.action==='memberLinkRequest').data),['name']);
+test('Switching back to a roster name loads saved years and submits confirmed information',async()=>{
+ const f=fixture();await settle();await f.select('신규회원');f.dialog.querySelector('[data-signup-birth-year]').value='1984';await f.select('김기현');assert.equal(f.dialog.querySelector('[data-new-member-years]').hidden,false);assert.equal(f.dialog.querySelector('[data-signup-birth-year]').value,'1984');assert.equal(f.dialog.querySelector('[data-signup-birth-year]').required,true);
+ await f.submit();const data=f.calls.find(call=>call.action==='memberLinkRequest').data;assert.equal(data.birthYear,'1984');assert.equal(data.joinYear,'2024');assert.equal(data.yearsConfirmed,true);
+});
+
+test('Existing members must confirm loaded years, and changing years clears confirmation',async()=>{
+ const f=fixture();await settle();await f.select('김기현',false);const submit=f.dialog.querySelector('[data-signup-submit]'),check=f.dialog.querySelector('[data-year-confirm]'),birth=f.dialog.querySelector('[data-signup-birth-year]');
+ assert.equal(birth.value,'1984');assert.equal(submit.disabled,true);await f.submit();assert.equal(f.calls.some(c=>c.action==='memberLinkRequest'),false);
+ check.checked=true;check.onchange();assert.equal(submit.disabled,false);birth.value='1985';birth.oninput();assert.equal(check.checked,false);assert.equal(submit.disabled,true);check.checked=true;check.onchange();await f.submit();assert.equal(f.calls.find(c=>c.action==='memberLinkRequest').data.birthYear,'1985');
 });

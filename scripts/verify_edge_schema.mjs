@@ -82,5 +82,22 @@ try{
  const projection=(await db.query('select public.club_public_read() as v')).rows[0].v;
  assert.ok(!JSON.stringify(projection).includes('test-private-key'));assert.ok(!Object.hasOwn(projection.tables,'push_subscriptions'));
  console.log('Web Push verified: private keys and device endpoints are service-only and excluded from public data.');
+ await db.exec('reset role;');await db.exec(await readFile('supabase/migrations/20261103020000_confirm_signup_years.sql','utf8'));
+ const fifth='00000000-0000-0000-0000-000000000005',sixth='00000000-0000-0000-0000-000000000006';
+ await db.query('insert into auth.users values($1),($2)',[fifth,sixth]);
+ await db.exec("insert into public.club_player_birth_years(member_name,birth_year,join_year) values('확인회원','1980','2023');set role service_role;");
+ await db.query("insert into public.club_accounts(user_id,requested_player_name,requested_birth_year,requested_join_year) values($1,'확인회원',1981,2024)",[fifth]);
+ const beforeCorrection=(await db.query('select revision from public.club_store_meta')).rows[0].revision;
+ await db.query("select public.club_member_approve($1,'확인회원')",[fifth]);
+ assert.deepEqual((await db.query("select birth_year,join_year from public.club_player_birth_years where member_name='확인회원'")).rows[0],{birth_year:'1981',join_year:'2024'});
+ assert.equal(Number((await db.query('select revision from public.club_store_meta')).rows[0].revision),Number(beforeCorrection)+1);
+ await db.query("insert into public.club_accounts(user_id,requested_player_name,requested_birth_year,requested_join_year) values($1,'확인회원',1900,1901)",[sixth]);
+ await assert.rejects(()=>db.query("select public.club_member_approve($1,'확인회원')",[sixth]),/unique/);
+ assert.equal((await db.query("select birth_year from public.club_player_birth_years where member_name='확인회원'")).rows[0].birth_year,'1981');
+ await db.exec("insert into public.club_player_birth_years(member_name,birth_year,join_year) values('이전신청회원','1982','2015');");
+ await db.query("update public.club_accounts set requested_player_name='이전신청회원',requested_birth_year=null,requested_join_year=null where user_id=$1",[sixth]);
+ await db.query("select public.club_member_approve($1,'이전신청회원')",[sixth]);
+ assert.equal((await db.query("select birth_year from public.club_player_birth_years where member_name='이전신청회원'")).rows[0].birth_year,'1982');
+ console.log('Existing-member year confirmation verified: corrections only apply on approval, revision increments, duplicate approval rolls back catalog edits, older pending applications remain approvable.');
  console.log('PostgreSQL verified: public projection and private permissions; member linking; administrator-only role changes and last-administrator protection.');
 }finally{await db.close();}
