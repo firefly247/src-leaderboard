@@ -1,7 +1,7 @@
 import { createEngine } from './engine.mjs';
 import { makeUtilities } from './utilities.mjs';
 import { SEAT_ACTIONS, FLEET, seatView, changeSeats } from './training-seats.mjs';
-import { createPush } from './push.mjs';
+import { createPush, requestPush } from './push.mjs';
 
 const PUBLIC = new Set(['trainingGet','trainingList','trainingRoster','raceLineupList','raceLineupGet','pendingDeleteRecords']);
 const MEMBER = new Set(['trainingJoin','trainingWeekJoin','requestAdd','requestCompetitionAdd','requestDelete','trainingSeats','trainingBoatAdd','trainingSeatSelect','trainingSeatStatus','trainingSeatComment']);
@@ -100,7 +100,7 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
           birthYear=year(p.birthYear,'출생연도');joinYear=year(p.joinYear,'가입연도');if(joinYear<birthYear)throw new Error('가입연도는 출생연도 이후로 입력해 주세요.');
         }
         await rest('club_accounts?user_id=eq.'+encodeURIComponent(member.user_id),{requested_player_name:name,requested_birth_year:birthYear,requested_join_year:joinYear,display_name:member.nickname},'PATCH');
-        await background(push.notifyAdmins());return respond({ok:true,requestedPlayerName:name});
+        await background(push.notifyAdmins({title:'회원 가입 요청',body:name+'님이 가입을 신청했습니다. 운영진 승인을 기다리고 있습니다.',tag:'member-'+member.user_id}));return respond({ok:true,requestedPlayerName:name});
       }
       const admin=ADMIN.has(action)&&member?.role==='admin';
       if(ADMIN.has(action)&&!admin)throw new Error('관리자 인증이 만료되었습니다.');
@@ -189,7 +189,7 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
       const changes=engine.changes();
       if(photo)await upload(photo);
       if(Object.keys(changes).length)await rpc('club_store_commit',{p_expected_revision:snapshot.revision,p_changes:changes});
-      if(['requestAdd','requestCompetitionAdd'].includes(action))await background(push.notifyAdmins());
+      if(['requestAdd','requestCompetitionAdd'].includes(action))await background(push.notifyAdmins(requestPush(engine.tables().request_log.find(row=>row.request_id===result.requestId))));
       return respond({ok:true,...result});
     } catch(error) {
       return respond({ok:false,message:error instanceof SyntaxError?'요청 형식이 올바르지 않습니다.':error.message||'요청을 처리하지 못했습니다.'},400);

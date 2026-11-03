@@ -82,6 +82,9 @@ try{
  const projection=(await db.query('select public.club_public_read() as v')).rows[0].v;
  assert.ok(!JSON.stringify(projection).includes('test-private-key'));assert.ok(!Object.hasOwn(projection.tables,'push_subscriptions'));
  console.log('Web Push verified: private keys and device endpoints are service-only and excluded from public data.');
+ await db.exec('reset role;');await db.exec(await readFile('supabase/migrations/20261103030000_push_contents.sql','utf8'));await db.exec('set role service_role;');
+ await db.query('update public.club_push_subscriptions set p256dh=$1,auth=$2',['test-browser-public-key','test-browser-auth']);
+ assert.ok(!JSON.stringify((await db.query('select public.club_public_read() as v')).rows[0].v).includes('test-browser-auth'));
  await db.exec('reset role;');await db.exec(await readFile('supabase/migrations/20261103020000_confirm_signup_years.sql','utf8'));
  const fifth='00000000-0000-0000-0000-000000000005',sixth='00000000-0000-0000-0000-000000000006';
  await db.query('insert into auth.users values($1),($2)',[fifth,sixth]);
