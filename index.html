@@ -15,13 +15,13 @@
   <link rel="stylesheet" href="static/race-lineup.css?v=20261025-01">
   <link rel="stylesheet" href="static/style.css?v=20261101-24">
   <link rel="stylesheet" href="static/member-auth.css?v=20261101-11">
-  <link rel="stylesheet" href="static/admin-notifications.css?v=20261101-01">
+  <link rel="stylesheet" href="static/admin-notifications.css?v=20261103-01">
   <link rel="stylesheet" href="static/club-home.css?v=20261101-31">
 </head>
 <body>
   <header class="site-header">
     <a class="brand" href="./#home" aria-label="삼성조정클럽 홈"><span>삼성조정클럽</span></a>
-    <div class="header-actions"><div id="adminNotifications" class="admin-notifications" hidden><button id="adminNotificationToggle" class="admin-notification-toggle" type="button" aria-label="관리자 알림" aria-expanded="false" aria-controls="adminNotificationPanel" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="adminNotificationBadge" class="admin-notification-badge" hidden></span></button><section id="adminNotificationPanel" class="admin-notification-panel" role="dialog" aria-label="관리자 알림" hidden><div class="admin-notification-heading"><h2>알림</h2><button id="adminNotificationRefresh" type="button">새로고침</button></div><p id="adminNotificationStatus" class="admin-notification-status" role="status"></p><div id="adminNotificationList" class="admin-notification-list"></div></section></div><button id="headerMenuToggle" class="header-menu-toggle" type="button" aria-label="메뉴 열기" aria-expanded="false" aria-controls="mainNavigation"><span></span><span></span><span></span></button></div>
+    <div class="header-actions"><div id="adminNotifications" class="admin-notifications" hidden><button id="adminNotificationToggle" class="admin-notification-toggle" type="button" aria-label="관리자 알림" aria-expanded="false" aria-controls="adminNotificationPanel" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="adminNotificationBadge" class="admin-notification-badge" hidden></span></button><section id="adminNotificationPanel" class="admin-notification-panel" role="dialog" aria-label="관리자 알림" hidden><div class="admin-notification-heading"><h2>알림</h2><button id="adminNotificationRefresh" type="button">새로고침</button></div><p id="adminNotificationStatus" class="admin-notification-status" role="status"></p><div id="adminNotificationList" class="admin-notification-list"></div><section id="adminPushSettings" class="admin-push-settings" aria-label="관리자 휴대폰 알림" hidden><strong>휴대폰 알림 · Beta</strong><p id="adminPushStatus" role="status"></p><div><button id="adminPushEnable" type="button">휴대폰 알림 켜기</button><button id="adminPushTest" type="button" disabled>테스트 알림 보내기</button><button id="adminPushDisable" type="button" hidden>알림 끄기</button></div></section></section></div><button id="headerMenuToggle" class="header-menu-toggle" type="button" aria-label="메뉴 열기" aria-expanded="false" aria-controls="mainNavigation"><span></span><span></span><span></span></button></div>
     <nav id="mainNavigation" class="main-tabs" aria-label="주요 메뉴" hidden>
       <div class="member-auth"><button id="kakaoLogin" class="kakao-login" type="button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C6.5 3 2 6.5 2 10.8c0 2.8 1.9 5.3 4.7 6.6l-1 3.6 4.2-2.6c.7.1 1.4.2 2.1.2 5.5 0 10-3.5 10-7.8S17.5 3 12 3Z"/></svg>회원 로그인</button><span id="memberAuthStatus" class="member-auth-status" role="status">회원 로그인 준비 중</span><button id="memberLogout" class="header-logout-button" type="button" hidden>로그아웃</button></div>
       <button class="tab-button is-active" data-tab="home" type="button">클럽 소개</button>
@@ -116,6 +116,7 @@
   <script src="static/race-lineup-plan.js?v=20261026-13"></script><script src="static/race-lineup.js?v=20261026-13"></script>
   <script src="static/pwa.js?v=20261101-02"></script>
   <script src="static/admin-notifications.js?v=20261101-01"></script>
-  <script src="static/supabase-member-auth.js?v=20261101-11"></script>
+  <script src="static/admin-push.js?v=20261103-01"></script>
+  <script src="static/supabase-member-auth.js?v=20261103-01"></script>
 </body>
 </html>

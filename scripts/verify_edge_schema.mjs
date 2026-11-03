@@ -73,5 +73,14 @@ try{
  assert.equal(Object.hasOwn((await db.query('select public.club_store_read() as v')).rows[0].v.tables,'coaches'),false);
  await db.exec("delete from public.club_coaches where member_name='김선수';");assert.equal((await db.query('select count(*)::int as n from public.club_coaches')).rows[0].n,0);
  console.log('Coach flags verified: service-only storage, independent from catalog snapshots, set and unset.');
+ await db.exec('reset role;');await db.exec(await readFile('supabase/migrations/20261103010000_admin_web_push.sql','utf8'));
+ for(const role of ['anon','authenticated'])for(const table of ['club_push_keys','club_push_subscriptions']){
+  const permissions=(await db.query('select has_table_privilege($1,$2,\'select\') as read,has_table_privilege($1,$2,\'insert\') as write',[role,'public.'+table])).rows[0];assert.deepEqual(permissions,{read:false,write:false});
+ }
+ await db.exec('set role service_role;');await db.query('insert into public.club_push_keys values(true,$1,$2)',['public-key',{d:'test-private-key'}]);
+ await db.query('insert into public.club_push_subscriptions(endpoint_hash,user_id,endpoint) values($1,$2,$3)',['a'.repeat(64),id,'https://fcm.googleapis.com/test']);
+ const projection=(await db.query('select public.club_public_read() as v')).rows[0].v;
+ assert.ok(!JSON.stringify(projection).includes('test-private-key'));assert.ok(!Object.hasOwn(projection.tables,'push_subscriptions'));
+ console.log('Web Push verified: private keys and device endpoints are service-only and excluded from public data.');
  console.log('PostgreSQL verified: public projection and private permissions; member linking; administrator-only role changes and last-administrator protection.');
 }finally{await db.close();}

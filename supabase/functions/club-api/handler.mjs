@@ -1,14 +1,17 @@
 import { createEngine } from './engine.mjs';
 import { makeUtilities } from './utilities.mjs';
 import { SEAT_ACTIONS, FLEET, seatView, changeSeats } from './training-seats.mjs';
+import { createPush } from './push.mjs';
 
 const PUBLIC = new Set(['trainingGet','trainingList','trainingRoster','raceLineupList','raceLineupGet','pendingDeleteRecords']);
 const MEMBER = new Set(['trainingJoin','trainingWeekJoin','requestAdd','requestCompetitionAdd','requestDelete','trainingSeats','trainingBoatAdd','trainingSeatSelect','trainingSeatStatus','trainingSeatComment']);
 const ADMIN = new Set(['trainingBoatRemove','trainingSeatConfirm','trainingSeatReopen','adminList','saveApprovedRecord','saveCompetitionDates','updateCompetitionRequests','savePlayerBirthYear','savePlayerBirthYears','processRequest','processAddRequests','processCompetitionAddRequests','processRejectRequests','manageEvent','manageCompetition','manageCompetitionEvent','manageCompetitionDivision','trainingOpen','trainingRecommend','trainingDraftGet','trainingDraftEdit','trainingDraftSave','trainingPublish','trainingCheck','trainingQualifications','raceLineupAdminData','raceLineupGetAdmin','raceLineupCreate','raceLineupParticipants','raceLineupSave','raceLineupFinalize','memberLinkList','memberLinkApprove','memberLinkReject','memberAccountList','memberAccountRole','memberCreate','memberCoachSet']);
 const clone=x=>structuredClone(x);
+const PUSH=new Set(['adminPushConfig','adminPushSubscribe','adminPushDisable','adminPushStatus','adminPushTest']);
+PUSH.forEach(action=>ADMIN.add(action));
 const csv=value=>{const text=String(value??'');return /[",\r\n]/.test(text)?'"'+text.replace(/"/g,'""')+'"':text;};
 
-export function createHandler({url,key,hash,fetcher=fetch,origins=['https://firefly247.github.io']}) {
+export function createHandler({url,key,hash,fetcher=fetch,origins=['https://firefly247.github.io'],background=promise=>promise}) {
   const utilities=makeUtilities(hash), hex=v=>Array.from(hash(new TextEncoder().encode(v)),b=>b.toString(16).padStart(2,'0')).join('');
   async function rest(path,payload,method='POST',extra={}) {
     const res=await fetcher(url+'/rest/v1/'+path,{method,headers:{apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json',...extra},...(payload===undefined?{}:{body:JSON.stringify(payload)})});
@@ -16,6 +19,7 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
     const text=await res.text();return text?JSON.parse(text):null;
   }
   const rpc=(name,p={})=>rest('rpc/'+name,p);
+  const push=createPush({rest,hash});
   async function account(accessToken) {
     if(!accessToken)return null;
     const res=await fetcher(url+'/auth/v1/user',{headers:{apikey:key,Authorization:'Bearer '+accessToken}});
@@ -87,10 +91,15 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
           const year=(value,label)=>{const text=String(value??'').trim();if(!/^\d{4}$/.test(text)||Number(text)<1900||Number(text)>currentYear)throw new Error(label+'는 1900년부터 올해까지 입력해 주세요.');return Number(text);};
           birthYear=year(p.birthYear,'출생연도');joinYear=year(p.joinYear,'가입연도');if(joinYear<birthYear)throw new Error('가입연도는 출생연도 이후로 입력해 주세요.');
         }
-        await rest('club_accounts?user_id=eq.'+encodeURIComponent(member.user_id),{requested_player_name:name,requested_birth_year:birthYear,requested_join_year:joinYear,display_name:member.nickname},'PATCH');return respond({ok:true,requestedPlayerName:name});
+        await rest('club_accounts?user_id=eq.'+encodeURIComponent(member.user_id),{requested_player_name:name,requested_birth_year:birthYear,requested_join_year:joinYear,display_name:member.nickname},'PATCH');
+        await background(push.notifyAdmins());return respond({ok:true,requestedPlayerName:name});
       }
       const admin=ADMIN.has(action)&&member?.role==='admin';
       if(ADMIN.has(action)&&!admin)throw new Error('관리자 인증이 만료되었습니다.');
+      if(PUSH.has(action)){
+        await limited(request,member.user_id+':'+action,action==='adminPushTest'?5:30);
+        return respond({ok:true,...await push.dispatch(action,p,member)});
+      }
       if(action==='memberCoachSet'){
         const name=typeof p.memberName==='string'?p.memberName.trim():'';
         if(!name||name.length>30||typeof p.isCoach!=='boolean')throw new Error('회원 이름과 코치 여부를 확인해 주세요.');
@@ -172,6 +181,7 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
       const changes=engine.changes();
       if(photo)await upload(photo);
       if(Object.keys(changes).length)await rpc('club_store_commit',{p_expected_revision:snapshot.revision,p_changes:changes});
+      if(['requestAdd','requestCompetitionAdd'].includes(action))await background(push.notifyAdmins());
       return respond({ok:true,...result});
     } catch(error) {
       return respond({ok:false,message:error instanceof SyntaxError?'요청 형식이 올바르지 않습니다.':error.message||'요청을 처리하지 못했습니다.'},400);

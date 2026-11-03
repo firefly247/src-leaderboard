@@ -46,6 +46,12 @@ test('Public landing data uses only the eight-table projection without private s
 test('Anonymous training writes and forged administrator claims fail before reading private data',async()=>{
  const f=await fixture();assert.equal((await f.call('trainingWeekJoin',{})).ok,false);assert.equal((await f.call('trainingOpen',{dates:['2026-10-24'],role:'admin'},'forged','verified')).ok,false);assert.equal(f.reads,0);assert.equal(f.writes.length,0);
 });
+test('Push setup, subscription, status and test send all require a verified administrator',async()=>{
+ const f=await fixture();for(const action of ['adminPushConfig','adminPushSubscribe','adminPushDisable','adminPushStatus','adminPushTest']){
+  assert.equal((await f.call(action,{endpoint:'https://fcm.googleapis.com/a'})).ok,false);
+  assert.equal((await f.call(action,{endpoint:'https://fcm.googleapis.com/a'},'forged','verified')).ok,false);
+ }assert.equal(f.reads,0);
+});
 test('Verified linked member owns signup, can replace a legacy browser key, and cannot use another name',async()=>{
  const f=await fixture();assert.equal((await f.adminCall('trainingOpen',{dates:['2026-10-24']})).ok,true);
  f.snapshot.tables.weekend_training[0].session_json.participants=[{id:'old',name:'김선수',status:'참석',editHash:'old-browser-secret'}];

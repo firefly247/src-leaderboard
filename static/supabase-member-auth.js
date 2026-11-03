@@ -56,7 +56,7 @@
     }catch(error){dialog.querySelector('[data-link-message]').textContent=error.message;}
   }
   async function signOut(){
-    try{const {error}=await api.client.auth.signOut();if(error)throw error;profile=null;pending=false;if(dialog.open)dialog.close();render();return true;}
+    try{await window.ClubPush?.disable();const {error}=await api.client.auth.signOut();if(error)throw error;profile=null;pending=false;if(dialog.open)dialog.close();render();return true;}
     catch{status.textContent='로그아웃하지 못했습니다. 다시 시도해 주세요.';return false;}
   }
   button.onclick=login;logout.onclick=signOut;
