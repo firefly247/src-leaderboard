@@ -94,7 +94,6 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
         const dormant=await rest('club_dormant_members?select=member_name&member_name=eq.'+encodeURIComponent(name),undefined,'GET');
         if(dormant.length)throw new Error('휴면 회원입니다. 운영진에게 문의해 주세요.');
         let birthYear=null,joinYear=null;
-        if(p.yearsConfirmed!==true)throw new Error('출생연도와 가입연도를 확인한 뒤 신청해 주세요.');
         {
           const currentYear=Number(new Intl.DateTimeFormat('en',{timeZone:'Asia/Seoul',year:'numeric'}).format(new Date()));
           const year=(value,label)=>{const text=String(value??'').trim();if(!/^\d{4}$/.test(text)||Number(text)<1900||Number(text)>currentYear)throw new Error(label+'는 1900년부터 올해까지 입력해 주세요.');return Number(text);};

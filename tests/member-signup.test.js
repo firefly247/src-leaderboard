@@ -20,7 +20,7 @@ function fixture(member={nickname:'카카오 별명',playerName:null,requestedPl
   ctx.window.setupCompetitionMemberInput=(input,names)=>{input._memberAutocompleteNames=names;};
   ctx.window.closeCompetitionMemberMenu=()=>{};
   vm.createContext(ctx);vm.runInContext(source,ctx);
-  return {ctx,calls,events,elements,get dialog(){return dialog;},set request(handler){request=handler;},async select(name,confirmed=true){const input=dialog.querySelector('[data-link-search]');if(input.disabled)return;input.value=name;await input.oninput();if(confirmed&&input._memberAutocompleteNames.includes(name.trim())){const checkbox=dialog.querySelector('[data-year-confirm]');checkbox.checked=true;checkbox.onchange();}},submit(){return dialog.querySelector('[data-signup-form]').onsubmit({preventDefault(){}});}};
+  return {ctx,calls,events,elements,get dialog(){return dialog;},set request(handler){request=handler;},async select(name){const input=dialog.querySelector('[data-link-search]');if(input.disabled)return;input.value=name;await input.oninput();},submit(){return dialog.querySelector('[data-signup-form]').onsubmit({preventDefault(){}});}};
 }
 test('First Kakao login opens signup; selecting a name does not save until explicit submission',async()=>{
   const f=fixture();await settle();assert.equal(f.dialog.open,true);assert.match(f.dialog.innerHTML,/회원 가입/);
@@ -131,13 +131,15 @@ test('Unknown names reveal required years; validated new-member details are subm
  birth.value='1984';birth.oninput();join.value='2013';join.oninput();assert.equal(submit.disabled,false);
  await f.submit();const request=f.calls.find(call=>call.action==='memberLinkRequest');assert.equal(request.data.name,'신규회원');assert.equal(request.data.birthYear,'1984');assert.equal(request.data.joinYear,'2013');assert.match(f.dialog.innerHTML,/가입 승인 대기/);
 });
-test('Switching back to a roster name loads saved years and submits confirmed information',async()=>{
+test('Switching back to a roster name loads saved years and submits complete information',async()=>{
  const f=fixture();await settle();await f.select('신규회원');f.dialog.querySelector('[data-signup-birth-year]').value='1984';await f.select('김기현');assert.equal(f.dialog.querySelector('[data-new-member-years]').hidden,false);assert.equal(f.dialog.querySelector('[data-signup-birth-year]').value,'1984');assert.equal(f.dialog.querySelector('[data-signup-birth-year]').required,true);
- await f.submit();const data=f.calls.find(call=>call.action==='memberLinkRequest').data;assert.equal(data.birthYear,'1984');assert.equal(data.joinYear,'2024');assert.equal(data.yearsConfirmed,true);
+ await f.submit();const data=f.calls.find(call=>call.action==='memberLinkRequest').data;assert.equal(data.birthYear,'1984');assert.equal(data.joinYear,'2024');assert.equal(data.yearsConfirmed,undefined);
 });
 
-test('Existing members must confirm loaded years, and changing years clears confirmation',async()=>{
- const f=fixture();await settle();await f.select('김기현',false);const submit=f.dialog.querySelector('[data-signup-submit]'),check=f.dialog.querySelector('[data-year-confirm]'),birth=f.dialog.querySelector('[data-signup-birth-year]');
- assert.equal(birth.value,'1984');assert.equal(submit.disabled,true);await f.submit();assert.equal(f.calls.some(c=>c.action==='memberLinkRequest'),false);
- check.checked=true;check.onchange();assert.equal(submit.disabled,false);birth.value='1985';birth.oninput();assert.equal(check.checked,false);assert.equal(submit.disabled,true);check.checked=true;check.onchange();await f.submit();assert.equal(f.calls.find(c=>c.action==='memberLinkRequest').data.birthYear,'1985');
+test('Existing members can submit prefilled years without a checkbox, but clearing either year blocks submission',async()=>{
+ const f=fixture();await settle();await f.select('김기현');const submit=f.dialog.querySelector('[data-signup-submit]'),birth=f.dialog.querySelector('[data-signup-birth-year]'),join=f.dialog.querySelector('[data-signup-join-year]');
+ assert.doesNotMatch(f.dialog.innerHTML,/data-year-confirm|type="checkbox"/);assert.equal(birth.value,'1984');assert.equal(join.value,'2024');assert.equal(submit.disabled,false);
+ birth.value='';birth.oninput();assert.equal(submit.disabled,true);await f.submit();assert.equal(f.calls.some(c=>c.action==='memberLinkRequest'),false);
+ birth.value='1985';birth.oninput();join.value='';join.oninput();assert.equal(submit.disabled,true);await f.submit();assert.equal(f.calls.some(c=>c.action==='memberLinkRequest'),false);
+ join.value='2013';join.oninput();assert.equal(submit.disabled,false);await f.submit();const request=f.calls.find(c=>c.action==='memberLinkRequest');assert.equal(request.data.birthYear,'1985');assert.equal(request.data.joinYear,'2013');
 });

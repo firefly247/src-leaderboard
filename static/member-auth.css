@@ -24,5 +24,3 @@
 .member-signup [data-new-member-years] legend { padding:0 4px; font-size:12px; }
 .member-signup [data-new-member-years] label { min-width:0; margin:0; }
 .member-signup [data-new-member-years] input { width:100%; min-width:0; padding:10px 6px; border:1px solid var(--line,#d8dfe9); border-radius:6px; font:inherit; }
-
-.member-signup .member-signup-confirm{display:flex;align-items:center;gap:8px;font-size:13px;margin:0 0 16px}.member-signup .member-signup-confirm[hidden]{display:none}.member-signup .member-signup-confirm input{width:18px;height:18px;flex:none;accent-color:#165dff}
