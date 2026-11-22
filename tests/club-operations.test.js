@@ -6,10 +6,11 @@ const markdownit=require('../static/vendor/markdown-it-15.0.3.js');
 
 test('Operations posts render Markdown tables and lists without loading images or executing author HTML',async()=>{
   function node(){
-    return {children:[],classList:{add(){},toggle(){}},append(...children){this.children.push(...children);},replaceChildren(){this.children=[];},
-      reset(){},setAttribute(){},removeAttribute(){}};
+    return {children:[],classList:{add(){},toggle(){}},append(...children){this.children.push(...children);},replaceChildren(...children){this.children=children;},
+      reset(){},setAttribute(){},removeAttribute(){},style:{setProperty(){}},focus(){this.focused=true;},scrollIntoView(){this.scrolled=true;},
+      querySelectorAll(){return this.innerHTML?.includes('<h2>지출 기준</h2>')?[heading]:[];}};
   }
-  const selectors=new Map(),listeners=new Map(),root=node();
+  const selectors=new Map(),listeners=new Map(),root=node(),heading={...node(),tagName:'H2',textContent:'지출 기준'};
   root.querySelector=selector=>{
     if(!selectors.has(selector))selectors.set(selector,node());
     return selectors.get(selector);
@@ -28,10 +29,25 @@ test('Operations posts render Markdown tables and lists without loading images o
   unlock.elements={password:{value:'example'}};
   unlock.onsubmit({preventDefault(){}});
   await new Promise(resolve=>setImmediate(resolve));
-  const [,body]=root.querySelector('#operationsPosts').children[0].children[0].children;
+  const rowButton=root.querySelector('#operationsPosts').children[0].children[0];
+  const article=root.querySelector('#operationsArticle'),list=root.querySelector('#operationsList');
+  assert.equal(article.hidden,true);
+  rowButton.onclick();
+  assert.equal(list.hidden,true);
+  const [tools,title,,reading]=article.children,[contents,body]=reading.children;
+  assert.equal(title.textContent,'경비 안내');
   assert.match(body.innerHTML,/<h2>지출 기준<\/h2>/);
   assert.match(body.innerHTML,/class="operations-table-scroll"[^>]*><table>[\s\S]*<strong>장비<\/strong>/);
   assert.match(body.innerHTML,/<ol>[\s\S]*<li>신청<\/li>/);
   assert.match(body.innerHTML,/<a href="https:\/\/example.test\/info">링크<\/a>/);
   assert.doesNotMatch(body.innerHTML,/<img\b/i);
+  const jump=contents.children[1].children[0].children[0];
+  assert.equal(jump.textContent,'지출 기준');
+  jump.onclick();
+  assert.equal(heading.focused,true);
+  assert.equal(heading.scrolled,true);
+  tools.children[0].onclick();
+  assert.equal(list.hidden,false);
+  assert.equal(article.hidden,true);
+  assert.equal(rowButton.focused,true);
 });

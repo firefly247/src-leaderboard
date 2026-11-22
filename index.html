@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="static/training.css?v=20261028-04">
   <link rel="stylesheet" href="static/race-lineup.css?v=20261025-01">
   <link rel="stylesheet" href="static/vendor/easymde-2.21.0.min.css">
-  <link rel="stylesheet" href="static/style.css?v=20261123-04">
+  <link rel="stylesheet" href="static/style.css?v=20261123-05">
   <link rel="stylesheet" href="static/member-auth.css?v=20261103-03">
   <link rel="stylesheet" href="static/admin-notifications.css?v=20261103-01">
   <link rel="stylesheet" href="static/club-home.css?v=20261101-31">
@@ -128,7 +128,7 @@
         </details>
         <p class="form-result" id="operationsStatus" role="status"></p>
         <section id="operationsBoard" aria-label="운영 게시판" hidden>
-          <div class="operations-toolbar">
+          <div class="operations-toolbar" id="operationsToolbar">
             <label>분류<select id="operationsCategory"><option value="">전체</option><option value="rules">동호회 회칙</option><option value="equipment">물품관리</option><option value="general">기타</option></select></label>
             <button type="button" class="primary-button" id="operationsNew">글 쓰기</button>
             <button type="button" class="secondary-button" id="operationsRefresh">새로고침</button>
@@ -144,8 +144,13 @@
             </div>
             <div class="operations-actions"><button type="submit" class="primary-button">저장</button><button type="button" class="secondary-button" id="operationsCancel">취소</button></div>
           </form>
-          <div id="operationsPosts"></div>
-          <button type="button" class="secondary-button" id="operationsMore" hidden>더 보기</button>
+          <div id="operationsList">
+            <div class="operations-list-head" aria-hidden="true"><span>분류</span><span>제목</span><span>작성자</span><span>최근 수정</span></div>
+            <ul class="operations-post-list" id="operationsPosts" aria-label="게시물 목록"></ul>
+            <p class="operations-empty form-description" id="operationsEmpty" hidden>등록된 게시물이 없습니다.</p>
+            <button type="button" class="secondary-button" id="operationsMore" hidden>더 보기</button>
+          </div>
+          <article id="operationsArticle" hidden></article>
         </section>
       </div>
     </section>
@@ -160,7 +165,7 @@
   <script src="static/admin-push.js?v=20261103-04"></script>
   <script src="static/vendor/markdown-it-15.0.3.js"></script>
   <script src="static/vendor/easymde-2.21.0.min.js"></script>
-  <script src="static/club-operations.js?v=20261123-03"></script>
+  <script src="static/club-operations.js?v=20261123-04"></script>
   <script src="static/supabase-member-auth.js?v=20261103-03"></script>
 </body>
 </html>

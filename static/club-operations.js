@@ -4,6 +4,7 @@
   const get=id=>root.querySelector('#operations'+id);
   const unlock=get('Unlock'),settings=get('Settings'),password=get('Password'),board=get('Board');
   const editor=get('Post'),posts=get('Posts'),category=get('Category'),more=get('More'),status=get('Status');
+  const list=get('List'),toolbar=get('Toolbar'),article=get('Article'),empty=get('Empty');
   const content=get('Content');
   const markdown=window.markdownit?.({html:false,breaks:true}).disable('image');
   if(markdown){
@@ -13,7 +14,7 @@
   const labels={rules:'동호회 회칙',equipment:'물품관리',general:'기타'};
   const date=new Intl.DateTimeFormat('ko-KR',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Seoul'});
   const call=(action,payload)=>window.ClubApi.call(action,payload);
-  let token='',expiry,revision=0,busy=false,visible=false,operator='',admin=false,editing=null,nextOffset=null,markdownEditor=null;
+  let token='',expiry,revision=0,busy=false,visible=false,operator='',admin=false,editing=null,nextOffset=null,markdownEditor=null,postTrigger=null;
 
   function message(text='',error=false){
     status.classList.toggle('is-error',error);
@@ -34,7 +35,8 @@
     clearTimeout(expiry);
     token='';busy=false;nextOffset=null;
     unlock.reset();password.reset();closeEditor();
-    category.value='';category.disabled=false;posts.replaceChildren();more.hidden=true;board.hidden=true;
+    category.value='';category.disabled=false;posts.replaceChildren();more.hidden=true;empty.hidden=true;board.hidden=true;
+    showList();
     unlock.hidden=false;settings.hidden=!admin;settings.open=false;
     root.removeAttribute('aria-busy');
     message(text,error);
@@ -99,16 +101,68 @@
     }
     editor.elements.title.focus();
   }
-  function postCard(post){
-    const article=element('article','','operations-card'),details=element('details'),summary=element('summary');
-    const meta=element('span',`${post.author_name} · ${date.format(new Date(post.updated_at))}`,'operations-meta');
-    summary.append(element('span',labels[post.category],'operations-tag'),element('strong',post.title),meta);
+  function postDate(post){
+    const time=element('time',date.format(new Date(post.updated_at)),'operations-date');
+    time.dateTime=post.updated_at;
+    return time;
+  }
+  function postRow(post){
+    const row=element('li','','operations-post-row');
+    const button=element('button','','operations-post-link');
+    button.type='button';
+    button.onclick=()=>showPost(post,button);
+    button.append(
+      element('span',labels[post.category],'operations-tag'),
+      element('strong',post.title,'operations-post-title'),
+      element('span',post.author_name,'operations-author'),
+      postDate(post),
+    );
+    row.append(button);
+    return row;
+  }
+  function showList(restoreFocus=false){
+    article.hidden=true;article.replaceChildren();list.hidden=false;toolbar.hidden=false;
+    if(restoreFocus)(postTrigger||get('New')).focus();
+    postTrigger=null;
+  }
+  function articleContents(body){
+    const headings=[...body.querySelectorAll('h1,h2,h3,h4,h5,h6')];
+    if(!headings.length)return null;
+    const nav=element('nav','','operations-contents'),items=element('ol');
+    const firstLevel=Math.min(...headings.map(heading=>Number(heading.tagName[1])));
+    nav.setAttribute('aria-label','게시물 목차');
+    nav.append(element('h3','목차'),items);
+    for(const heading of headings){
+      const entry=element('li'),jump=element('button',heading.textContent);
+      entry.style.setProperty('--heading-indent',Number(heading.tagName[1])-firstLevel);
+      jump.type='button';
+      jump.onclick=()=>{
+        heading.focus({preventScroll:true});
+        heading.scrollIntoView({block:'start'});
+      };
+      heading.tabIndex=-1;
+      entry.append(jump);items.append(entry);
+    }
+    return nav;
+  }
+  function showPost(post,trigger){
+    if(busy||!token)return;
+    postTrigger=trigger;
+    const back=actionButton('← 목록',()=>showList(true));
+    const tools=element('div','','operations-article-tools');
+    const title=element('h2',post.title,'operations-article-title');
+    title.tabIndex=-1;
+    const meta=element('div','','operations-meta');
+    meta.append(element('span',labels[post.category],'operations-tag'),element('span',post.author_name),postDate(post));
     const body=element('div','','operations-content');
     if(markdown){
       body.classList.add('operations-markdown');
       body.innerHTML=markdown.render(post.content);
     }else body.textContent=post.content;
-    details.append(summary,body);
+    const reading=element('div','','operations-reading'),contents=articleContents(body);
+    if(contents)reading.append(contents);
+    reading.append(body);
+    tools.append(back);
     if(post.canEdit){
       const actions=element('div','','operations-actions');
       actions.append(actionButton('수정',()=>openEditor(post)),actionButton('삭제',()=>{
@@ -116,23 +170,26 @@
           await call('operationsArchive',{token,id:post.id,updatedAt:post.updated_at});
           if(!current())return;
           if(editing?.id===post.id)closeEditor();
+          showList();
           await loadPosts(current);
           if(current())message('게시물을 삭제했습니다.');
         });
       }));
-      details.append(actions);
+      tools.append(actions);
     }
-    article.append(details);
-    return article;
+    article.replaceChildren(tools,title,meta,reading);
+    article.hidden=false;list.hidden=true;toolbar.hidden=true;
+    title.focus();
+    title.scrollIntoView({block:'nearest'});
   }
   async function loadPosts(current,offset=0){
     const selected=category.value;
     more.hidden=true;
-    if(!offset)posts.replaceChildren();
+    if(!offset){posts.replaceChildren();empty.hidden=true;}
     const result=await call('operationsList',{token,category:selected,offset});
     if(!current())return;
-    if(!offset&&!result.posts.length)posts.append(element('p','등록된 게시물이 없습니다.','form-description'));
-    posts.append(...result.posts.map(postCard));
+    if(!offset)empty.hidden=result.posts.length>0;
+    posts.append(...result.posts.map(postRow));
     nextOffset=result.nextOffset;more.hidden=nextOffset===null;
   }
   unlock.onsubmit=event=>{
@@ -177,6 +234,7 @@
       await call(post?'operationsUpdate':'operationsCreate',{token,...fields,...(post?{id:post.id,updatedAt:post.updated_at}:{})});
       if(!current())return;
       closeEditor();
+      showList();
       if(category.value)category.value=fields.category;
       await loadPosts(current);
       if(current())message('게시물을 저장했습니다.');
@@ -186,7 +244,7 @@
   get('Refresh').onclick=()=>run(loadPosts);
   more.onclick=()=>{if(nextOffset!==null)run(current=>loadPosts(current,nextOffset));};
   get('New').onclick=()=>openEditor();
-  get('Cancel').onclick=()=>{if(!busy){closeEditor();get('New').focus();}};
+  get('Cancel').onclick=()=>{if(!busy){closeEditor();if(article.hidden)get('New').focus();else article.querySelector('h2').focus();}};
   get('Lock').onclick=()=>{lock();unlock.elements.password.focus();};
   document.addEventListener('club-operator-changed',event=>{
     operator=event.detail.userId;admin=event.detail.admin;
