@@ -9,6 +9,9 @@ test('Administrator navigation follows the verified account role and clears priv
  context.location.hash='#training';context.syncClubRoute();assert.equal(clicks.at(-1),'[data-tab="home"]');
  context.syncMemberAdministrator({detail:{member:{userId:'member',role:'member'}}});assert.equal(node('[data-tab="admin"]').hidden,true);
  assert.ok(memberMenus.every(m=>m.hidden===false));assert.equal(node('#memberTools').hidden,false);assert.equal(context.canOpenClubTab('competition'),true);assert.equal(context.canOpenClubTab('admin'),false);assert.equal(clicks.at(-1),'[data-tab="training"]');
+ assert.equal(context.canOpenClubTab('operations'),false);
+ context.syncMemberAdministrator({detail:{member:{userId:'officer',role:'member',canOperate:true}}});
+ assert.equal(context.canOpenClubTab('operations'),true);assert.equal(context.canOpenClubTab('admin'),false);assert.equal(node('[data-tab="operations"]').hidden,false);
  context.syncMemberAdministrator({detail:{member:{userId:'admin-id',role:'admin'}}});assert.equal(node('[data-tab="admin"]').hidden,false);assert.equal(node('#adminConsole').hidden,false);
  node('#adminContent').innerHTML='private';context.syncMemberAdministrator({detail:{member:null}});
  assert.equal(node('[data-tab="admin"]').hidden,true);assert.equal(node('#adminConsole').hidden,true);assert.equal(node('#adminContent').innerHTML,'');assert.equal(events.at(-1).detail.enabled,false);

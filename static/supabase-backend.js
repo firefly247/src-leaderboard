@@ -11,7 +11,7 @@
     if(!config?.ready||!client)throw new Error('새 연결을 준비 중입니다.');
     const {data:{session}}=await client.auth.getSession();
     const res=await fetch(config.url+'/functions/v1/club-api',{method:'POST',headers:{'Content-Type':'application/json',...(session?{Authorization:'Bearer '+session.access_token}:{})},body:JSON.stringify({action,payload})});
-    const out=await res.json();if(!res.ok||!out.ok)throw new Error(out.message||'요청을 처리하지 못했습니다.');return out;
+    const out=await res.json();if(!res.ok||!out.ok)throw Object.assign(new Error(out.message||'요청을 처리하지 못했습니다.'),{code:out.code});return out;
   }
   async function publicFiles() {
     if(!config?.ready||!client)throw new Error('새 연결을 준비 중입니다.');

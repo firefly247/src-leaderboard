@@ -2,7 +2,7 @@
 
 
 const GITHUB_COMMIT_URL = "https://api.github.com/repos/firefly247/src-leaderboard/commits/main";
-const state = { events: [], records: [], dormantMembers: new Set(), competitions: [], competitionEvents: [], competitionDivisions: [], competitionRecords: [], competitionDates: [], competitionLineups: new Map(), rankings: {}, members: [], competitionMembers: [], competitionSummaryType: "water", recentErgoThreeYearsOnly: true, excludeIndoorMedals: true, clubMedals: {gold:0,silver:0,bronze:0}, athleteSelectedName: "", athleteCompareName: "", athleteView: "card", pendingDeleteIds: new Set(), adminUserId: "", memberUserId: "", refreshing: false, refreshedAt: 0 };
+const state = { events: [], records: [], dormantMembers: new Set(), competitions: [], competitionEvents: [], competitionDivisions: [], competitionRecords: [], competitionDates: [], competitionLineups: new Map(), rankings: {}, members: [], competitionMembers: [], competitionSummaryType: "water", recentErgoThreeYearsOnly: true, excludeIndoorMedals: true, clubMedals: {gold:0,silver:0,bronze:0}, athleteSelectedName: "", athleteCompareName: "", athleteView: "card", pendingDeleteIds: new Set(), adminUserId: "", operatorUserId: "", memberUserId: "", refreshing: false, refreshedAt: 0 };
 const $ = (s) => document.querySelector(s);
 const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const eventNameCompare = (a,b) => { const an=String(a.event_name||a),bn=String(b.event_name||b),am=an.match(/^\s*(\d+(?:\.\d+)?)/),bm=bn.match(/^\s*(\d+(?:\.\d+)?)/);return am&&bm&&Number(am[1])!==Number(bm[1])?Number(am[1])-Number(bm[1]):an.localeCompare(bn,"ko"); };
@@ -491,13 +491,19 @@ function adminContent(view,data) {
 function showAdminGroup(view) { $("#adminContent").classList.toggle("reference-admin",["competitions","competition-events","competition-divisions","events","member-info","competition-dates"].includes(view)); const referenceViews=["competitions","competition-events","competition-divisions","events","competition-dates"],group=view==="member-info"?"members":referenceViews.includes(view)?"references":"records";document.querySelectorAll("[data-admin-group]").forEach(button=>button.classList.toggle("is-active",button.dataset.adminGroup===group));document.querySelectorAll("[data-admin-group-panel]").forEach(panel=>panel.hidden=panel.dataset.adminGroupPanel!==group); }
 let adminLoadSequence=0;
 let memberInfoDraft=null;
-function canOpenClubTab(tab){return ['home','ergo','competition','athletes','training','race-lineup','request','admin'].includes(tab)&&(tab==='home'||Boolean(state.memberUserId)&&(tab!=='admin'||Boolean(state.adminUserId)));}
+function canOpenClubTab(tab){
+  if(tab==='admin')return Boolean(state.adminUserId);
+  if(tab==='operations')return Boolean(state.operatorUserId);
+  return tab==='home'||Boolean(state.memberUserId)&&['ergo','competition','athletes','training','race-lineup','request'].includes(tab);
+}
 function openClubTab(tab,adminView='add'){
   if(!canOpenClubTab(tab))return;
   setHeaderMenuOpen(false);
   document.querySelectorAll('.tab-button').forEach(button=>button.classList.toggle('is-active',button.dataset.tab===tab));
   document.querySelectorAll('.tab-panel').forEach(panel=>panel.classList.toggle('is-active',panel.dataset.panel===tab));
-  history.replaceState(null,'','#'+tab);if(tab==='admin')return loadAdmin(adminView);
+  history.replaceState(null,'','#'+tab);
+  window.ClubOperations?.route(tab);
+  if(tab==='admin')return loadAdmin(adminView);
 }
 function syncClubRoute(){
   const requested=location.hash.slice(1)||'home',tab=canOpenClubTab(requested)?requested:'home';
@@ -505,12 +511,17 @@ function syncClubRoute(){
   else if(requested!==tab)history.replaceState(null,'','#home');
 }
 function syncMemberAdministrator(event){
-  const member=event.detail.member,previous=state.adminUserId;
+  const member=event.detail.member,previous=state.adminUserId,previousOperator=state.operatorUserId;
   state.memberUserId=member?.userId||'';
   document.querySelectorAll('[data-member-menu]').forEach(button=>button.hidden=!state.memberUserId);
   $('#memberTools').hidden=!state.memberUserId;
   state.adminUserId=member?.role==='admin'?member.userId:'';
+  state.operatorUserId=state.adminUserId||(member?.canOperate===true?member.userId:'');
   const enabled=Boolean(state.adminUserId);document.querySelector('[data-tab="admin"]').hidden=!enabled;$('#adminConsole').hidden=!enabled;
+  document.querySelector('[data-tab="operations"]').hidden=!state.operatorUserId;
+  if(previousOperator!==state.operatorUserId||previous!==state.adminUserId){
+    document.dispatchEvent(new CustomEvent('club-operator-changed',{detail:{userId:state.operatorUserId,admin:enabled}}));
+  }
   if(previous!==state.adminUserId){
     adminLoadSequence++;memberInfoDraft=null;$('#adminContent').innerHTML='';delete $('#adminContent')._approvedData;$('#approvedRecordDialog')?.remove();
     document.dispatchEvent(new CustomEvent('club-admin-changed',{detail:{enabled}}));

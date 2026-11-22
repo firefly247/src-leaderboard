@@ -5,6 +5,7 @@ const blank=()=>Object.fromEntries(Object.keys(layout).map(k=>[k,[]]));
 async function fixture(){
  const {createHandler}=await import('../supabase/functions/club-api/handler.mjs');
  let snapshot={revision:1,tables:blank()},reads=0,conflict=null;const writes=[],uploads=[],roleWrites=[],coaches=new Set(),officers=new Set();
+ const operationSessions=new Map(),posts=[];let operationPassword='';
  snapshot.tables.events=[{event_id:'e1',event_name:'2000m'}];snapshot.tables.player_birth_years=[{member_name:'김선수',birth_year:'1980',join_year:'2023',updated_at:''}];
  const account={user_id:'00000000-0000-0000-0000-000000000001',player_name:'김선수',requested_player_name:null,role:'member'};
  const response=v=>new Response(v===undefined?'':JSON.stringify(v),{status:200});
@@ -17,7 +18,23 @@ async function fixture(){
   if(flags){
    if(options.method==='POST'){flags.add(p.member_name);return response();}
    if(options.method==='DELETE'){flags.delete(decodeURIComponent(path.split('member_name=eq.')[1]));return response();}
-   return response([...flags].map(member_name=>({member_name})));
+   const exact=new URLSearchParams(path.split('?')[1]).get('member_name');
+   return response([...flags].filter(name=>!exact||exact==='eq.'+name).map(member_name=>({member_name})));
+  }
+  if(path==='rpc/club_operations_set_password'){assert.equal(account.role,'admin');operationPassword=p.p_password;operationSessions.clear();return response(true);}
+  if(path==='rpc/club_operations_unlock'){
+   if(!operationPassword)return response('unconfigured');
+   if(p.p_password!==operationPassword)return response('invalid');
+   operationSessions.set(p.p_token_hash,p.p_user_id);return response('ok');
+  }
+  if(path==='rpc/club_operations_session')return response(operationSessions.get(p.p_token_hash)===p.p_user_id);
+  if(path==='club_operations_posts'){
+   posts.push({...p,id:crypto.randomUUID(),created_at:'2026-11-23T00:00:00Z',updated_at:'2026-11-23T00:00:00Z'});return response();
+  }
+  if(path.startsWith('club_operations_posts?')){
+   const query=new URLSearchParams(path.split('?')[1]),matches=posts.filter(post=>!post.archived_at&&[...query].every(([key,value])=>!value.startsWith('eq.')||value==='eq.'+post[key]));
+   if(options.method==='PATCH'){matches.forEach(post=>Object.assign(post,p));return response(matches);}
+   return response(matches.slice(Number(query.get('offset')),Number(query.get('offset'))+Number(query.get('limit'))));
   }
   const table=path.split('?')[0];if(['club_player_birth_years','club_records','club_competition_records','club_dormant_members'].includes(table)){
    const exact=path.match(/member_name=eq\.([^&]+)/)?.[1];return response(snapshot.tables[table.slice(5)].filter(r=>!exact||r.member_name===decodeURIComponent(exact)).map(r=>path.includes('select=birth_year,join_year')?{birth_year:r.birth_year,join_year:r.join_year}:{member_name:r.member_name}));
@@ -41,6 +58,35 @@ async function fixture(){
  const adminCall=async(action,payload={})=>{const previous=account.role;account.role='admin';try{return await call(action,payload,'','verified');}finally{account.role=previous;}};
  return {call,adminCall,account,writes,uploads,roleWrites,conflictOnNextCommit(fn){conflict=fn;},get snapshot(){return snapshot;},get reads(){return reads;}};
 }
+test('Operating privileges grant planning and a password-gated board while blocking administrator mutations',async()=>{
+ const f=await fixture(),member=(action,p)=>f.call(action,p,'','verified');
+ assert.equal((await member('operationsUnlock',{password:'club-password'})).ok,false);
+ assert.equal((await f.adminCall('memberOfficerSet',{memberName:'김선수',isOfficer:true})).ok,true);
+ assert.equal((await member('memberSession')).member.canOperate,true);
+ for(const action of ['processAddRequests','savePlayerBirthYears','memberOfficerSet','memberAccountRole','manageEvent','operationsSetPassword']){
+  assert.equal((await member(action,{password:'club-password',role:'admin'})).ok,false,action);
+ }
+ assert.equal((await member('trainingOpen',{dates:['2026-11-21']})).ok,true);
+ assert.equal((await member('raceLineupAdminData')).ok,true);
+ assert.equal((await member('operationsUnlock',{password:'club-password'})).ok,false);
+ assert.equal((await f.adminCall('operationsSetPassword',{password:'club-password'})).ok,true);
+ assert.equal((await member('operationsUnlock',{password:'wrong-password'})).ok,false);
+ const unlocked=await member('operationsUnlock',{password:'club-password'});assert.equal(unlocked.ok,true);
+ const token=unlocked.token;
+ assert.equal((await f.adminCall('operationsList')).code,'operations_locked');
+ const entry={token,category:'equipment',title:'장비 점검',content:'비공개 점검 기록',author_id:'ignored'};
+ assert.equal((await member('operationsCreate',entry)).ok,true);
+ const list=await member('operationsList',{token,category:'equipment'}),post=list.posts[0];
+ assert.equal(post.title,'장비 점검');assert.equal(post.canEdit,true);assert.equal(post.author_id,undefined);
+ assert.equal((await member('operationsUpdate',{...entry,id:post.id,updatedAt:post.updated_at,title:'점검 완료'})).ok,true);
+ assert.equal((await member('operationsArchive',{token,id:post.id,updatedAt:post.updated_at})).ok,false);
+ assert.doesNotMatch(JSON.stringify(await f.call('publicData')),/비공개 점검 기록/);
+ f.snapshot.tables.dormant_members.push({member_name:'김선수'});
+ assert.equal((await member('operationsList',{token})).code,'operations_locked');
+ f.snapshot.tables.dormant_members=[];
+ assert.equal((await f.adminCall('operationsSetPassword',{password:'rotated-password'})).ok,true);
+ assert.equal((await member('operationsList',{token})).code,'operations_locked');
+});
 test('Only administrators can persist officer status and it stays private and independent of coach status',async()=>{
  const f=await fixture(),name='김선수',set=isOfficer=>f.adminCall('memberOfficerSet',{memberName:name,isOfficer});
  const player=async()=> (await f.adminCall('adminList',{view:'player-birth-years'})).players.find(p=>p.memberName===name);

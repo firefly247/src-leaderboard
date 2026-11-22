@@ -241,10 +241,10 @@ test('Published crew uses compact seat rows and cycles attendance without changi
 });
 test('Attendance cycles only in memory, independently by date and without any API call',()=>{
  const source=fs.readFileSync(`${__dirname}/../static/training.js`,'utf8');let renders=0;
- const context=vm.createContext({state:{adminUserId:'admin'},rosterData:[{date:'2026-10-31',plan:{boats:[{seats:[{id:'one'}]}]}},{date:'2026-11-01',plan:{boats:[{seats:[{id:'one'}]}]}}],selectedDate:'2026-10-31',localAttendance:new Map(),render:()=>renders++,api:()=>{throw new Error('Attendance must never call the server');}});
+ const context=vm.createContext({state:{operatorUserId:'admin'},rosterData:[{date:'2026-10-31',plan:{boats:[{seats:[{id:'one'}]}]}},{date:'2026-11-01',plan:{boats:[{seats:[{id:'one'}]}]}}],selectedDate:'2026-10-31',localAttendance:new Map(),render:()=>renders++,api:()=>{throw new Error('Attendance must never call the server');}});
  for(const name of ['nextTrainingCheck','cycleLocalAttendance'])vm.runInContext(source.match(new RegExp('function '+name+'\\([^\\n]*\\)\\{[\\s\\S]*?'+(name==='nextTrainingCheck'?'\\}':'\\n  \\}')))[0],context);
  for(const expected of ['출석','불참','미확인']){context.cycleLocalAttendance('one');assert.equal(context.localAttendance.get('2026-10-31').one,expected);}
  context.selectedDate='2026-11-01';context.cycleLocalAttendance('one');assert.equal(context.localAttendance.get('2026-11-01').one,'출석');assert.equal(context.localAttendance.get('2026-10-31').one,'미확인');
- context.cycleLocalAttendance('unknown');context.state.adminUserId='';context.cycleLocalAttendance('one');assert.equal(renders,4);assert.equal(context.localAttendance.get('2026-11-01').one,'출석');
+ context.cycleLocalAttendance('unknown');context.state.operatorUserId='';context.cycleLocalAttendance('one');assert.equal(renders,4);assert.equal(context.localAttendance.get('2026-11-01').one,'출석');
  assert.doesNotMatch(source,/mutate\('trainingCheck'/);assert.match(source,/checks:localAttendance\.get\(t.date\)\|\|\{\}/);
 });

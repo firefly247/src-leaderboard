@@ -28,7 +28,7 @@ test('Notification errors can be retried without retaining a loading lock',async
 });
 test('Notification destinations open the matching admin group directly and protected markup starts hidden',()=>{
  const source=fs.readFileSync('static/leaderboard.js','utf8'),html=fs.readFileSync('index.html','utf8'),opened=[];
- const context=vm.createContext({canOpenClubTab:()=>true,setHeaderMenuOpen(){},document:{querySelectorAll:()=>[]},history:{replaceState(){}},loadAdmin:view=>opened.push(view)});
+ const context=vm.createContext({canOpenClubTab:()=>true,setHeaderMenuOpen(){},window:{},document:{querySelectorAll:()=>[]},history:{replaceState(){}},loadAdmin:view=>opened.push(view)});
  vm.runInContext(source.match(/function openClubTab\([^\n]*\)\{[\s\S]*?\n\}/)[0],context);
  context.openClubTab('admin','member-info');context.openClubTab('admin','competition-add');context.openClubTab('admin');assert.deepEqual(opened,['member-info','competition-add','add']);
  assert.match(html,/id="adminNotifications"[^>]*hidden/);assert.match(html,/id="adminNotificationPanel"[^>]*hidden/);

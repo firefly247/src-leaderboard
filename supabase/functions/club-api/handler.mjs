@@ -2,11 +2,13 @@ import { createEngine } from './engine.mjs';
 import { makeUtilities } from './utilities.mjs';
 import { SEAT_ACTIONS, FLEET, seatView, changeSeats } from './training-seats.mjs';
 import { createPush, requestPush } from './push.mjs';
+import { OPERATIONS_ACTIONS, handleOperations } from './operations.mjs';
 
 const PUBLIC = new Set(['trainingGet','trainingList','trainingRoster','raceLineupList','raceLineupGet','pendingDeleteRecords']);
 const MEMBER = new Set(['trainingJoin','trainingWeekJoin','requestAdd','requestCompetitionAdd','requestDelete','trainingSeats','trainingBoatAdd','trainingSeatSelect','trainingSeatStatus','trainingSeatComment']);
 const ADMIN = new Set(['trainingBoatRemove','trainingSeatConfirm','trainingSeatReopen','adminList','saveApprovedRecord','saveCompetitionDates','updateCompetitionRequests','savePlayerBirthYear','savePlayerBirthYears','processRequest','processAddRequests','processCompetitionAddRequests','processRejectRequests','manageEvent','manageCompetition','manageCompetitionEvent','manageCompetitionDivision','trainingOpen','trainingRecommend','trainingDraftGet','trainingDraftEdit','trainingDraftSave','trainingPublish','trainingCheck','trainingQualifications','raceLineupAdminData','raceLineupGetAdmin','raceLineupCreate','raceLineupParticipants','raceLineupSave','raceLineupFinalize','memberLinkList','memberLinkApprove','memberLinkReject','memberAccountList','memberAccountRole','memberCreate']);
 const clone=x=>structuredClone(x);
+const OFFICER_ACTIONS=new Set(['trainingBoatRemove','trainingSeatConfirm','trainingSeatReopen','trainingOpen','trainingRecommend','trainingDraftGet','trainingDraftEdit','trainingDraftSave','trainingPublish','trainingCheck','trainingQualifications','raceLineupAdminData','raceLineupGetAdmin','raceLineupCreate','raceLineupParticipants','raceLineupSave','raceLineupFinalize']);
 const MEMBER_FLAGS=new Map([
   ['memberCoachSet',{field:'isCoach',table:'club_coaches',label:'코치'}],
   ['memberOfficerSet',{field:'isOfficer',table:'club_officers',label:'동호회 임원진'}],
@@ -43,6 +45,17 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
     const ip=request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()||request.headers.get('cf-connecting-ip')||'unknown';
     if(!await rpc('club_api_limit',{p_key:hex(ip+'|'+action),p_limit:max,p_seconds:300}))throw new Error('요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.');
   }
+  async function canOperate(member){
+    if(!member)return false;
+    if(member.role==='admin')return true;
+    if(!member.player_name)return false;
+    const query='?select=member_name&member_name=eq.'+encodeURIComponent(member.player_name);
+    const [officers,dormant]=await Promise.all([
+      rest('club_officers'+query,undefined,'GET',{},true),
+      rest('club_dormant_members'+query,undefined,'GET'),
+    ]);
+    return officers.length>0&&!dormant.length;
+  }
   async function photoInfo(photo) {
     if(!photo)return null;
     if(photo.mimeType!=='image/jpeg'||typeof photo.base64!=='string'||photo.base64.length>204800)throw new Error('증빙사진은 JPEG 150KB 이하여야 합니다.');
@@ -74,11 +87,19 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
       if(typeof action!=='string'||!p||typeof p!=='object'||Array.isArray(p))throw new Error('요청 형식이 올바르지 않습니다.');
       if(action==='storageSource')return respond({ok:true,provider:'supabase',version:2});
       if(action==='publicData')return respond({ok:true,...await publicData()});
-      if(!PUBLIC.has(action)&&!MEMBER.has(action)&&!ADMIN.has(action)&&!['memberSession','memberLinkRequest','memberLinkOptions','memberLinkDetails'].includes(action))throw new Error('지원하지 않는 요청입니다.');
+      if(!PUBLIC.has(action)&&!MEMBER.has(action)&&!ADMIN.has(action)&&!OPERATIONS_ACTIONS.has(action)&&!['memberSession','memberLinkRequest','memberLinkOptions','memberLinkDetails'].includes(action))throw new Error('지원하지 않는 요청입니다.');
       const token=request.headers.get('authorization')?.replace(/^Bearer\s+/i,'')||'';
       const member=token&&!PUBLIC.has(action)?await account(token):null;
       if(action.startsWith('member')&&!ADMIN.has(action)&&!member)throw new Error('카카오 로그인이 필요합니다.');
-      if(action==='memberSession')return respond({ok:true,member:{userId:member.user_id,nickname:member.nickname,playerName:member.player_name,requestedPlayerName:member.requested_player_name,role:member.role}});
+      if(action==='memberSession')return respond({ok:true,member:{userId:member.user_id,nickname:member.nickname,playerName:member.player_name,requestedPlayerName:member.requested_player_name,role:member.role,canOperate:await canOperate(member)}});
+      if(OPERATIONS_ACTIONS.has(action)){
+        if(!await canOperate(member))throw Object.assign(new Error('관리자와 동호회 임원진만 이용할 수 있습니다.'),{code:'operations_locked'});
+        const limitUnlock=async()=>{
+          await limited(request,'operationsUnlock',30);
+          if(!await rpc('club_api_limit',{p_key:hex('operationsUnlock:'+member.user_id),p_limit:5,p_seconds:300}))throw new Error('암호 입력 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요.');
+        };
+        return respond({ok:true,...await handleOperations(action,p,member,{rest,rpc,hex,limitUnlock})});
+      }
       if(action==='memberLinkOptions'){
         const tables=await Promise.all(['club_player_birth_years','club_records','club_competition_records','club_dormant_members'].map(n=>rest(n+'?select=member_name',undefined,'GET')));
         const dormant=new Set(tables[3].map(r=>r.member_name)),names=[...new Set(tables.slice(0,3).flatMap(rows=>rows.map(r=>r.member_name)))].filter(n=>n&&!dormant.has(n)).sort((a,b)=>a.localeCompare(b,'ko'));
@@ -107,7 +128,7 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
         await rest('club_accounts?user_id=eq.'+encodeURIComponent(member.user_id),{requested_player_name:name,requested_birth_year:birthYear,requested_join_year:joinYear,display_name:member.nickname},'PATCH');
         await background(push.notifyAdmins({title:'회원 가입 요청',body:name+'님이 가입을 신청했습니다. 운영진 승인을 기다리고 있습니다.',tag:'member-'+member.user_id}));return respond({ok:true,requestedPlayerName:name});
       }
-      const admin=ADMIN.has(action)&&member?.role==='admin';
+      const admin=ADMIN.has(action)&&(member?.role==='admin'||OFFICER_ACTIONS.has(action)&&await canOperate(member));
       if(ADMIN.has(action)&&!admin)throw new Error('관리자 인증이 만료되었습니다.');
       if(PUSH.has(action)){
         await limited(request,member.user_id+':'+action,action==='adminPushTest'?5:30);
@@ -136,16 +157,17 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
       if(action==='memberLinkApprove'){await rpc('club_member_approve',{p_user_id:p.userId,p_player_name:p.name});return respond({ok:true});}
       if(MEMBER.has(action)){if(!member)throw new Error('카카오 로그인 후 신청해 주세요.');if(!member.player_name)throw new Error('운영진이 회원 연결을 확인한 뒤 신청할 수 있습니다.');await limited(request,member.user_id+':'+action,30);}
       if(SEAT_ACTIONS.has(action)){
+        const seatOperator=admin||await canOperate(member);
         for(let attempt=0;attempt<4;attempt++){
           const snapshot=await rpc('club_store_read'),dormant=snapshot.tables.dormant_members.map(r=>r.member_name);
           if(dormant.includes(member.player_name))throw new Error('휴면 상태입니다. 운영진에게 문의해 주세요.');
-          if(action==='trainingSeats')return respond({ok:true,fleet:FLEET,trainings:snapshot.tables.weekend_training.map(r=>r.session_json).filter(s=>s.opened).sort((a,b)=>a.date.localeCompare(b.date)).slice(-40).map(s=>seatView(s,member,member.role==='admin',dormant))});
+          if(action==='trainingSeats')return respond({ok:true,fleet:FLEET,trainings:snapshot.tables.weekend_training.map(r=>r.session_json).filter(s=>s.opened).sort((a,b)=>a.date.localeCompare(b.date)).slice(-40).map(s=>seatView(s,member,seatOperator,dormant))});
           const row=snapshot.tables.weekend_training.find(r=>r.date===p.date);
           if(!row)throw new Error('개설된 훈련 날짜를 확인해 주세요.');
-          const session=changeSeats(row.session_json,action,p,member,{uuid:()=>utilities.getUuid(),dormant});
+          const session=changeSeats(row.session_json,action,p,member,{uuid:()=>utilities.getUuid(),dormant,admin:seatOperator});
           try{await rpc('club_store_commit',{p_expected_revision:snapshot.revision,p_changes:{weekend_training:{upsert:[{date:row.date,session_json:session}],remove:[]}}});}
           catch(error){if(error.code==='storage_revision_conflict'&&attempt<3)continue;throw error;}
-          return respond({ok:true,training:seatView(session,member,member.role==='admin',dormant)});
+          return respond({ok:true,training:seatView(session,member,seatOperator,dormant)});
         }
       }
       if(p.photo&&action!=='requestAdd')throw new Error('이 요청에는 사진을 첨부할 수 없습니다.');
@@ -202,7 +224,7 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
       if(['requestAdd','requestCompetitionAdd'].includes(action))await background(push.notifyAdmins(requestPush(engine.tables().request_log.find(row=>row.request_id===result.requestId))));
       return respond({ok:true,...result});
     } catch(error) {
-      return respond({ok:false,message:error instanceof SyntaxError?'요청 형식이 올바르지 않습니다.':error.message||'요청을 처리하지 못했습니다.'},400);
+      return respond({ok:false,message:error instanceof SyntaxError?'요청 형식이 올바르지 않습니다.':error.message||'요청을 처리하지 못했습니다.',...(error.code==='operations_locked'?{code:error.code}:{})},400);
     }
   };
 }

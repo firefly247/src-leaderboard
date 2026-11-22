@@ -22,8 +22,8 @@ export function seatView(session,member,admin=false,dormant=[]){
     const person=byId.get(s.memberId);return {index,position:s.position,occupied:Boolean(person),mine:Boolean(person&&person.id===own?.id),...(admin?{name:person?.name||'',memberId:person?.id||null}:{})};
   })})),attendees:people.filter(p=>p.status==='참석').map(p=>p.name).sort((a,b)=>a.localeCompare(b,'ko')),ownStatus:own?.status||'',ownComment:own?.comment||'',counts:{attending:people.filter(p=>p.status==='참석').length,absent:people.filter(p=>p.status==='불참').length,tentative:people.filter(p=>p.status==='미정').length},unseated:people.filter(p=>p.status==='참석'&&!booking.boats.some(b=>b.seats.some(s=>s.memberId===p.id))).map(p=>admin?{id:p.id,name:p.name}:{}),...(admin?{responses:people.map(p=>({id:p.id,name:p.name,status:p.status,comment:p.comment||''}))}:{})};
 }
-export function changeSeats(original,action,p,member,{uuid,now=new Date().toISOString(),dormant=[]}={}){
-  const session=structuredClone(original),admin=member.role==='admin';
+export function changeSeats(original,action,p,member,{uuid,now=new Date().toISOString(),dormant=[],admin=member.role==='admin'}={}){
+  const session=structuredClone(original);
   if(!session.opened)throw new Error('아직 개설되지 않은 훈련입니다.');
   if(!member.player_name||dormant.includes(member.player_name))throw new Error('승인된 활동 회원만 신청할 수 있습니다.');
   const booking=seatBooking(session);session.participants||=[];

@@ -102,5 +102,29 @@ try{
  await db.query("select public.club_member_approve($1,'이전신청회원')",[sixth]);
  assert.equal((await db.query("select birth_year from public.club_player_birth_years where member_name='이전신청회원'")).rows[0].birth_year,'1982');
  console.log('Existing-member year confirmation verified: corrections only apply on approval, revision increments, duplicate approval rolls back catalog edits, older pending applications remain approvable.');
+ await db.exec('reset role;');await db.exec(await readFile('supabase/migrations/20261123020000_club_operations.sql','utf8'));
+ for(const role of ['anon','authenticated']){
+  for(const table of ['config','sessions','posts']){
+   const access=(await db.query("select has_table_privilege($1,$2,'select,insert,update,delete') as v",[role,'public.club_operations_'+table])).rows[0].v;
+   assert.equal(access,false);
+  }
+  for(const fn of ['set_password(uuid,text)','unlock(uuid,text,text)','session(uuid,text)']){
+   assert.equal((await db.query("select has_function_privilege($1,$2,'execute') as v",[role,'public.club_operations_'+fn])).rows[0].v,false);
+  }
+ }
+ await db.exec('set role service_role;');
+ const operations=async(fn,args)=>(await db.query('select public.club_operations_'+fn+'('+args.map((_,i)=>'$'+(i+1)).join(',')+') as v',args)).rows[0].v;
+ assert.equal(await operations('unlock',[id,'test-only-password','session-a']),'unconfigured');
+ assert.equal(await operations('set_password',[id,'test-only-password']),false);
+ assert.equal(await operations('set_password',[second,'test-only-password']),true);
+ assert.equal(await operations('unlock',[id,'incorrect-password','session-a']),'invalid');
+ assert.equal(await operations('unlock',[id,'test-only-password','session-a']),'ok');
+ assert.equal(await operations('session',[id,'session-a']),true);
+ assert.equal(await operations('session',[second,'session-a']),false);
+ assert.equal(await operations('set_password',[second,'different-password']),true);
+ assert.equal(await operations('session',[id,'session-a']),false);
+ await db.exec("insert into public.club_operations_posts(category,title,content,author_name) values('rules','회칙','private-board-text','관리자');");
+ assert.doesNotMatch(JSON.stringify((await db.query('select public.club_public_read() as v')).rows[0].v),/private-board-text/);
+ console.log('Operations board verified: private storage and RPCs, administrator-only password changes, account-bound sessions, and revocation on rotation.');
  console.log('PostgreSQL verified: public projection and private permissions; member linking; administrator-only role changes and last-administrator protection.');
 }finally{await db.close();}
