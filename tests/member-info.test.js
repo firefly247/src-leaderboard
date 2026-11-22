@@ -5,12 +5,33 @@ test('Member info shows the roster and submitted requests while excluding unfini
  const ctx=client(),container={},players=[{memberName:'김회원',birthYear:'1980',joinYear:'2023'},{memberName:'기존회원',birthYear:'',joinYear:''}],accounts=[{user_id:'pending',requested_player_name:'김회원',display_name:'신청자',role:'member'},{user_id:'admin',player_name:'김회원',display_name:'<관리자>',role:'admin'},{user_id:'unnamed',display_name:'새 계정',role:'member'}];
  ctx.renderBirthYearAdmin(container,players,true,true,accounts);
  const table=container.innerHTML.slice(container.innerHTML.indexOf('class="admin-table birth-year-table'));
- const headers=[...table.matchAll(/<th>([\s\S]*?)<\/th>/g)].map(m=>m[1].replace(/<br\s*\/?>/g,' '));assert.deepEqual(headers,['회원 이름','출생연도','가입연도','휴면회원','코치','동호회 임원진','카카오 닉네임','가입 상태','관리자']);
+ const headers=[...table.matchAll(/<th scope="col"><button type="button" class="member-sort-button">([^<]*(?:<br>[^<]*)?)<span/g)].map(m=>m[1].replace('<br>',' '));assert.deepEqual(headers,['회원 이름','출생연도','가입연도','휴면회원','코치','동호회 임원진','카카오 닉네임','가입 상태','관리자']);
+ assert.match(container.innerHTML,/<details class="player-join-summary"><summary>가입연도별 회원 현황<\/summary>[\s\S]*?id="playerJoinYearSummary"[\s\S]*?<\/details>/);
  assert.equal((table.match(/data-birth-year-name="김회원"/g)||[]).length,1);
  assert.match(table,/&lt;관리자&gt;/);assert.doesNotMatch(table,/<관리자>/);assert.match(table,/data-account-user="admin"[^>]*checked[^>]*disabled/);
  assert.match(container.innerHTML,/data-approve-user="pending"/);assert.doesNotMatch(table,/data-approve-user|data-reject-user/);assert.doesNotMatch(container.innerHTML,/data-account-only-name="이름 미입력"|이름 입력 전|새 계정/);assert.match(table,/미가입/);
  assert.equal((table.match(/data-account-user=/g)||[]).length,1);
  const html=fs.readFileSync('index.html','utf8');assert.match(html,/data-admin-view="member-info">회원 정보/);assert.doesNotMatch(html,/data-admin-view="member-accounts"|data-admin-view="player-birth-years"/);assert.doesNotMatch(html.slice(html.indexOf('data-panel="ergo"')),/선수/);
+});
+test('Member sort toggles directions, uses current inputs, and keeps missing values last',()=>{
+ const ctx=client(),cell=(textContent='',input=null)=>({textContent,dataset:{},querySelector:()=>input});
+ const makeRow=(name,year,officer)=>({dataset:{birthYearName:name},cells:[cell(),cell('',{type:'number',value:year}),cell(),cell(),cell(),cell('',{type:'checkbox',checked:officer})]});
+ const first=makeRow('가회원','1980',true),second=makeRow('나회원','1990',false),missing=makeRow('다회원','',false);
+ const rows=[first,second,missing],body={rows,querySelectorAll:()=>rows,insertBefore(row,before){rows.splice(rows.indexOf(row),1);rows.splice(rows.indexOf(before),0,row);}};
+ const headers=[],table={tBodies:[body],tHead:{querySelector:()=>headers.find(header=>header.direction)}};
+ const button=cellIndex=>{
+  const header={cellIndex,closest:()=>table,getAttribute(){return this.direction;},setAttribute(_,value){this.direction=value;},removeAttribute(){delete this.direction;}};
+  headers.push(header);return {closest:()=>header};
+ };
+ const birthYear=button(1),officer=button(5);
+ const draft=first.cells[1].querySelector();draft.value='2000';first.hidden=true;
+ ctx.toggleMemberInfoSort(birthYear);
+ assert.deepEqual(rows,[second,first,missing]);assert.equal(headers[0].direction,'ascending');
+ ctx.toggleMemberInfoSort(birthYear);
+ assert.deepEqual(rows,[first,second,missing]);assert.equal(headers[0].direction,'descending');
+ ctx.toggleMemberInfoSort(officer);
+ assert.deepEqual(rows,[second,missing,first]);assert.equal(headers[0].direction,undefined);assert.equal(headers[1].direction,'ascending');
+ assert.equal(first.hidden,true);assert.equal(first.cells[1].querySelector(),draft);assert.equal(draft.value,'2000');
 });
 test('Member account reload restores only unsaved year/dormancy changes and search without changing baselines',()=>{
  const makeRow=()=>({dataset:{birthYearName:'김회원',savedBirthYear:'1980',savedJoinYear:'2023',savedDormant:'false'},fields:{'.birth-year-input':{value:'1980'},'.join-year-input':{value:'2023'},'.player-dormant-input':{checked:false}},querySelector(s){return this.fields[s];}});

@@ -238,7 +238,38 @@ function memberAccountCellsHtml(account,adminCount=0,actorId=''){
   if(!account)return '<td>—</td><td>미가입</td><td>—</td>';
   const name=account.player_name||account.requested_player_name||account.display_name||'회원';
 
-  return `<td data-member-account="${esc(account.user_id)}">${esc(account.display_name||'회원')}${account.user_id===actorId?' <small>(나)</small>':''}</td><td>${account.player_name?'승인 완료':account.requested_player_name?'승인 대기':'이름 입력 전'}</td><td><label class="member-admin-checkbox"><input type="checkbox" data-account-user="${esc(account.user_id)}" data-account-role="${esc(account.role)}" aria-label="${esc(name)} 관리자 권한" ${account.role==='admin'?'checked':''} ${account.role==='admin'&&adminCount===1?'disabled title="마지막 관리자는 해제할 수 없습니다."':''}></label></td>`;
+  const nickname=esc(account.display_name||'회원');
+  return `<td data-member-account="${esc(account.user_id)}" data-sort-value="${nickname}">${nickname}${account.user_id===actorId?' <small>(나)</small>':''}</td><td>${account.player_name?'승인 완료':account.requested_player_name?'승인 대기':'이름 입력 전'}</td><td><label class="member-admin-checkbox"><input type="checkbox" data-account-user="${esc(account.user_id)}" data-account-role="${esc(account.role)}" aria-label="${esc(name)} 관리자 권한" ${account.role==='admin'?'checked':''} ${account.role==='admin'&&adminCount===1?'disabled title="마지막 관리자는 해제할 수 없습니다."':''}></label></td>`;
+}
+const memberInfoCollator=new Intl.Collator('ko',{numeric:true});
+function memberInfoSortValue(row,column,name){
+  if(column===0)return name;
+  const cell=row.cells[column],input=cell.querySelector('input');
+  if(input)return input.type==='checkbox'?String(Number(input.checked)):input.value;
+  const text=(cell.dataset.sortValue??cell.textContent).trim();
+  return text==='—'?'':text;
+}
+function sortMemberInfoRows(table,header=table?.tHead.querySelector('th[aria-sort]')){
+  if(!header)return;
+  const body=table.tBodies[0],direction=header.getAttribute('aria-sort')==='descending'?-1:1;
+  const rows=[...body.querySelectorAll('[data-birth-year-name],[data-account-only-name]')].map(row=>{
+    const name=row.dataset.birthYearName||row.dataset.accountOnlyName;
+    return {row,name,value:memberInfoSortValue(row,header.cellIndex,name)};
+  });
+  rows.sort((a,b)=>{
+    if(Boolean(a.value)!==Boolean(b.value))return a.value?-1:1;
+    return direction*memberInfoCollator.compare(a.value,b.value)||memberInfoCollator.compare(a.name,b.name);
+  });
+  rows.forEach(({row},index)=>{
+    if(body.rows[index]!==row)body.insertBefore(row,body.rows[index]);
+  });
+}
+function toggleMemberInfoSort(button){
+  const header=button.closest('th'),table=header.closest('table');
+  const direction=header.getAttribute('aria-sort')==='ascending'?'descending':'ascending';
+  table.tHead.querySelector('th[aria-sort]')?.removeAttribute('aria-sort');
+  header.setAttribute('aria-sort',direction);
+  sortMemberInfoRows(table,header);
 }
 async function refreshMemberAccountCells(container,isCurrent){
   const [{accounts=[]},{players=[]}]=await Promise.all([api('memberAccountList',{},true),api('adminList',{view:'player-birth-years'},true)]);
@@ -269,6 +300,7 @@ async function refreshMemberAccountCells(container,isCurrent){
       updateCells(row,account);
     });
     if(added.length||yearsChanged){updateMemberJoinSummary();const search=container.querySelector('#birthYearSearch');if(search)filterMemberInfo(search.value);}
+    sortMemberInfoRows(body.parentElement);
   }
   const requests=container.querySelector('#memberJoinRequests');if(requests)requests.innerHTML=memberJoinRequestsHtml(accounts,players);
 }
@@ -283,9 +315,11 @@ function memberAccountAssignments(players,accounts){
 }
 function renderBirthYearAdmin(container,players,supportsPartialUpdates=false,supportsDormancyUpdates=false,accounts=[]) {
   const currentYear=Number(new Intl.DateTimeFormat("en",{timeZone:"Asia/Seoul",year:"numeric"}).format(new Date()));
+  const headers=['회원 이름','출생연도','가입연도','휴면회원','코치','동호회<br>임원진','카카오<br>닉네임','가입 상태','관리자'];
+  const headerCells=headers.map(label=>`<th scope="col"><button type="button" class="member-sort-button">${label}<span aria-hidden="true"></span></button></th>`).join('');
   const linked=memberAccountAssignments(players,accounts),accountCells=account=>memberAccountCellsHtml(account,linked.adminCount,state.adminUserId);
   const extraRows=linked.extra.filter(account=>Boolean(account.player_name)).map(account=>{const name=account.player_name||account.requested_player_name||'이름 미입력';return `<tr data-account-only-name="${esc(name)}"><td>${esc(name)}</td><td>${esc(account.requested_birth_year??"—")}</td><td>${esc(account.requested_join_year??"—")}</td><td>—</td><td>—</td><td>—</td>${accountCells(account)}</tr>`;}).join('');
-  container.innerHTML=`<p class="eyebrow">ADMIN · 회원 정보</p><h2>회원 정보</h2><p class="form-description">동호회 임원진은 체크하거나 해제하면 바로 저장됩니다.</p><p class="form-description">휴면회원은 사이트에서 숨겨지며, 참가한 대회 기록은 유지됩니다.</p><section id="memberJoinRequests" class="member-join-requests">${memberJoinRequestsHtml(accounts,players)}</section><section class="player-join-summary"><h3>가입연도별 회원 현황</h3><p class="form-description">저장된 가입연도 기준입니다.</p><div id="playerJoinYearSummary">${playerJoinYearSummaryHtml(players)}</div></section><div class="member-edit-heading"><h3>회원 정보 수정</h3><button id="memberAddToggle" class="secondary-button" type="button" aria-expanded="false" aria-controls="memberAddForm">회원 추가</button></div><form id="memberAddForm" class="member-add-form" hidden><label>이름<input name="memberName" type="text" maxlength="30" autocomplete="off" required></label><label>출생연도<input name="birthYear" type="number" min="1900" max="${currentYear}" step="1" placeholder="선택"></label><label>가입연도<input name="joinYear" type="number" min="1900" max="${currentYear}" step="1" placeholder="선택"></label><button type="submit" class="primary-button">추가</button><p class="form-result" role="status"></p></form><form id="birthYearBatchForm" data-partial-year-updates="${supportsPartialUpdates}" data-dormancy-updates="${supportsDormancyUpdates}" novalidate><div class="birth-year-search"><input id="birthYearSearch" class="search-input" type="search" placeholder="회원 이름 검색" aria-label="생년 입력 회원 이름 검색"></div><div class="table-wrap"><table class="admin-table birth-year-table member-info-table"><thead><tr><th>회원 이름</th><th>출생연도</th><th>가입연도</th><th>휴면회원</th><th>코치</th><th>동호회<br>임원진</th><th>카카오<br>닉네임</th><th>가입 상태</th><th>관리자</th></tr></thead><tbody>${players.map(player=>`<tr data-birth-year-name="${esc(player.memberName)}" data-saved-birth-year="${esc(player.birthYear)}" data-saved-join-year="${esc(player.joinYear)}" data-saved-dormant="${Boolean(player.isDormant)}" data-saved-coach="${Boolean(player.isCoach)}" data-saved-officer="${Boolean(player.isOfficer)}"><td>${esc(player.memberName)}<small class="player-dirty-badge" hidden>수정됨</small></td><td><div class="birth-year-control"><input class="birth-year-input" name="birthYear" type="number" min="1900" max="${currentYear}" step="1" value="${esc(player.birthYear)}" aria-label="${esc(player.memberName)} 생년"><div class="birth-year-stepper"><button type="button" data-birth-year-step="1" aria-label="${esc(player.memberName)} 생년 1년 증가">▲</button><button type="button" data-birth-year-step="-1" aria-label="${esc(player.memberName)} 생년 1년 감소">▼</button></div></div></td><td><div class="birth-year-control"><input class="join-year-input" name="joinYear" type="number" min="1900" max="${currentYear}" step="1" value="${esc(player.joinYear)}" aria-label="${esc(player.memberName)} 가입연도"><div class="birth-year-stepper"><button type="button" data-join-year-step="1" aria-label="${esc(player.memberName)} 가입연도 1년 증가">▲</button><button type="button" data-join-year-step="-1" aria-label="${esc(player.memberName)} 가입연도 1년 감소">▼</button></div></div></td><td><input class="player-dormant-input" type="checkbox" aria-label="${esc(player.memberName)} 휴면" ${player.isDormant?"checked":""}></td><td><input class="player-coach-input" type="checkbox" aria-label="${esc(player.memberName)} 코치" ${player.isCoach?"checked":""}></td><td><input class="player-officer-input" type="checkbox" aria-label="${esc(player.memberName)} 동호회 임원진" ${player.isOfficer?"checked":""}></td>${accountCells(linked.primary.get(player.memberName))}</tr>`).join("")+extraRows||'<tr><td colspan="9" class="empty-cell">등록된 회원이 없습니다. 기록 승인 후 회원가 표시됩니다.</td></tr>'}</tbody></table></div><div class="player-year-save-footer"><span id="playerYearChangedCount" role="status">수정된 회원 0명</span><button id="birthYearBatchSave" class="primary-button" type="submit" disabled>저장</button></div></form>`;
+  container.innerHTML=`<p class="eyebrow">ADMIN · 회원 정보</p><h2>회원 정보</h2><p class="form-description">동호회 임원진은 체크하거나 해제하면 바로 저장됩니다.</p><p class="form-description">휴면회원은 사이트에서 숨겨지며, 참가한 대회 기록은 유지됩니다.</p><section id="memberJoinRequests" class="member-join-requests">${memberJoinRequestsHtml(accounts,players)}</section><details class="player-join-summary"><summary>가입연도별 회원 현황</summary><p class="form-description">저장된 가입연도 기준입니다.</p><div id="playerJoinYearSummary">${playerJoinYearSummaryHtml(players)}</div></details><div class="member-edit-heading"><h3>회원 정보 수정</h3><button id="memberAddToggle" class="secondary-button" type="button" aria-expanded="false" aria-controls="memberAddForm">회원 추가</button></div><form id="memberAddForm" class="member-add-form" hidden><label>이름<input name="memberName" type="text" maxlength="30" autocomplete="off" required></label><label>출생연도<input name="birthYear" type="number" min="1900" max="${currentYear}" step="1" placeholder="선택"></label><label>가입연도<input name="joinYear" type="number" min="1900" max="${currentYear}" step="1" placeholder="선택"></label><button type="submit" class="primary-button">추가</button><p class="form-result" role="status"></p></form><form id="birthYearBatchForm" data-partial-year-updates="${supportsPartialUpdates}" data-dormancy-updates="${supportsDormancyUpdates}" novalidate><div class="birth-year-search"><input id="birthYearSearch" class="search-input" type="search" placeholder="회원 이름 검색" aria-label="생년 입력 회원 이름 검색"></div><div class="table-wrap"><table class="admin-table birth-year-table member-info-table"><thead><tr>${headerCells}</tr></thead><tbody>${players.map(player=>`<tr data-birth-year-name="${esc(player.memberName)}" data-saved-birth-year="${esc(player.birthYear)}" data-saved-join-year="${esc(player.joinYear)}" data-saved-dormant="${Boolean(player.isDormant)}" data-saved-coach="${Boolean(player.isCoach)}" data-saved-officer="${Boolean(player.isOfficer)}"><td>${esc(player.memberName)}<small class="player-dirty-badge" hidden>수정됨</small></td><td><div class="birth-year-control"><input class="birth-year-input" name="birthYear" type="number" min="1900" max="${currentYear}" step="1" value="${esc(player.birthYear)}" aria-label="${esc(player.memberName)} 생년"><div class="birth-year-stepper"><button type="button" data-birth-year-step="1" aria-label="${esc(player.memberName)} 생년 1년 증가">▲</button><button type="button" data-birth-year-step="-1" aria-label="${esc(player.memberName)} 생년 1년 감소">▼</button></div></div></td><td><div class="birth-year-control"><input class="join-year-input" name="joinYear" type="number" min="1900" max="${currentYear}" step="1" value="${esc(player.joinYear)}" aria-label="${esc(player.memberName)} 가입연도"><div class="birth-year-stepper"><button type="button" data-join-year-step="1" aria-label="${esc(player.memberName)} 가입연도 1년 증가">▲</button><button type="button" data-join-year-step="-1" aria-label="${esc(player.memberName)} 가입연도 1년 감소">▼</button></div></div></td><td><input class="player-dormant-input" type="checkbox" aria-label="${esc(player.memberName)} 휴면" ${player.isDormant?"checked":""}></td><td><input class="player-coach-input" type="checkbox" aria-label="${esc(player.memberName)} 코치" ${player.isCoach?"checked":""}></td><td><input class="player-officer-input" type="checkbox" aria-label="${esc(player.memberName)} 동호회 임원진" ${player.isOfficer?"checked":""}></td>${accountCells(linked.primary.get(player.memberName))}</tr>`).join("")+extraRows||'<tr><td colspan="9" class="empty-cell">등록된 회원이 없습니다. 기록 승인 후 회원가 표시됩니다.</td></tr>'}</tbody></table></div><div class="player-year-save-footer"><span id="playerYearChangedCount" role="status">수정된 회원 0명</span><button id="birthYearBatchSave" class="primary-button" type="submit" disabled>저장</button></div></form>`;
 }
 async function addClubMember(form){
   if(!form.reportValidity())return;
@@ -296,6 +330,7 @@ async function addClubMember(form){
     const temporary=document.createElement('div');renderBirthYearAdmin(temporary,[player],true,true);
     const row=temporary.querySelector('[data-birth-year-name]'),body=$('#birthYearBatchForm tbody');
     body.querySelector('.empty-cell')?.closest('tr').remove();body.prepend(row);
+    sortMemberInfoRows(body.parentElement);
     $('#playerJoinYearSummary').innerHTML=playerJoinYearSummaryHtml([...body.querySelectorAll('[data-birth-year-name]')].map(row=>({memberName:row.dataset.birthYearName,joinYear:row.dataset.savedJoinYear,isDormant:row.dataset.savedDormant==="true",isCoach:row.dataset.savedCoach==="true"})));
     filterMemberInfo($('#birthYearSearch').value);form.reset();message.textContent=player.memberName+' 회원을 추가했습니다.';
   }catch(error){if(form.isConnected){message.textContent=error.message;message.classList.add('is-error');}}
@@ -684,6 +719,8 @@ $("#adminContent").addEventListener('change',event=>{
 });
 $("#adminContent").oninput=e=>{if(e.target.matches(".birth-year-input,.join-year-input,.player-dormant-input")){updatePlayerYearDirtyState(e.target.closest("[data-birth-year-name]"));updatePlayerYearSaveState();return;}if(e.target.id!=="birthYearSearch")return;filterMemberInfo(e.target.value);updatePlayerYearSaveState();};
 $("#adminContent").addEventListener('click',event=>{
+  const sortButton=event.target.closest('.member-sort-button');
+  if(sortButton){toggleMemberInfoSort(sortButton);return;}
   const toggle=event.target.closest('#memberAddToggle');if(!toggle)return;
   const form=$('#memberAddForm');form.hidden=!form.hidden;toggle.setAttribute('aria-expanded',String(!form.hidden));if(!form.hidden)form.querySelector('[name="memberName"]').focus();
 });

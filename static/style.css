@@ -697,6 +697,14 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
 /* Fill the available panel width; each column scales with the viewport. */
 .reference-admin .member-info-table { width:100%; min-width:0; table-layout:fixed; font-size:12px; }
 .reference-admin .member-info-table th,.reference-admin .member-info-table td { padding:5px 4px; white-space:normal; overflow-wrap:anywhere; }
+.member-info-table .member-sort-button { width:100%; min-height:32px; padding:2px 0; border:0; border-radius:4px; background:transparent; color:inherit; font:inherit; letter-spacing:inherit; cursor:pointer; }
+.member-info-table .member-sort-button:hover { text-decoration:underline; }
+.member-info-table .member-sort-button span { display:inline-block; margin-inline-start:.2em; }
+.member-info-table .member-sort-button span::after { content:'↕'; }
+.member-info-table th[aria-sort] .member-sort-button { color:var(--primary); }
+.member-info-table th[aria-sort='ascending'] .member-sort-button span::after { content:'↑'; }
+.member-info-table th[aria-sort='descending'] .member-sort-button span::after { content:'↓'; }
+.member-info-table .member-sort-button:focus-visible,.player-join-summary > summary:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
 .reference-admin .member-info-table th:first-child { width:13%; }
 .reference-admin .member-info-table th:nth-child(2),.reference-admin .member-info-table th:nth-child(3) { width:14%; }
 .reference-admin .member-info-table th:nth-child(4) { width:8%; }
@@ -752,6 +760,8 @@ footer { text-align: center; padding: 28px; color: var(--muted); font-size: 12px
   .competition-team-crew-inputs { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
 .player-join-summary { margin: 22px 0 28px; }
+.player-join-summary > summary { padding:10px 13px; border-radius:5px; background:#f0f1f3; font-weight:700; cursor:pointer; }
+.player-join-summary[open] > summary { margin-bottom:10px; }
 .player-summary-total { margin: 8px 0; color: var(--muted); font-size: 12px; }
 .player-join-table { width: max-content; min-width: 100%; table-layout: auto; }
 .player-join-table th,.player-join-table td { min-width: 76px; padding: 6px 10px; text-align: center; white-space: nowrap; }
