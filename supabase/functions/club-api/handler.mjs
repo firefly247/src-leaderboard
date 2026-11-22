@@ -5,17 +5,22 @@ import { createPush, requestPush } from './push.mjs';
 
 const PUBLIC = new Set(['trainingGet','trainingList','trainingRoster','raceLineupList','raceLineupGet','pendingDeleteRecords']);
 const MEMBER = new Set(['trainingJoin','trainingWeekJoin','requestAdd','requestCompetitionAdd','requestDelete','trainingSeats','trainingBoatAdd','trainingSeatSelect','trainingSeatStatus','trainingSeatComment']);
-const ADMIN = new Set(['trainingBoatRemove','trainingSeatConfirm','trainingSeatReopen','adminList','saveApprovedRecord','saveCompetitionDates','updateCompetitionRequests','savePlayerBirthYear','savePlayerBirthYears','processRequest','processAddRequests','processCompetitionAddRequests','processRejectRequests','manageEvent','manageCompetition','manageCompetitionEvent','manageCompetitionDivision','trainingOpen','trainingRecommend','trainingDraftGet','trainingDraftEdit','trainingDraftSave','trainingPublish','trainingCheck','trainingQualifications','raceLineupAdminData','raceLineupGetAdmin','raceLineupCreate','raceLineupParticipants','raceLineupSave','raceLineupFinalize','memberLinkList','memberLinkApprove','memberLinkReject','memberAccountList','memberAccountRole','memberCreate','memberCoachSet']);
+const ADMIN = new Set(['trainingBoatRemove','trainingSeatConfirm','trainingSeatReopen','adminList','saveApprovedRecord','saveCompetitionDates','updateCompetitionRequests','savePlayerBirthYear','savePlayerBirthYears','processRequest','processAddRequests','processCompetitionAddRequests','processRejectRequests','manageEvent','manageCompetition','manageCompetitionEvent','manageCompetitionDivision','trainingOpen','trainingRecommend','trainingDraftGet','trainingDraftEdit','trainingDraftSave','trainingPublish','trainingCheck','trainingQualifications','raceLineupAdminData','raceLineupGetAdmin','raceLineupCreate','raceLineupParticipants','raceLineupSave','raceLineupFinalize','memberLinkList','memberLinkApprove','memberLinkReject','memberAccountList','memberAccountRole','memberCreate']);
 const clone=x=>structuredClone(x);
+const MEMBER_FLAGS=new Map([
+  ['memberCoachSet',{field:'isCoach',table:'club_coaches',label:'코치'}],
+  ['memberOfficerSet',{field:'isOfficer',table:'club_officers',label:'동호회 임원진'}],
+]);
+MEMBER_FLAGS.forEach((_,action)=>ADMIN.add(action));
 const PUSH=new Set(['adminPushConfig','adminPushSubscribe','adminPushDisable','adminPushStatus','adminPushTest']);
 PUSH.forEach(action=>ADMIN.add(action));
 const csv=value=>{const text=String(value??'');return /[",\r\n]/.test(text)?'"'+text.replace(/"/g,'""')+'"':text;};
 
 export function createHandler({url,key,hash,fetcher=fetch,origins=['https://firefly247.github.io'],background=promise=>promise}) {
   const utilities=makeUtilities(hash), hex=v=>Array.from(hash(new TextEncoder().encode(v)),b=>b.toString(16).padStart(2,'0')).join('');
-  async function rest(path,payload,method='POST',extra={}) {
+  async function rest(path,payload,method='POST',extra={},allowMissingTable=false) {
     const res=await fetcher(url+'/rest/v1/'+path,{method,headers:{apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json',...extra},...(payload===undefined?{}:{body:JSON.stringify(payload)})});
-    if(!res.ok){const error=await res.json().catch(()=>({}));if(error.message?.includes('storage_revision_conflict'))throw Object.assign(new Error('다른 사람이 변경했습니다. 최신 내용을 불러온 뒤 다시 저장해 주세요.'),{code:'storage_revision_conflict'});throw new Error('데이터를 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.');}
+    if(!res.ok){const error=await res.json().catch(()=>({}));if(allowMissingTable&&['PGRST205','42P01'].includes(error.code))return [];if(error.message?.includes('storage_revision_conflict'))throw Object.assign(new Error('다른 사람이 변경했습니다. 최신 내용을 불러온 뒤 다시 저장해 주세요.'),{code:'storage_revision_conflict'});throw new Error('데이터를 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.');}
     const text=await res.text();return text?JSON.parse(text):null;
   }
   const rpc=(name,p={})=>rest('rpc/'+name,p);
@@ -108,14 +113,15 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
         await limited(request,member.user_id+':'+action,action==='adminPushTest'?5:30);
         return respond({ok:true,...await push.dispatch(action,p,member)});
       }
-      if(action==='memberCoachSet'){
+      if(MEMBER_FLAGS.has(action)){
+        const {field,table,label}=MEMBER_FLAGS.get(action),enabled=p[field];
         const name=typeof p.memberName==='string'?p.memberName.trim():'';
-        if(!name||name.length>30||typeof p.isCoach!=='boolean')throw new Error('회원 이름과 코치 여부를 확인해 주세요.');
+        if(!name||name.length>30||typeof enabled!=='boolean')throw new Error(`회원 이름과 ${label} 여부를 확인해 주세요.`);
         const snapshot=await rpc('club_store_read'),players=createEngine(snapshot,{utilities,admin}).dispatch('adminList',{view:'player-birth-years'}).players;
         if(!players.some(player=>player.memberName===name))throw new Error('등록된 회원을 선택해 주세요.');
-        if(p.isCoach)await rest('club_coaches',{member_name:name},'POST',{Prefer:'resolution=ignore-duplicates'});
-        else await rest('club_coaches?member_name=eq.'+encodeURIComponent(name),undefined,'DELETE');
-        return respond({ok:true,memberName:name,isCoach:p.isCoach});
+        if(enabled)await rest(table,{member_name:name},'POST',{Prefer:'resolution=ignore-duplicates'});
+        else await rest(table+'?member_name=eq.'+encodeURIComponent(name),undefined,'DELETE');
+        return respond({ok:true,memberName:name,[field]:enabled});
       }
       if(action==='memberAccountList'){const accounts=await rest('club_accounts?select=user_id,player_name,requested_player_name,requested_birth_year,requested_join_year,display_name,role,created_at,linked_at&order=created_at',undefined,'GET');return respond({ok:true,accounts});}
       if(action==='memberAccountRole'){
@@ -183,8 +189,12 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
         return {...request,requester_name:typeof requester?.name==='string'?requester.name:''};
       });
       if(action==='adminList'&&p.view==='player-birth-years'&&Array.isArray(result.players)){
-        const coaches=new Set((await rest('club_coaches?select=member_name',undefined,'GET')).map(row=>row.member_name));
-        result.players=result.players.map(player=>({...player,isCoach:coaches.has(player.memberName)}));
+        const [coachRows,officerRows]=await Promise.all([
+          rest('club_coaches?select=member_name',undefined,'GET'),
+          rest('club_officers?select=member_name',undefined,'GET',{},true),
+        ]);
+        const coaches=new Set(coachRows.map(row=>row.member_name)),officers=new Set(officerRows.map(row=>row.member_name));
+        result.players=result.players.map(player=>({...player,isCoach:coaches.has(player.memberName),isOfficer:officers.has(player.memberName)}));
       }
       const changes=engine.changes();
       if(photo)await upload(photo);

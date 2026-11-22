@@ -5,7 +5,7 @@ test('Member info shows the roster and submitted requests while excluding unfini
  const ctx=client(),container={},players=[{memberName:'김회원',birthYear:'1980',joinYear:'2023'},{memberName:'기존회원',birthYear:'',joinYear:''}],accounts=[{user_id:'pending',requested_player_name:'김회원',display_name:'신청자',role:'member'},{user_id:'admin',player_name:'김회원',display_name:'<관리자>',role:'admin'},{user_id:'unnamed',display_name:'새 계정',role:'member'}];
  ctx.renderBirthYearAdmin(container,players,true,true,accounts);
  const table=container.innerHTML.slice(container.innerHTML.indexOf('class="admin-table birth-year-table'));
- const headers=[...table.matchAll(/<th>([\s\S]*?)<\/th>/g)].map(m=>m[1].replace(/<br\s*\/?>/g,' '));assert.deepEqual(headers,['회원 이름','출생연도','가입연도','휴면회원','코치','카카오 닉네임','가입 상태','관리자']);
+ const headers=[...table.matchAll(/<th>([\s\S]*?)<\/th>/g)].map(m=>m[1].replace(/<br\s*\/?>/g,' '));assert.deepEqual(headers,['회원 이름','출생연도','가입연도','휴면회원','코치','동호회 임원진','카카오 닉네임','가입 상태','관리자']);
  assert.equal((table.match(/data-birth-year-name="김회원"/g)||[]).length,1);
  assert.match(table,/&lt;관리자&gt;/);assert.doesNotMatch(table,/<관리자>/);assert.match(table,/data-account-user="admin"[^>]*checked[^>]*disabled/);
  assert.match(container.innerHTML,/data-approve-user="pending"/);assert.doesNotMatch(table,/data-approve-user|data-reject-user/);assert.doesNotMatch(container.innerHTML,/data-account-only-name="이름 미입력"|이름 입력 전|새 계정/);assert.match(table,/미가입/);
@@ -56,6 +56,22 @@ test('Coach checkbox updates the summary without reloading, persists, and rolls 
  await ctx.saveMemberCoach(input);assert.equal(row.dataset.savedCoach,'true');assert.equal(input.disabled,false);assert.equal(summaries,2);
  const alerts=[];ctx.alert=message=>alerts.push(message);ctx.api=async()=>{throw new Error('연결 실패');};input.checked=false;
  await ctx.saveMemberCoach(input);assert.equal(input.checked,true);assert.equal(row.dataset.savedCoach,'true');assert.equal(input.disabled,false);assert.deepEqual(alerts,['연결 실패']);
+});
+
+test('Officer checkbox defaults to unchecked, reflects saved status, and rolls back failed saves',async()=>{
+ const ctx=client(),container={},row={dataset:{birthYearName:'일반회원',savedOfficer:'false'}};
+ ctx.renderBirthYearAdmin(container,[{memberName:'임원회원',isOfficer:true},{memberName:'일반회원'}]);
+ assert.match(container.innerHTML,/aria-label="임원회원 동호회 임원진" checked/);
+ assert.match(container.innerHTML,/aria-label="일반회원 동호회 임원진"\s*>/);
+ const input={dataset:{},checked:true,disabled:false,closest:()=>row},alerts=[];
+ vm.runInContext("state.adminUserId='actor'",ctx);
+ ctx.alert=message=>alerts.push(message);
+ ctx.api=async(action,payload,admin)=>{assert.equal(action,'memberOfficerSet');assert.equal(admin,true);return {...payload};};
+ await ctx.saveMemberOfficer(input);
+ assert.equal(row.dataset.savedOfficer,'true');
+ input.checked=false;ctx.api=async()=>{throw new Error('연결 실패');};
+ await ctx.saveMemberOfficer(input);
+ assert.equal(input.checked,true);assert.equal(input.disabled,false);assert.deepEqual(alerts,['연결 실패']);
 });
 
 test('Pending applicants appear above the cohort summary and outside the editable roster',()=>{

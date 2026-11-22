@@ -4,7 +4,7 @@ const layout=JSON.parse(fs.readFileSync('apps-script/StorageLayout.gs','utf8').m
 const blank=()=>Object.fromEntries(Object.keys(layout).map(k=>[k,[]]));
 async function fixture(){
  const {createHandler}=await import('../supabase/functions/club-api/handler.mjs');
- let snapshot={revision:1,tables:blank()},reads=0,conflict=null;const writes=[],uploads=[],roleWrites=[],coaches=new Set();
+ let snapshot={revision:1,tables:blank()},reads=0,conflict=null;const writes=[],uploads=[],roleWrites=[],coaches=new Set(),officers=new Set();
  snapshot.tables.events=[{event_id:'e1',event_name:'2000m'}];snapshot.tables.player_birth_years=[{member_name:'김선수',birth_year:'1980',join_year:'2023',updated_at:''}];
  const account={user_id:'00000000-0000-0000-0000-000000000001',player_name:'김선수',requested_player_name:null,role:'member'};
  const response=v=>new Response(v===undefined?'':JSON.stringify(v),{status:200});
@@ -13,10 +13,11 @@ async function fixture(){
   if(url.includes('/storage/v1/object/')){uploads.push(url);return response({});}
   const path=url.split('/rest/v1/')[1],p=options.body?JSON.parse(options.body):{};
   if(path==='club_accounts')return response();if(path.startsWith('club_accounts?')){if(options.method==='PATCH')Object.assign(account,p);return response([account]);}
-  if(path.split('?')[0]==='club_coaches'){
-   if(options.method==='POST'){coaches.add(p.member_name);return response();}
-   if(options.method==='DELETE'){coaches.delete(decodeURIComponent(path.split('member_name=eq.')[1]));return response();}
-   return response([...coaches].map(member_name=>({member_name})));
+  const flags={club_coaches:coaches,club_officers:officers}[path.split('?')[0]];
+  if(flags){
+   if(options.method==='POST'){flags.add(p.member_name);return response();}
+   if(options.method==='DELETE'){flags.delete(decodeURIComponent(path.split('member_name=eq.')[1]));return response();}
+   return response([...flags].map(member_name=>({member_name})));
   }
   const table=path.split('?')[0];if(['club_player_birth_years','club_records','club_competition_records','club_dormant_members'].includes(table)){
    const exact=path.match(/member_name=eq\.([^&]+)/)?.[1];return response(snapshot.tables[table.slice(5)].filter(r=>!exact||r.member_name===decodeURIComponent(exact)).map(r=>path.includes('select=birth_year,join_year')?{birth_year:r.birth_year,join_year:r.join_year}:{member_name:r.member_name}));
@@ -40,6 +41,23 @@ async function fixture(){
  const adminCall=async(action,payload={})=>{const previous=account.role;account.role='admin';try{return await call(action,payload,'','verified');}finally{account.role=previous;}};
  return {call,adminCall,account,writes,uploads,roleWrites,conflictOnNextCommit(fn){conflict=fn;},get snapshot(){return snapshot;},get reads(){return reads;}};
 }
+test('Only administrators can persist officer status and it stays private and independent of coach status',async()=>{
+ const f=await fixture(),name='김선수',set=isOfficer=>f.adminCall('memberOfficerSet',{memberName:name,isOfficer});
+ const player=async()=> (await f.adminCall('adminList',{view:'player-birth-years'})).players.find(p=>p.memberName===name);
+ assert.equal((await player()).isOfficer,false);
+ assert.equal((await f.call('memberOfficerSet',{memberName:name,isOfficer:true})).ok,false);
+ assert.equal((await f.call('memberOfficerSet',{memberName:name,isOfficer:true},'','verified')).ok,false);
+ assert.equal((await set('true')).ok,false);
+ assert.equal((await f.adminCall('memberOfficerSet',{memberName:'없는회원',isOfficer:true})).ok,false);
+ assert.deepEqual(await set(true),{ok:true,memberName:name,isOfficer:true});
+ assert.equal((await set(true)).ok,true);
+ assert.equal((await player()).isOfficer,true);
+ assert.equal((await player()).isCoach,false);
+ assert.equal(f.account.role,'member');
+ assert.doesNotMatch(JSON.stringify(await f.call('publicData')),/isOfficer|club_officers/);
+ assert.equal((await set(false)).ok,true);
+ assert.equal((await player()).isOfficer,false);
+});
 test('Public landing data uses only the eight-table projection without private snapshot reads',async()=>{
  const f=await fixture(),out=await f.call('publicData');assert.equal(out.ok,true);assert.equal(Object.keys(out.files).length,8);assert.equal(f.reads,0);assert.ok(!JSON.stringify(out).includes('1980'));assert.ok(!JSON.stringify(out).includes('request_log'));
 });
