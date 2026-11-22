@@ -5,7 +5,7 @@ const blank=()=>Object.fromEntries(Object.keys(layout).map(k=>[k,[]]));
 async function fixture(){
  const {createHandler}=await import('../supabase/functions/club-api/handler.mjs');
  let snapshot={revision:1,tables:blank()},reads=0,conflict=null;const writes=[],uploads=[],roleWrites=[],coaches=new Set(),officers=new Set();
- const operationSessions=new Map(),posts=[];let operationPassword='';
+ const posts=[];
  snapshot.tables.events=[{event_id:'e1',event_name:'2000m'}];snapshot.tables.player_birth_years=[{member_name:'김선수',birth_year:'1980',join_year:'2023',updated_at:''}];
  const account={user_id:'00000000-0000-0000-0000-000000000001',player_name:'김선수',requested_player_name:null,role:'member'};
  const response=v=>new Response(v===undefined?'':JSON.stringify(v),{status:200});
@@ -21,13 +21,6 @@ async function fixture(){
    const exact=new URLSearchParams(path.split('?')[1]).get('member_name');
    return response([...flags].filter(name=>!exact||exact==='eq.'+name).map(member_name=>({member_name})));
   }
-  if(path==='rpc/club_operations_set_password'){assert.equal(account.role,'admin');operationPassword=p.p_password;operationSessions.clear();return response(true);}
-  if(path==='rpc/club_operations_unlock'){
-   if(!operationPassword)return response('unconfigured');
-   if(p.p_password!==operationPassword)return response('invalid');
-   operationSessions.set(p.p_token_hash,p.p_user_id);return response('ok');
-  }
-  if(path==='rpc/club_operations_session')return response(operationSessions.get(p.p_token_hash)===p.p_user_id);
   if(path==='club_operations_posts'){
    posts.push({...p,id:crypto.randomUUID(),created_at:'2026-11-23T00:00:00Z',updated_at:'2026-11-23T00:00:00Z'});return response();
   }
@@ -58,35 +51,33 @@ async function fixture(){
  const adminCall=async(action,payload={})=>{const previous=account.role;account.role='admin';try{return await call(action,payload,'','verified');}finally{account.role=previous;}};
  return {call,adminCall,account,writes,uploads,roleWrites,conflictOnNextCommit(fn){conflict=fn;},get snapshot(){return snapshot;},get reads(){return reads;}};
 }
-test('Operating privileges grant planning and a password-gated board while blocking administrator mutations',async()=>{
+test('The board opens with a verified administrator or officer role and rejects revoked access',async()=>{
  const f=await fixture(),member=(action,p)=>f.call(action,p,'','verified');
- assert.equal((await member('operationsUnlock',{password:'club-password'})).ok,false);
+ assert.equal((await f.call('operationsList')).code,'operations_forbidden');
+ for(const action of ['operationsList','operationsCreate','operationsUpdate','operationsArchive']){
+  assert.equal((await member(action,{role:'admin',canOperate:true})).code,'operations_forbidden');
+ }
  assert.equal((await f.adminCall('memberOfficerSet',{memberName:'김선수',isOfficer:true})).ok,true);
  assert.equal((await member('memberSession')).member.canOperate,true);
- for(const action of ['processAddRequests','savePlayerBirthYears','memberOfficerSet','memberAccountRole','manageEvent','operationsSetPassword']){
-  assert.equal((await member(action,{password:'club-password',role:'admin'})).ok,false,action);
+ for(const action of ['processAddRequests','savePlayerBirthYears','memberOfficerSet','memberAccountRole','manageEvent']){
+  assert.equal((await member(action,{role:'admin'})).ok,false,action);
  }
  assert.equal((await member('trainingOpen',{dates:['2026-11-21']})).ok,true);
  assert.equal((await member('raceLineupAdminData')).ok,true);
- assert.equal((await member('operationsUnlock',{password:'club-password'})).ok,false);
- assert.equal((await f.adminCall('operationsSetPassword',{password:'club-password'})).ok,true);
- assert.equal((await member('operationsUnlock',{password:'wrong-password'})).ok,false);
- const unlocked=await member('operationsUnlock',{password:'club-password'});assert.equal(unlocked.ok,true);
- const token=unlocked.token;
- assert.equal((await f.adminCall('operationsList')).code,'operations_locked');
- const entry={token,category:'equipment',title:'장비 점검',content:'비공개 점검 기록',author_id:'ignored'};
+ for(const action of ['operationsUnlock','operationsSetPassword'])assert.equal((await f.adminCall(action)).message,'지원하지 않는 요청입니다.');
+ assert.equal((await f.adminCall('operationsList')).ok,true);
+ const entry={category:'equipment',title:'장비 점검',content:'비공개 점검 기록',author_id:'ignored'};
  assert.equal((await member('operationsCreate',entry)).ok,true);
- const list=await member('operationsList',{token,category:'equipment'}),post=list.posts[0];
+ const list=await member('operationsList',{category:'equipment'}),post=list.posts[0];
  assert.equal(post.title,'장비 점검');assert.equal(post.canEdit,true);assert.equal(post.author_id,undefined);
  assert.equal((await member('operationsUpdate',{...entry,id:post.id,updatedAt:post.updated_at,title:'점검 완료'})).ok,true);
- assert.equal((await member('operationsArchive',{token,id:post.id,updatedAt:post.updated_at})).ok,false);
+ assert.equal((await member('operationsArchive',{id:post.id,updatedAt:post.updated_at})).ok,false);
  assert.doesNotMatch(JSON.stringify(await f.call('publicData')),/비공개 점검 기록/);
  f.snapshot.tables.dormant_members.push({member_name:'김선수'});
- assert.equal((await member('operationsList',{token})).code,'operations_locked');
+ assert.equal((await member('operationsList')).code,'operations_forbidden');
  f.snapshot.tables.dormant_members=[];
- assert.match((await f.adminCall('operationsSetPassword',{password:'short'})).message,/6자 이상/);
- assert.equal((await f.adminCall('operationsSetPassword',{password:'abcdef'})).ok,true);
- assert.equal((await member('operationsList',{token})).code,'operations_locked');
+ await f.adminCall('memberOfficerSet',{memberName:'김선수',isOfficer:false});
+ assert.equal((await member('operationsList')).code,'operations_forbidden');
 });
 test('Only administrators can persist officer status and it stays private and independent of coach status',async()=>{
  const f=await fixture(),name='김선수',set=isOfficer=>f.adminCall('memberOfficerSet',{memberName:name,isOfficer});

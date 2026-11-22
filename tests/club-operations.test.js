@@ -16,18 +16,18 @@ test('Operations posts render Markdown tables and lists without loading images o
     return selectors.get(selector);
   };
   const content='## 지출 기준\n\n| 항목 | 금액 |\n| --- | --- |\n| **장비** | 30만 원 |\n\n1. 신청\n2. 정산\n\n<img src="https://example.test/profile">\n\n![비공개](https://example.test/image)\n\n[링크](https://example.test/info)';
-  const window={markdownit,ClubApi:{async call(action){
-    if(action==='operationsUnlock')return {token:'test',expiresIn:1};
+  let calls=0;
+  const window={markdownit,ClubApi:{async call(action,payload){
+    calls++;
     assert.equal(action,'operationsList');
+    assert.deepEqual({...payload},{category:'',offset:0});
     return {posts:[{title:'경비 안내',content,category:'rules',author_name:'테스트',updated_at:'2026-11-23T00:00:00Z'}],nextOffset:null};
   }}};
   const context={window,document:{querySelector:()=>root,createElement:()=>node(),addEventListener:(name,fn)=>listeners.set(name,fn)},setTimeout(){},clearTimeout(){}};
   vm.runInNewContext(fs.readFileSync('static/club-operations.js','utf8'),context);
-  listeners.get('club-operator-changed')({detail:{userId:'operator',admin:false}});
   window.ClubOperations.route('operations');
-  const unlock=root.querySelector('#operationsUnlock');
-  unlock.elements={password:{value:'example'}};
-  unlock.onsubmit({preventDefault(){}});
+  assert.equal(calls,0);
+  listeners.get('club-operator-changed')({detail:{userId:'operator',admin:false}});
   await new Promise(resolve=>setImmediate(resolve));
   const rowButton=root.querySelector('#operationsPosts').children[0].children[0];
   const article=root.querySelector('#operationsArticle'),list=root.querySelector('#operationsList');
@@ -50,4 +50,7 @@ test('Operations posts render Markdown tables and lists without loading images o
   assert.equal(list.hidden,false);
   assert.equal(article.hidden,true);
   assert.equal(rowButton.focused,true);
+  listeners.get('club-operator-changed')({detail:{userId:'',admin:false}});
+  assert.equal(root.querySelector('#operationsBoard').hidden,true);
+  assert.equal(root.querySelector('#operationsPosts').children.length,0);
 });

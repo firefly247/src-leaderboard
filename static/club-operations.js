@@ -2,7 +2,7 @@
   'use strict';
   const root=document.querySelector('#clubOperations');
   const get=id=>root.querySelector('#operations'+id);
-  const unlock=get('Unlock'),settings=get('Settings'),password=get('Password'),board=get('Board');
+  const board=get('Board');
   const editor=get('Post'),posts=get('Posts'),category=get('Category'),more=get('More'),status=get('Status');
   const list=get('List'),toolbar=get('Toolbar'),article=get('Article'),empty=get('Empty');
   const content=get('Content');
@@ -14,7 +14,7 @@
   const labels={rules:'동호회 회칙',equipment:'물품관리',general:'기타'};
   const date=new Intl.DateTimeFormat('ko-KR',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Seoul'});
   const call=(action,payload)=>window.ClubApi.call(action,payload);
-  let token='',expiry,revision=0,busy=false,visible=false,operator='',admin=false,editing=null,nextOffset=null,markdownEditor=null,postTrigger=null;
+  let revision=0,busy=false,visible=false,operator='',editing=null,nextOffset=null,markdownEditor=null,postTrigger=null;
 
   function message(text='',error=false){
     status.classList.toggle('is-error',error);
@@ -30,14 +30,12 @@
     editor.reset();
     editor.hidden=true;
   }
-  function lock(text='',error=false){
+  function clearBoard(text='',error=false){
     revision++;
-    clearTimeout(expiry);
-    token='';busy=false;nextOffset=null;
-    unlock.reset();password.reset();closeEditor();
+    busy=false;nextOffset=null;
+    closeEditor();
     category.value='';category.disabled=false;posts.replaceChildren();more.hidden=true;empty.hidden=true;board.hidden=true;
     showList();
-    unlock.hidden=false;settings.hidden=!admin;settings.open=false;
     root.removeAttribute('aria-busy');
     message(text,error);
   }
@@ -48,8 +46,11 @@
     try{await operation(isCurrent);}
     catch(error){
       if(isCurrent()){
-        if(error.code==='operations_locked')lock(error.message,true);
-        else message(error.message,true);
+        if(error.code==='operations_forbidden'){
+          operator='';
+          clearBoard(error.message,true);
+          window.ClubMembership?.refresh();
+        }else message(error.message,true);
       }
     }finally{
       if(isCurrent()){busy=false;category.disabled=false;root.removeAttribute('aria-busy');}
@@ -67,7 +68,7 @@
     return button;
   }
   function openEditor(post=null){
-    if(busy||!token)return;
+    if(busy||!operator)return;
     editing=post;
     editor.querySelector('h2').textContent=post?'게시물 수정':'게시물 작성';
     editor.elements.category.value=post?.category||category.value||'general';
@@ -146,7 +147,7 @@
     return nav;
   }
   function showPost(post,trigger){
-    if(busy||!token)return;
+    if(busy||!operator)return;
     postTrigger=trigger;
     const back=actionButton('← 목록',()=>showList(true));
     const tools=element('div','','operations-article-tools');
@@ -166,8 +167,8 @@
     if(post.canEdit){
       const actions=element('div','','operations-actions');
       actions.append(actionButton('수정',()=>openEditor(post)),actionButton('삭제',()=>{
-        if(!busy&&token&&confirm('게시물을 삭제할까요?'))run(async current=>{
-          await call('operationsArchive',{token,id:post.id,updatedAt:post.updated_at});
+        if(!busy&&operator&&confirm('게시물을 삭제할까요?'))run(async current=>{
+          await call('operationsArchive',{id:post.id,updatedAt:post.updated_at});
           if(!current())return;
           if(editing?.id===post.id)closeEditor();
           showList();
@@ -186,35 +187,17 @@
     const selected=category.value;
     more.hidden=true;
     if(!offset){posts.replaceChildren();empty.hidden=true;}
-    const result=await call('operationsList',{token,category:selected,offset});
+    const result=await call('operationsList',{category:selected,offset});
     if(!current())return;
     if(!offset)empty.hidden=result.posts.length>0;
     posts.append(...result.posts.map(postRow));
     nextOffset=result.nextOffset;more.hidden=nextOffset===null;
   }
-  unlock.onsubmit=event=>{
-    event.preventDefault();
-    run(async current=>{
-      const value=unlock.elements.password.value;
-      unlock.reset();
-      const result=await call('operationsUnlock',{password:value});
-      if(!current())return;
-      token=result.token;
-      expiry=setTimeout(()=>lock('암호를 다시 입력해 주세요.'),result.expiresIn*1000);
-      unlock.hidden=true;board.hidden=false;
-      await loadPosts(current);
-    });
-  };
-  password.onsubmit=event=>{
-    event.preventDefault();
-    run(async current=>{
-      const value=password.elements.password.value;
-      if(value!==password.elements.confirm.value){message('새 암호가 일치하지 않습니다.',true);return;}
-      password.reset();
-      await call('operationsSetPassword',{password:value});
-      if(current())lock('암호를 저장했습니다.');
-    });
-  };
+  function openBoard(){
+    if(!visible||!operator||!board.hidden)return;
+    board.hidden=false;
+    run(loadPosts);
+  }
   editor.onsubmit=event=>{
     event.preventDefault();
     if(busy)return;
@@ -231,7 +214,7 @@
       const fields=Object.fromEntries(new FormData(editor));
       fields.content=text;
       const post=editing;
-      await call(post?'operationsUpdate':'operationsCreate',{token,...fields,...(post?{id:post.id,updatedAt:post.updated_at}:{})});
+      await call(post?'operationsUpdate':'operationsCreate',{...fields,...(post?{id:post.id,updatedAt:post.updated_at}:{})});
       if(!current())return;
       closeEditor();
       showList();
@@ -245,14 +228,15 @@
   more.onclick=()=>{if(nextOffset!==null)run(current=>loadPosts(current,nextOffset));};
   get('New').onclick=()=>openEditor();
   get('Cancel').onclick=()=>{if(!busy){closeEditor();if(article.hidden)get('New').focus();else article.querySelector('h2').focus();}};
-  get('Lock').onclick=()=>{lock();unlock.elements.password.focus();};
   document.addEventListener('club-operator-changed',event=>{
-    operator=event.detail.userId;admin=event.detail.admin;
-    lock();
+    operator=event.detail.userId;
+    clearBoard();
+    openBoard();
   });
   window.ClubOperations={route(tab){
     const next=tab==='operations';
-    if(!next&&visible)lock();
+    if(!next&&visible)clearBoard();
     visible=next;
+    openBoard();
   }};
 })();

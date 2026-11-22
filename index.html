@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="static/training.css?v=20261028-04">
   <link rel="stylesheet" href="static/race-lineup.css?v=20261025-01">
   <link rel="stylesheet" href="static/vendor/easymde-2.21.0.min.css">
-  <link rel="stylesheet" href="static/style.css?v=20261123-05">
+  <link rel="stylesheet" href="static/style.css?v=20261123-06">
   <link rel="stylesheet" href="static/member-auth.css?v=20261103-03">
   <link rel="stylesheet" href="static/admin-notifications.css?v=20261103-01">
   <link rel="stylesheet" href="static/club-home.css?v=20261101-31">
@@ -113,26 +113,12 @@
     <section class="tab-panel club-operations" id="clubOperations" data-panel="operations" aria-labelledby="operationsTitle">
       <div class="panel operations-shell">
         <h1 id="operationsTitle">동호회 운영</h1>
-        <form class="operations-form" id="operationsUnlock">
-          <label>암호<input name="password" type="password" autocomplete="current-password" required></label>
-          <button class="primary-button" type="submit">입장</button>
-        </form>
-        <details class="operations-settings" id="operationsSettings" hidden>
-          <summary>암호 설정</summary>
-          <form class="operations-form" id="operationsPassword">
-            <label>새 암호<input name="password" type="password" autocomplete="new-password" minlength="6" maxlength="72" required></label>
-            <label>새 암호 확인<input name="confirm" type="password" autocomplete="new-password" minlength="6" maxlength="72" required></label>
-            <p class="form-description">암호를 변경하면 다시 입장해야 합니다.</p>
-            <button class="primary-button" type="submit">암호 저장</button>
-          </form>
-        </details>
         <p class="form-result" id="operationsStatus" role="status"></p>
         <section id="operationsBoard" aria-label="운영 게시판" hidden>
           <div class="operations-toolbar" id="operationsToolbar">
             <label>분류<select id="operationsCategory"><option value="">전체</option><option value="rules">동호회 회칙</option><option value="equipment">물품관리</option><option value="general">기타</option></select></label>
             <button type="button" class="primary-button" id="operationsNew">글 쓰기</button>
             <button type="button" class="secondary-button" id="operationsRefresh">새로고침</button>
-            <button type="button" class="secondary-button" id="operationsLock">잠그기</button>
           </div>
           <form class="operations-form operations-composer" id="operationsPost" hidden>
             <h2>게시물 작성</h2>
@@ -165,7 +151,7 @@
   <script src="static/admin-push.js?v=20261103-04"></script>
   <script src="static/vendor/markdown-it-15.0.3.js"></script>
   <script src="static/vendor/easymde-2.21.0.min.js"></script>
-  <script src="static/club-operations.js?v=20261123-04"></script>
+  <script src="static/club-operations.js?v=20261123-05"></script>
   <script src="static/supabase-member-auth.js?v=20261103-03"></script>
 </body>
 </html>

@@ -93,12 +93,8 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
       if(action.startsWith('member')&&!ADMIN.has(action)&&!member)throw new Error('카카오 로그인이 필요합니다.');
       if(action==='memberSession')return respond({ok:true,member:{userId:member.user_id,nickname:member.nickname,playerName:member.player_name,requestedPlayerName:member.requested_player_name,role:member.role,canOperate:await canOperate(member)}});
       if(OPERATIONS_ACTIONS.has(action)){
-        if(!await canOperate(member))throw Object.assign(new Error('관리자와 동호회 임원진만 이용할 수 있습니다.'),{code:'operations_locked'});
-        const limitUnlock=async()=>{
-          await limited(request,'operationsUnlock',30);
-          if(!await rpc('club_api_limit',{p_key:hex('operationsUnlock:'+member.user_id),p_limit:5,p_seconds:300}))throw new Error('암호 입력 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요.');
-        };
-        return respond({ok:true,...await handleOperations(action,p,member,{rest,rpc,hex,limitUnlock})});
+        if(!await canOperate(member))throw Object.assign(new Error('관리자와 동호회 임원진만 이용할 수 있습니다.'),{code:'operations_forbidden'});
+        return respond({ok:true,...await handleOperations(action,p,member,rest)});
       }
       if(action==='memberLinkOptions'){
         const tables=await Promise.all(['club_player_birth_years','club_records','club_competition_records','club_dormant_members'].map(n=>rest(n+'?select=member_name',undefined,'GET')));
@@ -224,7 +220,7 @@ export function createHandler({url,key,hash,fetcher=fetch,origins=['https://fire
       if(['requestAdd','requestCompetitionAdd'].includes(action))await background(push.notifyAdmins(requestPush(engine.tables().request_log.find(row=>row.request_id===result.requestId))));
       return respond({ok:true,...result});
     } catch(error) {
-      return respond({ok:false,message:error instanceof SyntaxError?'요청 형식이 올바르지 않습니다.':error.message||'요청을 처리하지 못했습니다.',...(error.code==='operations_locked'?{code:error.code}:{})},400);
+      return respond({ok:false,message:error instanceof SyntaxError?'요청 형식이 올바르지 않습니다.':error.message||'요청을 처리하지 못했습니다.',...(error.code==='operations_forbidden'?{code:error.code}:{})},400);
     }
   };
 }
