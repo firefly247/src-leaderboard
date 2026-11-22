@@ -102,7 +102,7 @@
       const result=await call('operationsUnlock',{password:value});
       if(!current())return;
       token=result.token;
-      expiry=setTimeout(()=>lock('운영 암호를 다시 입력해 주세요.'),result.expiresIn*1000);
+      expiry=setTimeout(()=>lock('암호를 다시 입력해 주세요.'),result.expiresIn*1000);
       unlock.hidden=true;board.hidden=false;
       await loadPosts(current);
     });
@@ -111,10 +111,10 @@
     event.preventDefault();
     run(async current=>{
       const value=password.elements.password.value;
-      if(value!==password.elements.confirm.value){message('새 운영 암호가 일치하지 않습니다.',true);return;}
+      if(value!==password.elements.confirm.value){message('새 암호가 일치하지 않습니다.',true);return;}
       password.reset();
       await call('operationsSetPassword',{password:value});
-      if(current())lock('운영 암호를 저장했습니다.');
+      if(current())lock('암호를 저장했습니다.');
     });
   };
   editor.onsubmit=event=>{
