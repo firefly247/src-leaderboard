@@ -13,7 +13,8 @@
   <link rel="icon" type="image/png" href="static/icons/club-192.png">
   <link rel="stylesheet" href="static/training.css?v=20261028-04">
   <link rel="stylesheet" href="static/race-lineup.css?v=20261025-01">
-  <link rel="stylesheet" href="static/style.css?v=20261123-03">
+  <link rel="stylesheet" href="static/vendor/easymde-2.21.0.min.css">
+  <link rel="stylesheet" href="static/style.css?v=20261123-04">
   <link rel="stylesheet" href="static/member-auth.css?v=20261103-03">
   <link rel="stylesheet" href="static/admin-notifications.css?v=20261103-01">
   <link rel="stylesheet" href="static/club-home.css?v=20261101-31">
@@ -137,7 +138,10 @@
             <h2>게시물 작성</h2>
             <label>분류<select name="category"><option value="rules">동호회 회칙</option><option value="equipment">물품관리</option><option value="general">기타</option></select></label>
             <label>제목<input name="title" maxlength="120" required></label>
-            <label>본문<textarea name="content" rows="8" maxlength="8000" required></textarea></label>
+            <div class="operations-editor-field">
+              <label for="operationsContent">본문</label>
+              <textarea id="operationsContent" name="content" rows="8" maxlength="8000" required></textarea>
+            </div>
             <div class="operations-actions"><button type="submit" class="primary-button">저장</button><button type="button" class="secondary-button" id="operationsCancel">취소</button></div>
           </form>
           <div id="operationsPosts"></div>
@@ -154,7 +158,9 @@
   <script src="static/pwa.js?v=20261101-02"></script>
   <script src="static/admin-notifications.js?v=20261101-01"></script>
   <script src="static/admin-push.js?v=20261103-04"></script>
-  <script src="static/club-operations.js?v=20261123-02"></script>
+  <script src="static/vendor/markdown-it-15.0.3.js"></script>
+  <script src="static/vendor/easymde-2.21.0.min.js"></script>
+  <script src="static/club-operations.js?v=20261123-03"></script>
   <script src="static/supabase-member-auth.js?v=20261103-03"></script>
 </body>
 </html>

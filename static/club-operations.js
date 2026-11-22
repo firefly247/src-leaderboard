@@ -4,16 +4,27 @@
   const get=id=>root.querySelector('#operations'+id);
   const unlock=get('Unlock'),settings=get('Settings'),password=get('Password'),board=get('Board');
   const editor=get('Post'),posts=get('Posts'),category=get('Category'),more=get('More'),status=get('Status');
+  const content=get('Content');
+  const markdown=window.markdownit?.({html:false,breaks:true}).disable('image');
+  if(markdown){
+    markdown.renderer.rules.table_open=()=>'<div class="operations-table-scroll" tabindex="0" role="region" aria-label="표"><table>\n';
+    markdown.renderer.rules.table_close=()=>'</table></div>\n';
+  }
   const labels={rules:'동호회 회칙',equipment:'물품관리',general:'기타'};
   const date=new Intl.DateTimeFormat('ko-KR',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Seoul'});
   const call=(action,payload)=>window.ClubApi.call(action,payload);
-  let token='',expiry,revision=0,busy=false,visible=false,operator='',admin=false,editing=null,nextOffset=null;
+  let token='',expiry,revision=0,busy=false,visible=false,operator='',admin=false,editing=null,nextOffset=null,markdownEditor=null;
 
   function message(text='',error=false){
     status.classList.toggle('is-error',error);
     status.textContent=text;
   }
   function closeEditor(){
+    if(markdownEditor){
+      markdownEditor.toTextArea();
+      markdownEditor=null;
+      content.required=true;
+    }
     editing=null;
     editor.reset();
     editor.hidden=true;
@@ -59,15 +70,45 @@
     editor.querySelector('h2').textContent=post?'게시물 수정':'게시물 작성';
     editor.elements.category.value=post?.category||category.value||'general';
     editor.elements.title.value=post?.title||'';
-    editor.elements.content.value=post?.content||'';
     editor.hidden=false;
+    if(markdownEditor){
+      markdownEditor.value(post?.content||'');
+    }else{
+      content.value=post?.content||'';
+      if(markdown&&window.EasyMDE){
+        const EasyMDE=window.EasyMDE;
+        markdownEditor=new EasyMDE({
+          element:content,autoDownloadFontAwesome:false,spellChecker:false,status:false,
+          minHeight:'190px',maxHeight:'55vh',sideBySideFullscreen:false,
+          previewClass:'operations-markdown',previewRender:text=>markdown.render(text),
+          shortcuts:{toggleFullScreen:null,toggleSideBySide:null},
+          toolbar:[
+            {name:'heading',action:EasyMDE.toggleHeadingSmaller,text:'제목',title:'제목'},
+            {name:'bold',action:EasyMDE.toggleBold,text:'굵게',title:'굵게'},
+            {name:'unordered-list',action:EasyMDE.toggleUnorderedList,text:'목록',title:'글머리 목록'},
+            {name:'ordered-list',action:EasyMDE.toggleOrderedList,text:'번호',title:'번호 목록'},
+            {name:'table',action:EasyMDE.drawTable,text:'표',title:'표 삽입'},
+            {name:'link',action:EasyMDE.drawLink,text:'링크',title:'링크 삽입'},
+            '|',
+            {name:'preview',action:EasyMDE.togglePreview,text:'미리보기',title:'미리보기 전환'},
+          ],
+        });
+        content.required=false;
+        markdownEditor.codemirror.getInputField().setAttribute('aria-label','본문');
+      }
+    }
     editor.elements.title.focus();
   }
   function postCard(post){
     const article=element('article','','operations-card'),details=element('details'),summary=element('summary');
     const meta=element('span',`${post.author_name} · ${date.format(new Date(post.updated_at))}`,'operations-meta');
     summary.append(element('span',labels[post.category],'operations-tag'),element('strong',post.title),meta);
-    details.append(summary,element('p',post.content,'operations-content'));
+    const body=element('div','','operations-content');
+    if(markdown){
+      body.classList.add('operations-markdown');
+      body.innerHTML=markdown.render(post.content);
+    }else body.textContent=post.content;
+    details.append(summary,body);
     if(post.canEdit){
       const actions=element('div','','operations-actions');
       actions.append(actionButton('수정',()=>openEditor(post)),actionButton('삭제',()=>{
@@ -119,8 +160,19 @@
   };
   editor.onsubmit=event=>{
     event.preventDefault();
+    if(busy)return;
+    const text=(markdownEditor?.value()??content.value).trim();
+    if(!text||text.length>content.maxLength){
+      message('본문을 1자 이상 8,000자 이하로 입력해 주세요.',true);
+      if(markdownEditor){
+        if(markdownEditor.isPreviewActive())window.EasyMDE.togglePreview(markdownEditor);
+        markdownEditor.codemirror.focus();
+      }else content.focus();
+      return;
+    }
     run(async current=>{
       const fields=Object.fromEntries(new FormData(editor));
+      fields.content=text;
       const post=editing;
       await call(post?'operationsUpdate':'operationsCreate',{token,...fields,...(post?{id:post.id,updatedAt:post.updated_at}:{})});
       if(!current())return;
