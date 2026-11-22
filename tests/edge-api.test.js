@@ -84,7 +84,8 @@ test('Operating privileges grant planning and a password-gated board while block
  f.snapshot.tables.dormant_members.push({member_name:'김선수'});
  assert.equal((await member('operationsList',{token})).code,'operations_locked');
  f.snapshot.tables.dormant_members=[];
- assert.equal((await f.adminCall('operationsSetPassword',{password:'rotated-password'})).ok,true);
+ assert.match((await f.adminCall('operationsSetPassword',{password:'short'})).message,/6자 이상/);
+ assert.equal((await f.adminCall('operationsSetPassword',{password:'abcdef'})).ok,true);
  assert.equal((await member('operationsList',{token})).code,'operations_locked');
 });
 test('Only administrators can persist officer status and it stays private and independent of coach status',async()=>{

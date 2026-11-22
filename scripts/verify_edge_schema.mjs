@@ -121,7 +121,11 @@ try{
  assert.equal(await operations('unlock',[id,'test-only-password','session-a']),'ok');
  assert.equal(await operations('session',[id,'session-a']),true);
  assert.equal(await operations('session',[second,'session-a']),false);
- assert.equal(await operations('set_password',[second,'different-password']),true);
+ await db.exec('reset role;');await db.exec(await readFile('supabase/migrations/20261123030000_operations_password_minimum.sql','utf8'));
+ await db.exec('set role service_role;');
+ assert.equal(await operations('session',[id,'session-a']),true);
+ assert.equal(await operations('set_password',[second,'short']),false);
+ assert.equal(await operations('set_password',[second,'abcdef']),true);
  assert.equal(await operations('session',[id,'session-a']),false);
  await db.exec("insert into public.club_operations_posts(category,title,content,author_name) values('rules','회칙','private-board-text','관리자');");
  assert.doesNotMatch(JSON.stringify((await db.query('select public.club_public_read() as v')).rows[0].v),/private-board-text/);

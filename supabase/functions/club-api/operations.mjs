@@ -1,12 +1,13 @@
 const categories=new Set(['rules','equipment','general']);
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const pageSize=10;
+const minimumPasswordLength=6;
 export const OPERATIONS_ACTIONS=new Set(['operationsSetPassword','operationsUnlock','operationsList','operationsCreate','operationsUpdate','operationsArchive']);
 
 function passwordFrom(payload,min){
   const password=payload.password;
   if(typeof password!=='string'||!password.trim()||password.includes('\0')||[...password].length<min||new TextEncoder().encode(password).length>72){
-    throw new Error(min===8?'암호를 8자 이상, 72바이트 이하로 입력해 주세요.':'운영 암호를 확인해 주세요.');
+    throw new Error(min===minimumPasswordLength?`암호를 ${min}자 이상, 72바이트 이하로 입력해 주세요.`:'운영 암호를 확인해 주세요.');
   }
   return password;
 }
@@ -14,7 +15,7 @@ function passwordFrom(payload,min){
 export async function handleOperations(action,p,member,{rest,rpc,hex,limitUnlock}){
   if(action==='operationsSetPassword'){
     if(member.role!=='admin')throw new Error('관리자만 운영 암호를 설정할 수 있습니다.');
-    if(!await rpc('club_operations_set_password',{p_user_id:member.user_id,p_password:passwordFrom(p,8)}))throw new Error('운영 암호를 설정하지 못했습니다.');
+    if(!await rpc('club_operations_set_password',{p_user_id:member.user_id,p_password:passwordFrom(p,minimumPasswordLength)}))throw new Error('운영 암호를 설정하지 못했습니다.');
     return {};
   }
   if(action==='operationsUnlock'){
