@@ -87,6 +87,7 @@ a { color: inherit; text-decoration: none; }
 .operations-toolbar label { flex: 1 1 180px; max-width: 270px; margin-inline-end: auto; }
 .operations-composer { width: 100%; margin-top: 16px; padding: clamp(12px,3vw,22px); border: 1px solid var(--line); border-radius: 14px; background: var(--bg); }
 .operations-composer h2 { margin: 0; font-size: 20px; }
+#operationsPost:not([hidden]) ~ #operationsArticle:not([hidden]) { margin-top: 16px; }
 .operations-editor-field { min-width: 0; }
 .operations-editor-field > label { margin-bottom: 6px; }
 .operations-editor-field .EasyMDEContainer { border-radius: 10px; background: var(--surface); }

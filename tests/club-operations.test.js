@@ -6,7 +6,7 @@ const markdownit=require('../static/vendor/markdown-it-15.0.3.js');
 
 test('Operations posts render Markdown tables and lists without loading images or executing author HTML',async()=>{
   function node(){
-    return {children:[],classList:{add(){},toggle(){}},append(...children){this.children.push(...children);},replaceChildren(...children){this.children=children;},
+    return {children:[],isConnected:true,classList:{add(){},toggle(){}},append(...children){this.children.push(...children);},replaceChildren(...children){this.children=children;},
       reset(){},setAttribute(){},removeAttribute(){},style:{setProperty(){}},focus(){this.focused=true;},scrollIntoView(){this.scrolled=true;},
       querySelectorAll(){return this.innerHTML?.includes('<h2>지출 기준</h2>')?[heading]:[];}};
   }
@@ -17,13 +17,21 @@ test('Operations posts render Markdown tables and lists without loading images o
   };
   const content='## 지출 기준\n\n| 항목 | 금액 |\n| --- | --- |\n| **장비** | 30만 원 |\n\n1. 신청\n2. 정산\n\n<img src="https://example.test/profile">\n\n![비공개](https://example.test/image)\n\n[링크](https://example.test/info)';
   let calls=0;
-  const window={markdownit,ClubApi:{async call(action,payload){
+  const window={markdownit,addEventListener:(name,fn)=>listeners.set(name,fn),ClubApi:{async call(action,payload){
     calls++;
     assert.equal(action,'operationsList');
     assert.deepEqual({...payload},{category:'',offset:0});
-    return {posts:[{title:'경비 안내',content,category:'rules',author_name:'테스트',updated_at:'2026-11-23T00:00:00Z'}],nextOffset:null};
+    return {posts:[{id:'post-id',title:'경비 안내',content,category:'rules',author_name:'테스트',updated_at:'2026-11-23T00:00:00Z'}],nextOffset:null};
   }}};
-  const context={window,document:{querySelector:()=>root,createElement:()=>node(),addEventListener:(name,fn)=>listeners.set(name,fn)},setTimeout(){},clearTimeout(){}};
+  const entries=[null];
+  let position=0;
+  const history={
+    get state(){return entries[position];},
+    pushState(state){entries.splice(++position,entries.length,state);},
+    back(){listeners.get('popstate')({state:entries[--position]});},
+    forward(){listeners.get('popstate')({state:entries[++position]});},
+  };
+  const context={window,history,document:{querySelector:()=>root,createElement:()=>node(),addEventListener:(name,fn)=>listeners.set(name,fn)},setTimeout(){},clearTimeout(){}};
   vm.runInNewContext(fs.readFileSync('static/club-operations.js','utf8'),context);
   window.ClubOperations.route('operations');
   assert.equal(calls,0);
@@ -46,10 +54,18 @@ test('Operations posts render Markdown tables and lists without loading images o
   jump.onclick();
   assert.equal(heading.focused,true);
   assert.equal(heading.scrolled,true);
-  tools.children[0].onclick();
+  assert.equal(history.state.operationsPost,'post-id');
+  history.back();
   assert.equal(list.hidden,false);
   assert.equal(article.hidden,true);
   assert.equal(rowButton.focused,true);
+  history.forward();
+  assert.equal(article.children[1].textContent,'경비 안내');
+  assert.equal(list.hidden,true);
+  article.children[0].children[0].onclick();
+  assert.equal(history.state,null);
+  assert.equal(article.hidden,true);
+  assert.equal(calls,1);
   listeners.get('club-operator-changed')({detail:{userId:'',admin:false}});
   assert.equal(root.querySelector('#operationsBoard').hidden,true);
   assert.equal(root.querySelector('#operationsPosts').children.length,0);
@@ -67,7 +83,7 @@ test('Adding a category selects it in the editor and makes it available in the l
   editor.querySelector=get;
   editor.elements={title:node()};
   const category={id:'custom-id',name:'행사 안내'};
-  const window={ClubApi:{async call(action,payload){
+  const window={addEventListener(){},ClubApi:{async call(action,payload){
     calls.push([action,{...payload}]);
     if(action==='operationsAddCategory')return {category};
     return {posts:[],categories:[],nextOffset:null};

@@ -15,6 +15,7 @@
   const defaultCategories=[['rules','동호회 회칙'],['equipment','물품관리'],['general','기타']];
   const newCategory='__new__';
   let labels=new Map(defaultCategories);
+  const postRows=new Map();
   const date=new Intl.DateTimeFormat('ko-KR',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Seoul'});
   const call=(action,payload)=>window.ClubApi.call(action,payload);
   let revision=0,busy=false,visible=false,operator='',editing=null,nextOffset=null,markdownEditor=null,postTrigger=null;
@@ -40,6 +41,7 @@
     busy=false;nextOffset=null;
     closeEditor();
     category.value='';category.disabled=false;posts.replaceChildren();more.hidden=true;empty.hidden=true;board.hidden=true;
+    postRows.clear();
     labels=new Map(defaultCategories);
     syncCategoryOptions();
     showList();
@@ -152,7 +154,14 @@
     const row=element('li','','operations-post-row');
     const button=element('button','','operations-post-link');
     button.type='button';
-    button.onclick=()=>showPost(post,button);
+    postRows.set(post.id,{post,button});
+    button.onclick=()=>{
+      if(busy||!operator)return;
+      const state={operationsPost:post.id};
+      if(history.state?.operationsPost)history.replaceState(state,'');
+      else history.pushState(state,'');
+      showPost(post,button);
+    };
     button.append(
       element('span',labels.get(post.category),'operations-tag'),
       element('strong',post.title,'operations-post-title'),
@@ -164,8 +173,12 @@
   }
   function showList(restoreFocus=false){
     article.hidden=true;article.replaceChildren();list.hidden=false;toolbar.hidden=false;
-    if(restoreFocus)(postTrigger||get('New')).focus();
+    if(restoreFocus)(postTrigger?.isConnected?postTrigger:get('New')).focus();
     postTrigger=null;
+  }
+  function returnToList(){
+    if(history.state?.operationsPost)history.back();
+    else showList(true);
   }
   function articleContents(body){
     const headings=[...body.querySelectorAll('h1,h2,h3,h4,h5,h6')];
@@ -190,7 +203,7 @@
   function showPost(post,trigger){
     if(busy||!operator)return;
     postTrigger=trigger;
-    const back=actionButton('← 목록',()=>showList(true));
+    const back=actionButton('← 목록',()=>{back.disabled=true;returnToList();});
     const tools=element('div','','operations-article-tools');
     const title=element('h2',post.title,'operations-article-title');
     title.tabIndex=-1;
@@ -212,7 +225,7 @@
           await call('operationsArchive',{id:post.id,updatedAt:post.updated_at});
           if(!current())return;
           if(editing?.id===post.id)closeEditor();
-          showList();
+          returnToList();
           await loadPosts(current);
           if(current())message('게시물을 삭제했습니다.');
         });
@@ -227,7 +240,7 @@
   async function loadPosts(current,offset=0){
     const selected=category.value;
     more.hidden=true;
-    if(!offset){posts.replaceChildren();empty.hidden=true;}
+    if(!offset){posts.replaceChildren();postRows.clear();empty.hidden=true;}
     const result=await call('operationsList',{category:selected,offset});
     if(!current())return;
     if(result.categories){
@@ -268,7 +281,7 @@
       await call(post?'operationsUpdate':'operationsCreate',{...fields,...(post?{id:post.id,updatedAt:post.updated_at}:{})});
       if(!current())return;
       closeEditor();
-      showList();
+      if(post)returnToList();
       if(category.value)category.value=fields.category;
       await loadPosts(current);
       if(current())message('게시물을 저장했습니다.');
@@ -288,6 +301,15 @@
   more.onclick=()=>{if(nextOffset!==null)run(current=>loadPosts(current,nextOffset));};
   get('New').onclick=()=>openEditor();
   get('Cancel').onclick=()=>{if(!busy){closeEditor();if(article.hidden)get('New').focus();else article.querySelector('h2').focus();}};
+  window.addEventListener('popstate',event=>{
+    if(!visible||!operator)return;
+    const row=postRows.get(event.state?.operationsPost);
+    if(row&&!busy)showPost(row.post,row.button);
+    else if(!article.hidden){
+      if(editing)closeEditor();
+      showList(true);
+    }
+  });
   document.addEventListener('club-operator-changed',event=>{
     operator=event.detail.userId;
     clearBoard();
