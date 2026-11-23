@@ -54,3 +54,42 @@ test('Operations posts render Markdown tables and lists without loading images o
   assert.equal(root.querySelector('#operationsBoard').hidden,true);
   assert.equal(root.querySelector('#operationsPosts').children.length,0);
 });
+
+test('Adding a category selects it in the editor and makes it available in the list filter',async()=>{
+  const nodes=new Map(),listeners=new Map(),calls=[];
+  const node=()=>({value:'',children:[],classList:{toggle(){}},append(...children){this.children.push(...children);},
+    replaceChildren(...children){this.children=children;},focus(){this.focused=true;},reset(){},setAttribute(){},removeAttribute(){}});
+  const get=selector=>{
+    if(!nodes.has(selector))nodes.set(selector,node());
+    return nodes.get(selector);
+  };
+  const editor=get('#operationsPost');
+  editor.querySelector=get;
+  editor.elements={title:node()};
+  const category={id:'custom-id',name:'행사 안내'};
+  const window={ClubApi:{async call(action,payload){
+    calls.push([action,{...payload}]);
+    if(action==='operationsAddCategory')return {category};
+    return {posts:[],categories:[],nextOffset:null};
+  }}};
+  const root={...node(),querySelector:get};
+  const document={querySelector:()=>root,createElement:node,addEventListener:(name,fn)=>listeners.set(name,fn)};
+  vm.runInNewContext(fs.readFileSync('static/club-operations.js','utf8'),{window,document});
+  window.ClubOperations.route('operations');
+  listeners.get('club-operator-changed')({detail:{userId:'operator'}});
+  const flush=()=>new Promise(resolve=>setImmediate(resolve));
+  await flush();
+  get('#operationsNew').onclick();
+  const select=get('#operationsPostCategory'),entry=get('#operationsCategoryEntry'),name=get('#operationsCategoryName');
+  select.value=select.children.find(option=>option.textContent==='신규 입력').value;
+  select.onchange();
+  assert.equal(entry.hidden,false);
+  assert.equal(name.focused,true);
+  name.value=' 행사 안내 ';
+  get('#operationsAddCategory').onclick();
+  await flush();
+  assert.deepEqual(calls.at(-1),['operationsAddCategory',{name:'행사 안내'}]);
+  assert.equal(select.value,category.id);
+  assert.equal(entry.hidden,true);
+  assert.equal(get('#operationsCategory').children.find(option=>option.value===category.id).textContent,category.name);
+});

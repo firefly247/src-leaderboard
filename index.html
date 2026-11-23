@@ -116,13 +116,17 @@
         <p class="form-result" id="operationsStatus" role="status"></p>
         <section id="operationsBoard" aria-label="운영 게시판" hidden>
           <div class="operations-toolbar" id="operationsToolbar">
-            <label>분류<select id="operationsCategory"><option value="">전체</option><option value="rules">동호회 회칙</option><option value="equipment">물품관리</option><option value="general">기타</option></select></label>
+            <label>분류<select id="operationsCategory"><option value="">전체</option></select></label>
             <button type="button" class="primary-button" id="operationsNew">글 쓰기</button>
             <button type="button" class="secondary-button" id="operationsRefresh">새로고침</button>
           </div>
           <form class="operations-form operations-composer" id="operationsPost" hidden>
             <h2>게시물 작성</h2>
-            <label>분류<select name="category"><option value="rules">동호회 회칙</option><option value="equipment">물품관리</option><option value="general">기타</option></select></label>
+            <label>분류<select id="operationsPostCategory" name="category" aria-controls="operationsCategoryEntry"></select></label>
+            <div id="operationsCategoryEntry" class="operations-actions" hidden>
+              <label>새 분류 이름<input id="operationsCategoryName" maxlength="30" autocomplete="off"></label>
+              <button type="button" class="secondary-button" id="operationsAddCategory">분류 추가</button>
+            </div>
             <label>제목<input name="title" maxlength="120" required></label>
             <div class="operations-editor-field">
               <label for="operationsContent">본문</label>
@@ -151,7 +155,7 @@
   <script src="static/admin-push.js?v=20261103-04"></script>
   <script src="static/vendor/markdown-it-15.0.3.js"></script>
   <script src="static/vendor/easymde-2.21.0.min.js"></script>
-  <script src="static/club-operations.js?v=20261123-05"></script>
+  <script src="static/club-operations.js?v=20261123-06"></script>
   <script src="static/supabase-member-auth.js?v=20261103-03"></script>
 </body>
 </html>

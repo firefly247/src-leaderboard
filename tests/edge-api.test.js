@@ -5,7 +5,7 @@ const blank=()=>Object.fromEntries(Object.keys(layout).map(k=>[k,[]]));
 async function fixture(){
  const {createHandler}=await import('../supabase/functions/club-api/handler.mjs');
  let snapshot={revision:1,tables:blank()},reads=0,conflict=null;const writes=[],uploads=[],roleWrites=[],coaches=new Set(),officers=new Set();
- const posts=[];
+ const posts=[],categories=[{id:'rules',name:'동호회 회칙'},{id:'equipment',name:'물품관리'},{id:'general',name:'기타'}];
  snapshot.tables.events=[{event_id:'e1',event_name:'2000m'}];snapshot.tables.player_birth_years=[{member_name:'김선수',birth_year:'1980',join_year:'2023',updated_at:''}];
  const account={user_id:'00000000-0000-0000-0000-000000000001',player_name:'김선수',requested_player_name:null,role:'member'};
  const response=v=>new Response(v===undefined?'':JSON.stringify(v),{status:200});
@@ -23,6 +23,13 @@ async function fixture(){
   }
   if(path==='club_operations_posts'){
    posts.push({...p,id:crypto.randomUUID(),created_at:'2026-11-23T00:00:00Z',updated_at:'2026-11-23T00:00:00Z'});return response();
+  }
+  if(path.startsWith('club_operations_categories?')){
+   if(options.method==='GET')return response(categories);
+   assert.equal(options.headers.Prefer,'resolution=merge-duplicates,return=representation');
+   let category=categories.find(row=>row.name===p.name);
+   if(!category){category={id:crypto.randomUUID(),name:p.name};categories.push(category);}
+   return response([category]);
   }
   if(path.startsWith('club_operations_posts?')){
    const query=new URLSearchParams(path.split('?')[1]),matches=posts.filter(post=>!post.archived_at&&[...query].every(([key,value])=>!value.startsWith('eq.')||value==='eq.'+post[key]));
@@ -54,7 +61,7 @@ async function fixture(){
 test('The board opens with a verified administrator or officer role and rejects revoked access',async()=>{
  const f=await fixture(),member=(action,p)=>f.call(action,p,'','verified');
  assert.equal((await f.call('operationsList')).code,'operations_forbidden');
- for(const action of ['operationsList','operationsCreate','operationsUpdate','operationsArchive']){
+ for(const action of ['operationsList','operationsAddCategory','operationsCreate','operationsUpdate','operationsArchive']){
   assert.equal((await member(action,{role:'admin',canOperate:true})).code,'operations_forbidden');
  }
  assert.equal((await f.adminCall('memberOfficerSet',{memberName:'김선수',isOfficer:true})).ok,true);
@@ -78,6 +85,20 @@ test('The board opens with a verified administrator or officer role and rejects 
  f.snapshot.tables.dormant_members=[];
  await f.adminCall('memberOfficerSet',{memberName:'김선수',isOfficer:false});
  assert.equal((await member('operationsList')).code,'operations_forbidden');
+});
+test('Operations categories are reusable before a post exists and can filter new posts',async()=>{
+ const f=await fixture();
+ assert.equal((await f.adminCall('operationsAddCategory',{name:'  '})).ok,false);
+ const {category}=await f.adminCall('operationsAddCategory',{name:'  행사 안내  '});
+ assert.equal(category.name,'행사 안내');
+ assert.deepEqual((await f.adminCall('operationsAddCategory',{name:'행사 안내'})).category,category);
+ const emptyList=await f.adminCall('operationsList',{category:category.id});
+ assert.deepEqual(emptyList.categories.map(row=>row.name),['동호회 회칙','물품관리','기타','행사 안내']);
+ assert.deepEqual(emptyList.posts,[]);
+ const entry={category:category.id,title:'정기 행사',content:'행사 일정'};
+ assert.equal((await f.adminCall('operationsCreate',entry)).ok,true);
+ assert.equal((await f.adminCall('operationsList',{category:category.id})).posts[0].category,category.id);
+ assert.deepEqual((await f.adminCall('operationsList',{category:'general'})).posts,[]);
 });
 test('Only administrators can persist officer status and it stays private and independent of coach status',async()=>{
  const f=await fixture(),name='김선수',set=isOfficer=>f.adminCall('memberOfficerSet',{memberName:name,isOfficer});

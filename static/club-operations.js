@@ -4,6 +4,7 @@
   const get=id=>root.querySelector('#operations'+id);
   const board=get('Board');
   const editor=get('Post'),posts=get('Posts'),category=get('Category'),more=get('More'),status=get('Status');
+  const postCategory=get('PostCategory'),categoryEntry=get('CategoryEntry'),categoryName=get('CategoryName');
   const list=get('List'),toolbar=get('Toolbar'),article=get('Article'),empty=get('Empty');
   const content=get('Content');
   const markdown=window.markdownit?.({html:false,breaks:true}).disable('image');
@@ -11,7 +12,9 @@
     markdown.renderer.rules.table_open=()=>'<div class="operations-table-scroll" tabindex="0" role="region" aria-label="표"><table>\n';
     markdown.renderer.rules.table_close=()=>'</table></div>\n';
   }
-  const labels={rules:'동호회 회칙',equipment:'물품관리',general:'기타'};
+  const defaultCategories=[['rules','동호회 회칙'],['equipment','물품관리'],['general','기타']];
+  const newCategory='__new__';
+  let labels=new Map(defaultCategories);
   const date=new Intl.DateTimeFormat('ko-KR',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Seoul'});
   const call=(action,payload)=>window.ClubApi.call(action,payload);
   let revision=0,busy=false,visible=false,operator='',editing=null,nextOffset=null,markdownEditor=null,postTrigger=null;
@@ -28,6 +31,8 @@
     }
     editing=null;
     editor.reset();
+    categoryEntry.hidden=true;
+    categoryName.value='';
     editor.hidden=true;
   }
   function clearBoard(text='',error=false){
@@ -35,6 +40,8 @@
     busy=false;nextOffset=null;
     closeEditor();
     category.value='';category.disabled=false;posts.replaceChildren();more.hidden=true;empty.hidden=true;board.hidden=true;
+    labels=new Map(defaultCategories);
+    syncCategoryOptions();
     showList();
     root.removeAttribute('aria-busy');
     message(text,error);
@@ -67,11 +74,45 @@
     button.type='button';button.onclick=handler;
     return button;
   }
+  function syncCategoryOptions(){
+    function option(value,label){
+      const node=element('option',label);
+      node.value=value;
+      return node;
+    }
+    const filter=category.value,selected=postCategory.value;
+    category.replaceChildren(option('','전체'),...[...labels].map(([id,name])=>option(id,name)));
+    category.value=labels.has(filter)?filter:'';
+    postCategory.replaceChildren(...[...labels].map(([id,name])=>option(id,name)),option(newCategory,'신규 입력'));
+    postCategory.value=labels.has(selected)||selected===newCategory?selected:'general';
+  }
+  function addCategory(){
+    if(busy||postCategory.value!==newCategory)return;
+    const name=categoryName.value.trim();
+    if(!name){
+      message('새 분류 이름을 입력해 주세요.',true);
+      categoryName.focus();
+      return;
+    }
+    run(async current=>{
+      const result=await call('operationsAddCategory',{name});
+      if(!current())return;
+      labels.set(result.category.id,result.category.name);
+      syncCategoryOptions();
+      postCategory.value=result.category.id;
+      categoryEntry.hidden=true;
+      categoryName.value='';
+      postCategory.focus();
+      message('분류를 선택했습니다.');
+    });
+  }
   function openEditor(post=null){
     if(busy||!operator)return;
     editing=post;
     editor.querySelector('h2').textContent=post?'게시물 수정':'게시물 작성';
-    editor.elements.category.value=post?.category||category.value||'general';
+    postCategory.value=post?.category||category.value||'general';
+    categoryEntry.hidden=true;
+    categoryName.value='';
     editor.elements.title.value=post?.title||'';
     editor.hidden=false;
     if(markdownEditor){
@@ -113,7 +154,7 @@
     button.type='button';
     button.onclick=()=>showPost(post,button);
     button.append(
-      element('span',labels[post.category],'operations-tag'),
+      element('span',labels.get(post.category),'operations-tag'),
       element('strong',post.title,'operations-post-title'),
       element('span',post.author_name,'operations-author'),
       postDate(post),
@@ -154,7 +195,7 @@
     const title=element('h2',post.title,'operations-article-title');
     title.tabIndex=-1;
     const meta=element('div','','operations-meta');
-    meta.append(element('span',labels[post.category],'operations-tag'),element('span',post.author_name),postDate(post));
+    meta.append(element('span',labels.get(post.category),'operations-tag'),element('span',post.author_name),postDate(post));
     const body=element('div','','operations-content');
     if(markdown){
       body.classList.add('operations-markdown');
@@ -189,6 +230,11 @@
     if(!offset){posts.replaceChildren();empty.hidden=true;}
     const result=await call('operationsList',{category:selected,offset});
     if(!current())return;
+    if(result.categories){
+      labels=new Map(defaultCategories);
+      for(const {id,name} of result.categories)labels.set(id,name);
+      syncCategoryOptions();
+    }
     if(!offset)empty.hidden=result.posts.length>0;
     posts.append(...result.posts.map(postRow));
     nextOffset=result.nextOffset;more.hidden=nextOffset===null;
@@ -201,6 +247,11 @@
   editor.onsubmit=event=>{
     event.preventDefault();
     if(busy)return;
+    if(postCategory.value===newCategory){
+      message('새 분류를 추가하거나 기존 분류를 선택해 주세요.',true);
+      categoryName.focus();
+      return;
+    }
     const text=(markdownEditor?.value()??content.value).trim();
     if(!text||text.length>content.maxLength){
       message('본문을 1자 이상 8,000자 이하로 입력해 주세요.',true);
@@ -223,6 +274,15 @@
       if(current())message('게시물을 저장했습니다.');
     });
   };
+  postCategory.onchange=()=>{
+    categoryEntry.hidden=postCategory.value!==newCategory;
+    if(categoryEntry.hidden)categoryName.value='';
+    else categoryName.focus();
+  };
+  categoryName.onkeydown=event=>{
+    if(event.key==='Enter'&&!event.isComposing){event.preventDefault();addCategory();}
+  };
+  get('AddCategory').onclick=addCategory;
   category.onchange=()=>run(loadPosts);
   get('Refresh').onclick=()=>run(loadPosts);
   more.onclick=()=>{if(nextOffset!==null)run(current=>loadPosts(current,nextOffset));};
