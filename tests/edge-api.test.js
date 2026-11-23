@@ -34,6 +34,7 @@ async function fixture(){
   if(path.startsWith('club_operations_posts?')){
    const query=new URLSearchParams(path.split('?')[1]),matches=posts.filter(post=>!post.archived_at&&[...query].every(([key,value])=>!value.startsWith('eq.')||value==='eq.'+post[key]));
    if(options.method==='PATCH'){matches.forEach(post=>Object.assign(post,p));return response(matches);}
+   if(!query.has('limit'))return response(matches);
    return response(matches.slice(Number(query.get('offset')),Number(query.get('offset'))+Number(query.get('limit'))));
   }
   const table=path.split('?')[0];if(['club_player_birth_years','club_records','club_competition_records','club_dormant_members'].includes(table)){
@@ -61,7 +62,7 @@ async function fixture(){
 test('The board opens with a verified administrator or officer role and rejects revoked access',async()=>{
  const f=await fixture(),member=(action,p)=>f.call(action,p,'','verified');
  assert.equal((await f.call('operationsList')).code,'operations_forbidden');
- for(const action of ['operationsList','operationsAddCategory','operationsCreate','operationsUpdate','operationsArchive']){
+ for(const action of ['operationsList','operationsGet','operationsAddCategory','operationsCreate','operationsUpdate','operationsArchive']){
   assert.equal((await member(action,{role:'admin',canOperate:true})).code,'operations_forbidden');
  }
  assert.equal((await f.adminCall('memberOfficerSet',{memberName:'김선수',isOfficer:true})).ok,true);
@@ -77,8 +78,14 @@ test('The board opens with a verified administrator or officer role and rejects 
  assert.equal((await member('operationsCreate',entry)).ok,true);
  const list=await member('operationsList',{category:'equipment'}),post=list.posts[0];
  assert.equal(post.title,'장비 점검');assert.equal(post.canEdit,true);assert.equal(post.author_id,undefined);
+  assert.deepEqual((await member('operationsGet',{id:post.id})).post,post);
+  assert.equal((await member('operationsGet',{id:'invalid'})).ok,false);
+  assert.equal((await f.call('operationsGet',{id:post.id})).code,'operations_forbidden');
  assert.equal((await member('operationsUpdate',{...entry,id:post.id,updatedAt:post.updated_at,title:'점검 완료'})).ok,true);
  assert.equal((await member('operationsArchive',{id:post.id,updatedAt:post.updated_at})).ok,false);
+  const updated=(await member('operationsGet',{id:post.id})).post;
+  assert.equal((await member('operationsArchive',{id:post.id,updatedAt:updated.updated_at})).ok,true);
+  assert.equal((await member('operationsGet',{id:post.id})).post,null);
  assert.doesNotMatch(JSON.stringify(await f.call('publicData')),/비공개 점검 기록/);
  f.snapshot.tables.dormant_members.push({member_name:'김선수'});
  assert.equal((await member('operationsList')).code,'operations_forbidden');

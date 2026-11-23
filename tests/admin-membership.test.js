@@ -2,7 +2,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 test('Administrator navigation follows the verified account role and clears private content on logout',()=>{
  const source=fs.readFileSync('static/leaderboard.js','utf8'),nodes=new Map(),events=[],clicks=[],memberMenus=[{},{}];
  const node=selector=>{if(!nodes.has(selector))nodes.set(selector,{hidden:false,innerHTML:'',classList:{toggle(){},contains(){return false;}},click(){clicks.push(selector);},remove(){}});return nodes.get(selector);};
- const context=vm.createContext({document:{querySelector:node,querySelectorAll:s=>s==='[data-member-menu]'?memberMenus:[],dispatchEvent:event=>events.push(event)},sessionStorage:{getItem:()=> 'old-admin-token'},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}},location:{hash:''}});
+ const context=vm.createContext({window:{},document:{querySelector:node,querySelectorAll:s=>s==='[data-member-menu]'?memberMenus:[],dispatchEvent:event=>events.push(event)},sessionStorage:{getItem:()=> 'old-admin-token'},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}},location:{hash:''}});
  vm.runInContext(source.slice(0,source.indexOf('document.querySelectorAll(".tab-button")')),context);
  assert.equal(vm.runInContext('state.adminUserId',context),'');
  assert.equal(context.canOpenClubTab('home'),true);assert.equal(context.canOpenClubTab('ergo'),false);
@@ -16,5 +16,10 @@ test('Administrator navigation follows the verified account role and clears priv
  node('#adminContent').innerHTML='private';context.syncMemberAdministrator({detail:{member:null}});
  assert.equal(node('[data-tab="admin"]').hidden,true);assert.equal(node('#adminConsole').hidden,true);assert.equal(node('#adminContent').innerHTML,'');assert.equal(events.at(-1).detail.enabled,false);
  assert.ok(memberMenus.every(m=>m.hidden===true));assert.equal(node('#memberTools').hidden,true);assert.equal(context.canOpenClubTab('training'),false);assert.equal(clicks.at(-1),'[data-tab="home"]');
+ context.location.hash='';context.window.ClubOperationsLink={read:()=> 'shared-post'};
+ context.syncClubRoute();assert.match(node('#sharedOperationsNotice').textContent,/로그인/);
+ context.syncMemberAdministrator({detail:{member:{userId:'member',role:'member'}}});assert.match(node('#sharedOperationsNotice').textContent,/임원진만/);
+ context.syncMemberAdministrator({detail:{member:{userId:'officer',role:'member',canOperate:true}}});
+ assert.equal(clicks.at(-1),'[data-tab="operations"]');assert.equal(node('#sharedOperationsNotice').hidden,true);
  const html=fs.readFileSync('index.html','utf8');assert.doesNotMatch(html,/id="adminLoginForm"|id="adminLogout"|>기록 관리</);assert.match(html,/>이력 관리</);assert.match(html,/data-admin-view="member-info">회원 정보/);
 });

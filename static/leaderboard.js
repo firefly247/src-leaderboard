@@ -506,9 +506,12 @@ function openClubTab(tab,adminView='add'){
   if(tab==='admin')return loadAdmin(adminView);
 }
 function syncClubRoute(){
-  const requested=location.hash.slice(1)||'home',tab=canOpenClubTab(requested)?requested:'home';
+  const sharedPost=window.ClubOperationsLink?.read(),requested=location.hash.slice(1)||(sharedPost?'operations':'home'),tab=canOpenClubTab(requested)?requested:'home';
+  const notice=$('#sharedOperationsNotice');
+  notice.hidden=!(sharedPost&&requested==='operations'&&tab==='home');
+  if(!notice.hidden)notice.textContent=state.memberUserId?'동호회 운영 게시물은 관리자와 임원진만 열 수 있습니다.':'공유 게시물을 보려면 운영진 계정으로 로그인해 주세요.';
   if(!document.querySelector(`[data-panel="${tab}"]`)?.classList.contains('is-active'))document.querySelector(`[data-tab="${tab}"]`).click();
-  else if(requested!==tab)history.replaceState(null,'','#home');
+  else if(requested!==tab&&!sharedPost)history.replaceState(null,'','#home');
 }
 function syncMemberAdministrator(event){
   const member=event.detail.member,previous=state.adminUserId,previousOperator=state.operatorUserId;

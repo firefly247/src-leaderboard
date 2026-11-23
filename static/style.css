@@ -107,6 +107,7 @@ a { color: inherit; text-decoration: none; }
 .operations-author,.operations-date,.operations-meta { color: var(--muted); font-size: 13px; }
 .operations-empty { padding: 16px 14px; }
 .operations-article-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.operations-share-link { width: 100%; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 16px; }
 .operations-article-title { margin: 22px 0 8px; font-size: clamp(24px,4vw,36px); line-height: 1.25; overflow-wrap: anywhere; }
 .operations-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
 .operations-reading { display: grid; grid-template-columns: minmax(0,1fr); gap: 24px; padding-top: 18px; }

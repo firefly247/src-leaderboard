@@ -1,6 +1,7 @@
 (() => {
   'use strict';
   const root=document.querySelector('#clubOperations');
+  const operationsLink=window.ClubOperationsLink;
   const get=id=>root.querySelector('#operations'+id);
   const board=get('Board');
   const editor=get('Post'),posts=get('Posts'),category=get('Category'),more=get('More'),status=get('Status');
@@ -177,6 +178,7 @@
     postTrigger=null;
   }
   function returnToList(){
+    operationsLink?.clear();
     if(history.state?.operationsPost)history.back();
     else showList(true);
   }
@@ -201,7 +203,7 @@
     return nav;
   }
   function showPost(post,trigger){
-    if(busy||!operator)return;
+    if(!operator)return;
     postTrigger=trigger;
     const back=actionButton('← 목록',()=>{back.disabled=true;returnToList();});
     const tools=element('div','','operations-article-tools');
@@ -218,8 +220,23 @@
     if(contents)reading.append(contents);
     reading.append(body);
     tools.append(back);
+    const actions=element('div','','operations-actions');
+    const linkField=element('input','','operations-share-link');
+    linkField.type='url';linkField.readOnly=true;linkField.hidden=true;
+    linkField.setAttribute('aria-label','공유할 게시물 링크');
+    const copy=actionButton('링크 복사',async()=>{
+      const url=operationsLink.url(post.id);
+      try{
+        await navigator.clipboard.writeText(url);
+        if(copy.isConnected){linkField.hidden=true;message('링크를 복사했습니다.');}
+      }catch{
+        if(!copy.isConnected)return;
+        linkField.value=url;linkField.hidden=false;linkField.focus();linkField.select();
+        message('선택된 링크를 복사해 주세요.');
+      }
+    });
+    actions.append(copy);
     if(post.canEdit){
-      const actions=element('div','','operations-actions');
       actions.append(actionButton('수정',()=>openEditor(post)),actionButton('삭제',()=>{
         if(!busy&&operator&&confirm('게시물을 삭제할까요?'))run(async current=>{
           await call('operationsArchive',{id:post.id,updatedAt:post.updated_at});
@@ -230,8 +247,8 @@
           if(current())message('게시물을 삭제했습니다.');
         });
       }));
-      tools.append(actions);
     }
+    tools.append(actions,linkField);
     article.replaceChildren(tools,title,meta,reading);
     article.hidden=false;list.hidden=true;toolbar.hidden=true;
     title.focus();
@@ -255,7 +272,19 @@
   function openBoard(){
     if(!visible||!operator||!board.hidden)return;
     board.hidden=false;
-    run(loadPosts);
+    run(async current=>{
+      const id=operationsLink?.read();
+      await loadPosts(current);
+      if(!id||!current())return;
+      const row=postRows.get(id);
+      const post=row?.post||(await call('operationsGet',{id})).post;
+      if(!current())return;
+      if(post)showPost(post,row?.button);
+      else{
+        operationsLink.clear();
+        message('게시물을 찾을 수 없습니다.',true);
+      }
+    });
   }
   editor.onsubmit=event=>{
     event.preventDefault();
@@ -317,7 +346,7 @@
   });
   window.ClubOperations={route(tab){
     const next=tab==='operations';
-    if(!next&&visible)clearBoard();
+    if(!next&&visible){operationsLink?.clear();clearBoard();}
     visible=next;
     openBoard();
   }};

@@ -17,7 +17,8 @@ test('Operations posts render Markdown tables and lists without loading images o
   };
   const content='## 지출 기준\n\n| 항목 | 금액 |\n| --- | --- |\n| **장비** | 30만 원 |\n\n1. 신청\n2. 정산\n\n<img src="https://example.test/profile">\n\n![비공개](https://example.test/image)\n\n[링크](https://example.test/info)';
   let calls=0;
-  const window={markdownit,addEventListener:(name,fn)=>listeners.set(name,fn),ClubApi:{async call(action,payload){
+  const copied=[];
+  const window={markdownit,ClubOperationsLink:{read:()=>null,url:id=>'https://example.test/?operationsPost='+id,clear(){}},addEventListener:(name,fn)=>listeners.set(name,fn),ClubApi:{async call(action,payload){
     calls++;
     assert.equal(action,'operationsList');
     assert.deepEqual({...payload},{category:'',offset:0});
@@ -31,7 +32,7 @@ test('Operations posts render Markdown tables and lists without loading images o
     back(){listeners.get('popstate')({state:entries[--position]});},
     forward(){listeners.get('popstate')({state:entries[++position]});},
   };
-  const context={window,history,document:{querySelector:()=>root,createElement:()=>node(),addEventListener:(name,fn)=>listeners.set(name,fn)},setTimeout(){},clearTimeout(){}};
+  const context={window,history,navigator:{clipboard:{async writeText(url){copied.push(url);}}},document:{querySelector:()=>root,createElement:()=>node(),addEventListener:(name,fn)=>listeners.set(name,fn)},setTimeout(){},clearTimeout(){}};
   vm.runInNewContext(fs.readFileSync('static/club-operations.js','utf8'),context);
   window.ClubOperations.route('operations');
   assert.equal(calls,0);
@@ -44,6 +45,9 @@ test('Operations posts render Markdown tables and lists without loading images o
   assert.equal(list.hidden,true);
   const [tools,title,,reading]=article.children,[contents,body]=reading.children;
   assert.equal(title.textContent,'경비 안내');
+  assert.equal(tools.children[1].children[0].textContent,'링크 복사');
+  await tools.children[1].children[0].onclick();
+  assert.deepEqual(copied,['https://example.test/?operationsPost=post-id']);
   assert.match(body.innerHTML,/<h2>지출 기준<\/h2>/);
   assert.match(body.innerHTML,/class="operations-table-scroll"[^>]*><table>[\s\S]*<strong>장비<\/strong>/);
   assert.match(body.innerHTML,/<ol>[\s\S]*<li>신청<\/li>/);
@@ -69,6 +73,31 @@ test('Operations posts render Markdown tables and lists without loading images o
   listeners.get('club-operator-changed')({detail:{userId:'',admin:false}});
   assert.equal(root.querySelector('#operationsBoard').hidden,true);
   assert.equal(root.querySelector('#operationsPosts').children.length,0);
+});
+
+test('An authorized shared link loads a post outside the current list',async()=>{
+  const id='12345678-1234-1234-1234-123456789012';
+  const calls=[],nodes=new Map(),listeners=new Map();
+  const node=()=>({children:[],classList:{toggle(){}},append(...children){this.children.push(...children);},replaceChildren(...children){this.children=children;},
+    reset(){},setAttribute(){},removeAttribute(){},focus(){},scrollIntoView(){},querySelectorAll:()=>[]});
+  const root={...node(),querySelector(selector){
+    if(!nodes.has(selector))nodes.set(selector,node());
+    return nodes.get(selector);
+  }};
+  const window={addEventListener(){},ClubOperationsLink:{read:()=>id},ClubApi:{async call(action,payload){
+    calls.push([action,{...payload}]);
+    if(action==='operationsGet')return {post:{id,title:'이전 회의록',category:'rules',content:'회의 내용',updated_at:'2026-11-23T00:00:00Z'}};
+    return {posts:[],nextOffset:null};
+  }}};
+  const document={querySelector:()=>root,createElement:node,addEventListener:(name,fn)=>listeners.set(name,fn)};
+  vm.runInNewContext(fs.readFileSync('static/club-operations.js','utf8'),{window,document});
+  window.ClubOperations.route('operations');
+  assert.deepEqual(calls,[]);
+  listeners.get('club-operator-changed')({detail:{userId:'operator'}});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.deepEqual(calls,[['operationsList',{category:'',offset:0}],['operationsGet',{id}]]);
+  assert.equal(nodes.get('#operationsArticle').children[1].textContent,'이전 회의록');
+  assert.equal(nodes.get('#operationsArticle').hidden,false);
 });
 
 test('Adding a category selects it in the editor and makes it available in the list filter',async()=>{
